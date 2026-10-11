@@ -12,7 +12,9 @@
 # Nahrávají se jen změněné soubory (stav si akce drží na serveru v souboru
 # .ftp-deploy-sync-state.json). Appka nemá databázi ani nastavení; pozůstatky
 # starší verze na serveru (databáze v data/, config.local.php, install.php)
-# akce nikdy nepřepíše ani nesmaže, uklízí se ručně (viz README).
+# akce nepřepíše ani nesmaže, uklízí se ručně (viz README). Pozor: složku,
+# která z repa zmizí, akce maže celou i s vyřazenými soubory, proto data/
+# v repu zůstává.
 
 name: Nasazení na FTP
 

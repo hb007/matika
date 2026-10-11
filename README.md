@@ -52,7 +52,7 @@ Stačí běžný webhosting s **PHP 8.1 nebo novějším**. Databáze ani instal
 
 Appka si aktuální příklad pamatuje v PHP session, hosting tedy musí mít zapnuté sessions (běžné výchozí nastavení).
 
-**Úklid po starší verzi.** Starší verze ukládala jména a body do databáze a měla instalátor. Pokud na serveru zůstaly, smaž přes FTP složku `data/` (včetně souboru `.sqlite`) a soubory `config.local.php` a `install.php`. Při ručním nahrávání smaž i `schema.sql`, `config.php` a `lib/db.php` (automatické nahrávání níže je smaže samo). Než to uděláš, chrání `.htaccess` databázi i nastavení před stažením.
+**Úklid po starší verzi.** Starší verze ukládala jména a body do databáze a měla instalátor. Pokud na serveru zůstaly, smaž přes FTP soubor `.sqlite` ve složce `data/` (složku samotnou nech) a soubory `config.local.php` a `install.php`. Při ručním nahrávání smaž i `schema.sql`, `config.php` a `lib/db.php` (automatické nahrávání níže je smaže samo). Do té doby chrání databázi i nastavení před stažením `.htaccess` a `data/index.html`.
 
 ## Automatické nahrávání na FTP (GitHub Actions)
 
@@ -87,5 +87,6 @@ Ve vývojovém Docker kontejneru (`docker-compose.yml`, image `vibecode` s PHP) 
 * `lib/generators.php` – generátory příkladů a kontrola odpovědí.
 * `lib/explain.php` – nápověda po krocích, postup řešení a rozbor typických chyb.
 * `paper.js` – papír na počítání (canvas, pero, guma).
+* `data/` – appka ji nepoužívá, jen chrání databázi starší verze na serveru. Z repa ji nemaž: automatické nahrávání maže zmizelé složky celé i s obsahem, tedy i s databází.
 
 Appka nic neukládá a nikoho nepřihlašuje, takže na ní není co chránit. Kdo ji přesto nechce mít veřejnou, dá před ni HTTP basic auth na úrovni web serveru.
