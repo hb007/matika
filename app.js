@@ -84,8 +84,11 @@
       + `<span class="me-goal" title="Denní cíl ${me.solved_today} z ${state.goal}"><span style="width:${pct}%"></span></span>`;
     $('goal-text').textContent = `Dnes ${me.solved_today} z ${state.goal}`;
     document.title = `${me.name} – Matika`;
-    $('task-other').innerHTML = users.filter((u) => u.id !== state.user).map((u) =>
+    // přepnutí dítěte je v seznamu úloh i pod štítkem se jménem
+    const other = users.filter((u) => u.id !== state.user).map((u) =>
       `<a class="task-item" href="${u.kind}" data-kind="${u.kind}">Přepnout na <span class="kid-name">${esc(u.name)}</span><b>${u.today} b.</b></a>`).join('');
+    $('task-other').innerHTML = other;
+    $('me-other').innerHTML = other;
   }
 
   function showWho() {
@@ -102,17 +105,23 @@
     $('task-list').innerHTML = Object.entries(state.modules).map(([key, m]) =>
       `<button type="button" class="task-item" data-module="${key}"${key === state.module ? ' aria-current="true"' : ''}>${esc(m.title)}</button>`).join('');
   }
-  function openTaskMenu() {
-    $('task-menu').hidden = false;
-    $('btn-task').setAttribute('aria-expanded', 'true');
-    const cur = $('task-list').querySelector('[aria-current]');
-    if (cur) cur.focus();
+  // Dvě rozbalovací nabídky v záhlaví: úlohy (tlačítko úlohy) a účet (štítek se jménem).
+  const MENUS = [['btn-task', 'task-menu'], ['me', 'me-menu']];
+  function openMenu(btn, menu) {
+    closeTaskMenu();
+    $(menu).hidden = false;
+    $(btn).setAttribute('aria-expanded', 'true');
+    const first = $(menu).querySelector('[aria-current]') || $(menu).querySelector('a, button');
+    if (first) first.focus();
   }
   function closeTaskMenu() {
-    $('task-menu').hidden = true;
-    $('btn-task').setAttribute('aria-expanded', 'false');
+    MENUS.forEach(([btn, menu]) => {
+      $(menu).hidden = true;
+      $(btn).setAttribute('aria-expanded', 'false');
+    });
   }
-  $('btn-task').addEventListener('click', () => ($('task-menu').hidden ? openTaskMenu() : closeTaskMenu()));
+  MENUS.forEach(([btn, menu]) =>
+    $(btn).addEventListener('click', () => ($(menu).hidden ? openMenu(btn, menu) : closeTaskMenu())));
   $('task-list').addEventListener('click', (e) => {
     const b = e.target.closest('[data-module]');
     if (!b) return;
@@ -120,10 +129,12 @@
     startTask(b.dataset.module, p.level, p.diff);
   });
   document.addEventListener('click', (e) => {
-    if (!$('task-menu').hidden && !e.target.closest('.task')) closeTaskMenu();
+    if (!e.target.closest('.task, .account')) closeTaskMenu();
   });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !$('task-menu').hidden) { closeTaskMenu(); $('btn-task').focus(); }
+    if (e.key !== 'Escape') return;
+    const open = MENUS.find(([, menu]) => !$(menu).hidden);
+    if (open) { closeTaskMenu(); $(open[0]).focus(); }
   });
 
   // Appka otevře poslední úlohu dítěte (s jeho úrovní a obtížností).
@@ -584,7 +595,8 @@
     show('stats');
   }
 
-  $('btn-stats').addEventListener('click', () => { clearTimeout(state.timer); state.ex = null; loadStats(); });
+  document.querySelectorAll('[data-stats]').forEach((b) =>
+    b.addEventListener('click', () => { clearTimeout(state.timer); state.ex = null; loadStats(); }));
   $('compare').addEventListener('click', async (e) => {
     const r = e.target.closest('.reset');
     if (r) {

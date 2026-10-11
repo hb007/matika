@@ -41,7 +41,13 @@ if ($kid) {
 <body<?= $kid ? " data-kid=\"$kid\"" : '' ?>>
 <header class="top">
   <a href="./" class="brand" id="brand">Matika</a>
-  <span class="me" id="me" hidden></span>
+  <div class="account">
+    <button type="button" class="me" id="me" aria-haspopup="true" aria-expanded="false" aria-controls="me-menu" hidden></button>
+    <nav class="task-menu me-menu" id="me-menu" aria-label="Účet" hidden>
+      <div id="me-other"></div>
+      <button type="button" class="task-item link-ink" data-stats>Výsledky a body</button>
+    </nav>
+  </div>
   <div class="task">
     <button type="button" class="task-btn" id="btn-task" aria-haspopup="true" aria-expanded="false" aria-controls="task-menu" hidden>
       <span id="task-name"></span>
@@ -51,7 +57,7 @@ if ($kid) {
       <div id="task-list"></div>
       <div class="task-sep" aria-hidden="true"></div>
       <div id="task-other"></div>
-      <button type="button" class="task-item link-ink" id="btn-stats">Výsledky a body</button>
+      <button type="button" class="task-item link-ink" data-stats>Výsledky a body</button>
     </nav>
   </div>
 </header>
