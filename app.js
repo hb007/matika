@@ -474,6 +474,48 @@
     EFFECTS[name](from.getBoundingClientRect());
   }
 
+  // ---------- výsledky ----------
+  const MODULE_NAME = (m) => (state.modules[m] ? state.modules[m].title : m);
+
+  async function loadStats() {
+    const s = await api('stats');
+    renderKids(s.users);
+    const row = (label, f) => `<tr><th>${label}</th>${s.users.map((u) => `<td class="num">${f(u)}</td>`).join('')}</tr>`;
+    $('compare').innerHTML =
+      `<tr><th></th>${s.users.map((u) => `<th class="num">${EMOJI[u.kind]} ${esc(u.name)} <button type="button" class="link rename" data-user="${u.id}" aria-label="Přejmenovat">✏️</button></th>`).join('')}</tr>`
+      + row('Dnes', (u) => u.today + ' b.')
+      + row('Tento týden', (u) => u.week + ' b.')
+      + row('Celkem', (u) => u.total + ' b.')
+      + row('Dnes vyřešeno', (u) => `${u.solved_today} / ${state.goal}`)
+      + row('Série dní', (u) => (u.days ? '🔥 ' + u.days : '–'));
+    $('parent').innerHTML = s.users.map((u) => {
+      const st = s.stats[u.id];
+      const per = st.per_task.length
+        ? `<table class="table">${st.per_task.map((p) => `<tr><td>${esc(MODULE_NAME(p.module))} – ${esc(state.diffs[p.difficulty] || p.difficulty)}</td><td class="num">${p.n}×</td><td class="num">${Math.round((p.first / p.n) * 100)} % napoprvé</td></tr>`).join('')}</table>`
+        : '<p class="empty">Zatím nic.</p>';
+      const hard = st.hardest.length
+        ? `<div class="mistakes">${st.hardest.map((h) => `<div><span>${renderQ(h.question)}</span><span class="right">${renderQ(h.answer)}</span></div>`).join('')}</div>`
+        : '<p class="empty">Žádné opakované chyby.</p>';
+      return `<details open><summary>${EMOJI[u.kind]} ${esc(u.name)}</summary>${per}<h3>Co nejde (30 dní)</h3>${hard}</details>`;
+    }).join('');
+    show('stats');
+  }
+
+  $('btn-stats').addEventListener('click', () => { clearTimeout(state.timer); loadStats(); });
+  $('compare').addEventListener('click', async (e) => {
+    const b = e.target.closest('.rename');
+    if (!b) return;
+    const u = state.users.find((x) => x.id === Number(b.dataset.user));
+    const name = prompt('Přezdívka (1 až 20 znaků):', u.name);
+    if (name === null) return;
+    try {
+      await api('rename', { target: u.id, name });
+      loadStats();
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
   // ---------- navigace ----------
   document.querySelectorAll('[data-go]').forEach((el) =>
     el.addEventListener('click', (e) => {

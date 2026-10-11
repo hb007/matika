@@ -83,6 +83,15 @@ $kid = in_array($kid, ['holka', 'kluk'], true) ? $kid : '';
     </div>
     <button class="link small" data-go="menu">← Jiný úkol</button>
   </section>
+
+  <!-- výsledky -->
+  <section id="screen-stats" class="screen" hidden>
+    <h1>Výsledky</h1>
+    <table class="table" id="compare"></table>
+    <h2>Přehled pro rodiče</h2>
+    <div id="parent"></div>
+    <button class="link" data-go="menu">← Zpět</button>
+  </section>
 </main>
 <script src="<?= $v('paper.js') ?>"></script>
 <script src="<?= $v('app.js') ?>"></script>
