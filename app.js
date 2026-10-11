@@ -245,7 +245,7 @@
       endQuestion();
       fb.className = 'feedback ok';
       fb.innerHTML = pick(['Správně!', 'Přesně tak!', 'Paráda!', 'Trefa!', 'Výborně!', 'Super!']) + (r.note ? `<small>${esc(r.note)}</small>` : '');
-      confetti($('question'));
+      celebrate($('question'));
       state.timer = setTimeout(next, r.note ? 2400 : 1500);
       return;
     }
@@ -355,32 +355,77 @@
     return arr[Math.floor(Math.random() * arr.length)];
   }
 
-  // ---------- efekt ----------
-  // Konfety z místa příkladu; kdo má v systému omezené animace, uvidí jen pochvalu.
+  // ---------- efekty ----------
+  // Za správnou odpověď náhodný efekt, nikdy dvakrát po sobě stejný.
+  // Kdo má v systému omezené animace, uvidí jen pochvalu.
   const CALM = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const COLORS = ['#3b6cf6', '#1f9d55', '#f5b400', '#e8590c', '#d6336c', '#7048e8'];
+  let lastEffect = null;
 
-  function confetti(from) {
-    if (CALM || !document.body.animate) return;
-    const r = from.getBoundingClientRect();
-    for (let n = 0; n < 60; n++) {
-      const c = document.createElement('i');
-      c.className = 'confetti';
-      c.style.background = pick(COLORS);
-      c.style.left = r.left + r.width / 2 + 'px';
-      c.style.top = r.top + r.height / 2 + 'px';
-      document.body.appendChild(c);
+  // Jedna animovaná částice (emoji, nebo barevná konfeta); po doběhnutí zmizí.
+  function particle(x, y, frames, duration, emoji, delay = 0) {
+    const c = document.createElement('i');
+    c.className = emoji ? 'fx emoji' : 'fx confetti';
+    if (emoji) c.textContent = emoji;
+    else c.style.background = pick(COLORS);
+    c.style.left = x + 'px';
+    c.style.top = y + 'px';
+    document.body.appendChild(c);
+    c.animate(frames, { duration, delay, easing: 'ease-out', fill: 'backwards' }).onfinish = () => c.remove();
+    return c;
+  }
+
+  // výbuch z místa příkladu, částice pak padají dolů
+  function burst(r, count, emojis) {
+    for (let n = 0; n < count; n++) {
       const a = Math.random() * Math.PI * 2;
       const d = 60 + Math.random() * 160;
       const x = Math.cos(a) * d;
       const y = Math.sin(a) * d - 60;
       const spin = (Math.random() - 0.5) * 1080;
-      c.animate([
+      particle(r.left + r.width / 2, r.top + r.height / 2, [
         { transform: 'translate(0, 0) rotate(0deg)', opacity: 1 },
         { transform: `translate(${x}px, ${y}px) rotate(${spin / 2}deg)`, opacity: 1, offset: 0.3 },
         { transform: `translate(${x * 1.3}px, ${y + 260}px) rotate(${spin}deg)`, opacity: 0 },
-      ], { duration: 1200 + Math.random() * 600, easing: 'ease-out' }).onfinish = () => c.remove();
+      ], 1200 + Math.random() * 600, emojis && pick(emojis));
     }
+  }
+
+  const EFFECTS = {
+    confetti: (r) => burst(r, 60),
+    stars: (r) => burst(r, 24, ['⭐', '🌟', '✨']),
+    balloons: () => {
+      for (let n = 0; n < 14; n++) {
+        const drift = (Math.random() - 0.5) * 160;
+        particle(Math.random() * innerWidth, innerHeight + 40, [
+          { transform: 'translate(0, 0)' },
+          { transform: `translate(${drift}px, ${-innerHeight - 120}px)` },
+        ], 2200 + Math.random() * 1200, pick(['🎈', '🎈', '🎈', '🎉']), Math.random() * 400);
+      }
+    },
+    rain: () => {
+      for (let n = 0; n < 30; n++) {
+        particle(Math.random() * innerWidth, -40, [
+          { transform: 'translate(0, 0) rotate(0deg)' },
+          { transform: `translate(0, ${innerHeight + 80}px) rotate(${(Math.random() - 0.5) * 720}deg)` },
+        ], 1400 + Math.random() * 900, pick(['🍀', '🌈', '💎', '🍭', '⭐']), Math.random() * 700);
+      }
+    },
+    trophy: (r) => {
+      particle(r.left + r.width / 2, innerHeight / 2, [
+        { transform: 'scale(0) rotate(-30deg)', opacity: 0 },
+        { transform: 'scale(1.25) rotate(10deg)', opacity: 1, offset: 0.35 },
+        { transform: 'scale(1) rotate(0deg)', opacity: 1, offset: 0.75 },
+        { transform: 'scale(1.4)', opacity: 0 },
+      ], 1400, pick(['👍', '🏆', '🥇', '💯', '🤩'])).style.fontSize = '120px';
+    },
+  };
+
+  function celebrate(from) {
+    if (CALM || !document.body.animate) return;
+    const name = pick(Object.keys(EFFECTS).filter((k) => k !== lastEffect));
+    lastEffect = name;
+    EFFECTS[name](from.getBoundingClientRect());
   }
 
   // ---------- navigace ----------

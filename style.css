@@ -115,10 +115,9 @@ input:focus { outline: none; border-color: var(--accent); }
   .feedback.bad:not(.reveal) { animation: shake .35s; }
 }
 @keyframes shake { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
-.confetti {
-  position: fixed; z-index: 50; width: 9px; height: 14px; margin: -7px 0 0 -4px;
-  border-radius: 2px; pointer-events: none;
-}
+.fx { position: fixed; z-index: 50; pointer-events: none; }
+.confetti { width: 9px; height: 14px; margin: -7px 0 0 -4px; border-radius: 2px; }
+.emoji { font-size: 30px; font-style: normal; line-height: 1; margin: -.5em 0 0 -.5em; }
 .feedback.bad { background: var(--bad-bg); color: var(--bad); }
 .feedback small { display: block; font-weight: 500; font-size: 16px; margin-top: 4px; }
 .feedback .next { margin-top: 10px; }

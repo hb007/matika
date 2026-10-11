@@ -32,7 +32,7 @@ Pravidla, která hlídá server:
 * Desetinná čísla berou čárku i tečku.
 * U dělení s ocáskem se zadává podíl a zbytek (zbytek 0 se píše jako 0).
 
-**Správná odpověď.** Z příkladu vyletí konfety, ukáže se pochvala a po chvilce naskočí další příklad. Kdo má v systému zapnuté omezení animací, uvidí jen pochvalu.
+**Správná odpověď.** Ukáže se pochvala s náhodným efektem (konfety, hvězdičky, balónky, padající déšť emoji nebo velká medaile či palec, nikdy dvakrát po sobě stejný) a po chvilce naskočí další příklad. Kdo má v systému zapnuté omezení animací, uvidí jen pochvalu.
 
 **Špatná odpověď.** Appka výsledek neprozradí. Napíše „Ještě ne, zkus to znovu“, a pokud to pozná, tak i **co konkrétně bylo špatně** („sečetl jsi místo odečtení“, „jmenovatele se nesčítají“, „zbytek je větší než dělitel“, „podíl má mít 4 číslice“ …). Odpověď zůstane v políčku k opravě a pokusů je neomezeně. Tlačítko „Ukázat výsledek“ ukáže správný výsledek a **postup řešení po krocích** (rozklad na desítky, společný jmenovatel, dělení pod sebou číslici po číslici). Další příklad pak přijde po kliknutí na „Další“ nebo Enter.
 
@@ -82,7 +82,7 @@ Ve vývojovém Docker kontejneru (`docker-compose.yml`, image `vibecode` s PHP) 
 
 ## Jak to funguje
 
-* `index.php` + `app.js` + `paper.js` + `style.css` – jedna stránka, obrazovky se přepínají v JS. Konfety jsou v `app.js` (Web Animations API, bez knihovny).
+* `index.php` + `app.js` + `paper.js` + `style.css` – jedna stránka, obrazovky se přepínají v JS. Efekty za správnou odpověď jsou v `app.js` (objekt `EFFECTS`, Web Animations API, bez knihovny); nový efekt = nová položka v `EFFECTS`.
 * `api.php` – JSON API (`modules`, `next`, `hint`, `answer`, `reveal`). Příklady generuje a kontroluje server, aktuální příklad drží v PHP session. `answer` vrací jen správně/špatně a rozbor chyby, správný výsledek s postupem dá až `reveal`.
 * `lib/generators.php` – generátory příkladů a kontrola odpovědí.
 * `lib/explain.php` – nápověda po krocích, postup řešení a rozbor typických chyb.
