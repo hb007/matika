@@ -6,22 +6,14 @@ window.Game2048 = (() => {
     128: '#edcf72', 256: '#edcc61', 512: '#edc850', 1024: '#edc53f', 2048: '#edc22e' };
 
   function create(stage, { onScore, onOver } = {}) {
-    const canvas = document.createElement('canvas');
-    stage.appendChild(canvas);
-    const ctx = canvas.getContext('2d');
+    const { canvas, ctx, colors: readColors, fit } = window.GameCanvas(stage, {
+      bg: ['--line', '#b9c7d6'], empty: ['--canvas', '#fff'], ink: [null, '#3b3520'], inkLight: [null, '#fff'], big: ['--kid', '#1f45b5'],
+    });
     let grid, score, over, running, size, css;
 
-    function readColors() {
-      const s = getComputedStyle(canvas);
-      const v = (n, fb) => s.getPropertyValue(n).trim() || fb;
-      css = { bg: v('--line', '#b9c7d6'), empty: v('--canvas', '#fff'), ink: '#3b3520', inkLight: '#fff', big: v('--kid', '#1f45b5') };
-    }
     function resize() {
-      const w = canvas.getBoundingClientRect().width;
+      const w = fit();
       if (!w) return;
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = canvas.height = Math.round(w * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       size = w;
       draw();
     }
@@ -37,7 +29,7 @@ window.Game2048 = (() => {
       score = 0;
       over = false;
       running = false;
-      readColors();
+      css = readColors();
       addTile();
       addTile();
       resize();
@@ -128,7 +120,7 @@ window.Game2048 = (() => {
     if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas);
     reset();
     return {
-      reset, turn, start() { running = !over; }, stop() { running = false; }, recolor() { readColors(); draw(); },
+      reset, turn, start() { running = !over; }, stop() { running = false; }, recolor() { css = readColors(); draw(); },
       get running() { return running; }, get over() { return over; },
     };
   }

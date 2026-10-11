@@ -166,10 +166,14 @@ window.Offline = (() => {
   function queue(uid) {
     return load(queueKey(uid), []);
   }
+  // Vrací false, když se výsledek neuložil ani po uvolnění místa (zásoba jde
+  // stáhnout znovu, výsledek ne).
   function record(uid, ex, revealed) {
     const q = queue(uid);
     q.push({ id: ex.id, answers: ex.answers, revealed, at: Date.now() });
-    save(queueKey(uid), q);
+    if (save(queueKey(uid), q)) return true;
+    try { localStorage.removeItem(poolKey(uid)); } catch (e) { /* nic */ }
+    return save(queueKey(uid), q);
   }
   function forget(uid, ids) {
     const done = new Set(ids);

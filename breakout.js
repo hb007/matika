@@ -6,23 +6,15 @@ window.Breakout = (() => {
   const ROW_COLORS = ['#ff6b6b', '#ffa94d', '#ffd43b', '#69db7c', '#4dabf7'];
 
   function create(stage, { onScore, onOver } = {}) {
-    const canvas = document.createElement('canvas');
-    stage.appendChild(canvas);
-    const ctx = canvas.getContext('2d');
+    const { canvas, ctx, colors: readColors, fit } = window.GameCanvas(stage, {
+      bg: ['--canvas', '#fff'], paddle: ['--kid', '#1f45b5'], ball: ['--ink', '#262a31'], muted: ['--muted', '#5d6470'],
+    });
     let W = 0, bricks, ball, paddle, lives, score, over, running, stuck, raf, last, css, keyDir = 0;
 
-    function readColors() {
-      const s = getComputedStyle(canvas);
-      const v = (n, fb) => s.getPropertyValue(n).trim() || fb;
-      css = { bg: v('--canvas', '#fff'), paddle: v('--kid', '#1f45b5'), ball: v('--ink', '#262a31'), muted: v('--muted', '#5d6470') };
-    }
     function resize() {
-      const w = canvas.getBoundingClientRect().width;
+      const w = fit();
       if (!w) return;
-      const dpr = window.devicePixelRatio || 1;
       const scale = W ? w / W : 1;
-      canvas.width = canvas.height = Math.round(w * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       if (W && ball) {   // při změně velikosti přepočítat pozice
         ball.x *= scale; ball.y *= scale; ball.vx *= scale; ball.vy *= scale; paddle.x *= scale;
       }
@@ -49,7 +41,7 @@ window.Breakout = (() => {
     }
     function reset() {
       cancelAnimationFrame(raf);
-      readColors();
+      css = readColors();
       bricks = [];
       for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) bricks.push({ r, c, on: true });
       lives = 3;
@@ -163,7 +155,7 @@ window.Breakout = (() => {
     if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas);
     reset();
     return {
-      reset, start, stop, recolor() { readColors(); draw(); },
+      reset, start, stop, recolor() { css = readColors(); draw(); },
       // šipky: pohyb pálky, dokud je klávesa / tlačítko dole (release = 'stop')
       turn(dir) { keyDir = dir === 'left' ? -1 : dir === 'right' ? 1 : 0; },
       release() { keyDir = 0; },

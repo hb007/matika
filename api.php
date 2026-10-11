@@ -137,9 +137,13 @@ try {
             out(['done' => $done, 'users' => users_state(db(), $today)]);
 
         case 'time':
-            // čas v appce, který přibyl na tomto zařízení (viz lib/usage.php)
+            // celkový čas v appce za den na tomto zařízení (viz lib/usage.php)
             $uid = require_uid($in);
-            out(['ms' => add_usage(db(), $uid, is_array($in['items'] ?? null) ? $in['items'] : [], $today)]);
+            try {
+                out(['ms' => add_usage(db(), $uid, param($in, 'device'), is_array($in['items'] ?? null) ? $in['items'] : [], $today)]);
+            } catch (InvalidArgumentException $e) {
+                fail($e->getMessage());
+            }
 
         case 'stats':
             $stats = [];

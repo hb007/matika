@@ -2,28 +2,20 @@
 // mezer mezi sloupy. Náraz do sloupu nebo do země hru ukončí.
 window.Flappy = (() => {
   function create(stage, { onScore, onOver } = {}) {
-    const canvas = document.createElement('canvas');
-    stage.appendChild(canvas);
-    const ctx = canvas.getContext('2d');
+    const { canvas, ctx, colors: readColors, fit } = window.GameCanvas(stage, {
+      bg: ['--canvas', '#fff'], pipe: ['--kid', '#1f45b5'], ground: ['--line', '#b9c7d6'],
+    });
     let W = 0, bird, pipes, score, over, running, raf, last, spawn, css;
 
-    function readColors() {
-      const s = getComputedStyle(canvas);
-      const v = (n, fb) => s.getPropertyValue(n).trim() || fb;
-      css = { bg: v('--canvas', '#fff'), pipe: v('--kid', '#1f45b5'), ground: v('--line', '#b9c7d6') };
-    }
     function resize() {
-      const w = canvas.getBoundingClientRect().width;
+      const w = fit();
       if (!w) return;
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = canvas.height = Math.round(w * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       W = w;
       draw();
     }
     function reset() {
       cancelAnimationFrame(raf);
-      readColors();
+      css = readColors();
       bird = { y: 0.45, vy: 0 };   // v násobcích šířky plochy
       pipes = [];
       score = 0;
@@ -103,7 +95,7 @@ window.Flappy = (() => {
     if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas);
     reset();
     return {
-      reset, start, stop() { running = false; cancelAnimationFrame(raf); }, recolor() { readColors(); draw(); },
+      reset, start, stop() { running = false; cancelAnimationFrame(raf); }, recolor() { css = readColors(); draw(); },
       turn(dir) { if (dir === 'up') flap(); }, action: flap,
       get running() { return running; }, get over() { return over; },
     };

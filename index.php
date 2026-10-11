@@ -185,6 +185,8 @@ if ($kid) {
 </div>
 <script src="<?= $v('paper.js') ?>"></script>
 <script src="<?= $v('offline.js') ?>"></script>
+<script src="<?= $v('usage.js') ?>"></script>
+<script src="<?= $v('gamekit.js') ?>"></script>
 <script src="<?= $v('rewards.js') ?>"></script>
 <script src="<?= $v('snake.js') ?>"></script>
 <script src="<?= $v('g2048.js') ?>"></script>

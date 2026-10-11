@@ -10,22 +10,14 @@ window.Snake = (() => {
   const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 
   function create(canvas, { onScore, onOver } = {}) {
-    const ctx = canvas.getContext('2d');
+    const { ctx, colors: readColors, fit } = window.GameCanvas(canvas, {
+      bg: ['--canvas', '#fff'], grid: ['--canvas-grid', '#e3e9f5'], snake: ['--kid', '#1f45b5'], eye: ['--canvas', '#fff'],
+    });
     let snake, dir, queue, food, score, step, timer, running, over, cell, colors;
 
-    function readColors() {
-      const css = getComputedStyle(canvas);
-      const v = (name, fb) => css.getPropertyValue(name).trim() || fb;
-      colors = { bg: v('--canvas', '#fff'), grid: v('--canvas-grid', '#e3e9f5'), snake: v('--kid', '#1f45b5'), eye: v('--canvas', '#fff') };
-    }
-
     function size() {
-      const w = canvas.getBoundingClientRect().width;
+      const w = fit();
       if (!w) return;
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(w * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       cell = w / N;
       draw();
     }
@@ -48,7 +40,7 @@ window.Snake = (() => {
       running = false;
       over = false;
       clearTimeout(timer);
-      readColors();
+      colors = readColors();
       placeFood();
       size();
       if (onScore) onScore(score);
@@ -169,7 +161,7 @@ window.Snake = (() => {
     if (window.ResizeObserver) new ResizeObserver(size).observe(canvas);
 
     reset();
-    return { reset, start, stop, turn, recolor() { readColors(); draw(); }, get running() { return running; }, get over() { return over; } };
+    return { reset, start, stop, turn, recolor() { colors = readColors(); draw(); }, get running() { return running; }, get over() { return over; } };
   }
 
   return { create };

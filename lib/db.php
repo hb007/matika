@@ -27,10 +27,19 @@ function db_open(string $dsn): PDO
         id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id),
         task TEXT NOT NULL, q TEXT NOT NULL, ex TEXT NOT NULL, due INTEGER NOT NULL,
         UNIQUE (user_id, task, q))');
-    // čas v appce za den, součet ze všech zařízení (lib/usage.php)
-    $pdo->exec('CREATE TABLE IF NOT EXISTS usage (
-        user_id INTEGER NOT NULL REFERENCES users(id), day TEXT NOT NULL, ms INTEGER NOT NULL DEFAULT 0,
-        PRIMARY KEY (user_id, day))');
+    // čas v appce za den a zařízení, sčítá se přes zařízení (lib/usage.php)
+    $pdo->exec('CREATE TABLE IF NOT EXISTS usage_dev (
+        user_id INTEGER NOT NULL REFERENCES users(id), day TEXT NOT NULL, device TEXT NOT NULL,
+        ms INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (user_id, day, device))');
+    // starší verze sčítala přírůstky do tabulky usage: převést jednou a smazat
+    if ($pdo->query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'usage'")->fetchColumn()) {
+        try {
+            $pdo->exec("INSERT OR IGNORE INTO usage_dev SELECT user_id, day, 'starsi', ms FROM usage");
+            $pdo->exec('DROP TABLE usage');
+        } catch (PDOException $e) {
+            // dva požadavky najednou: druhý už tabulku nenajde
+        }
+    }
     // album nálepek (lib/rewards.php)
     $pdo->exec('CREATE TABLE IF NOT EXISTS stickers (
         user_id INTEGER NOT NULL REFERENCES users(id), kind TEXT NOT NULL,
