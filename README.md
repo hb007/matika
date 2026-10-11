@@ -61,7 +61,7 @@ Pravidla, která hlídá server:
 
 **Nápověda po krocích.** Když dítě neví, klikne na „Nápověda“ a uvidí první krok (třeba „Kolikrát se 8 vejde do 66?“). Každé další kliknutí odkryje další krok. Poslední krok nikdy neprozradí výsledek, ten musí dítě dopočítat samo.
 
-**Telefon a tablet.** Na dotykovém zařízení se místo systémové klávesnice ukáže velká číselná klávesnice přímo pod příkladem, jen s klávesami, které příklad potřebuje (lomítko u zlomků, minus u záporných čísel, čárka u desetinných, „zb.“ u dělení se zbytkem). Na tabletu na šířku je papír na počítání vedle příkladu.
+**Klávesnice.** Pod příkladem je vždy velká číselná klávesnice, jen s klávesami, které příklad potřebuje (lomítko u zlomků, minus u záporných čísel, čárka u desetinných, „zb.“ u dělení se zbytkem). Na dotykovém zařízení nahrazuje systémovou klávesnici, ta se nevysouvá. Na počítači (a na tabletu s klávesnicí) jde psát i rovnou z klávesnice, Enter odešle odpověď. Na tabletu na šířku je papír na počítání vedle příkladu.
 
 **Papír na počítání.** Pod příkladem jde otevřít čtverečkovaný papír, na který se píše prstem, perem nebo myší (guma, krok zpět, smazat). Slouží k počítání pod sebou, appka z něj nic nečte. U každého nového příkladu se vyčistí. Na tabletu s otevřeným papírem se nevysouvá klávesnice sama.
 

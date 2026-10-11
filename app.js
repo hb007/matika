@@ -223,17 +223,19 @@
       const ph = q.kind === 'frac' ? 'např. 3/4' : '';
       inputs.innerHTML = `<input type="text" inputmode="${mode}" id="ans" autocomplete="off" placeholder="${ph}"${ro}>`;
     }
-    if (KEYPAD) {
-      $('btn-submit').hidden = true;
-      inputs.querySelectorAll('input').forEach((inp) => inp.addEventListener('click', () => setActive(inp)));
-      setActive(inputs.querySelector('input'));
-      renderKeypad(q);
-    } else {
-      autoFocus(inputs.querySelector('input'));
-    }
+    // Klávesnice v appce je vidět všude (i počítač, tablet s klávesnicí); na
+    // počítači jde psát i rovnou do políčka, na dotyku nahrazuje systémovou.
+    $('btn-submit').hidden = true;
+    inputs.querySelectorAll('input').forEach((inp) => {
+      inp.addEventListener('click', () => setActive(inp));
+      inp.addEventListener('focus', () => setActive(inp));
+    });
+    setActive(inputs.querySelector('input'));
+    renderKeypad(q);
+    if (!KEYPAD) autoFocus(inputs.querySelector('input'));
   }
 
-  // ---------- vlastní klávesnice (telefon, tablet) ----------
+  // ---------- klávesnice v appce (všude; na dotyku místo systémové) ----------
   const KEYPAD = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
   let activeInput = null;
 
@@ -286,7 +288,10 @@
 
   $('keypad').addEventListener('click', (e) => {
     const b = e.target.closest('[data-key]');
-    if (b) pressKey(b.dataset.key);
+    if (!b) return;
+    pressKey(b.dataset.key);
+    // na počítači se dá po kliknutí hned psát dál z klávesnice
+    if (!KEYPAD && activeInput && !state.lock) activeInput.focus({ preventScroll: true });
   });
 
   // tablet s fyzickou klávesnicí: psaní funguje i do políček jen pro čtení
@@ -362,8 +367,8 @@
     $('btn-reveal').hidden = false;
     state.lock = false;
     const first = document.querySelector('#inputs input');
-    if (KEYPAD) setActive(first);
-    else first.select();
+    setActive(first);
+    if (!KEYPAD) first.select();
   });
 
   // Po vyřešení nebo ukázání výsledku: příklad už nejde měnit.
