@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/lib/db.php';
 require __DIR__ . '/lib/generators.php';
+require __DIR__ . '/lib/explain.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -102,6 +103,24 @@ try {
             $public = array_map(fn($ex, $i) => ['i' => $i, 'q' => $ex['q'], 'kind' => $ex['kind']], $questions, array_keys($questions));
             out(['round_id' => $rid, 'questions' => $public]);
 
+        case 'hint':
+            // nápověda před odpovědí; příklad pak nese jen poloviční body
+            $user = require_user();
+            $rid = (int) ($in['round_id'] ?? 0);
+            $i = (int) ($in['i'] ?? -1);
+            $st = db()->prepare('SELECT * FROM rounds WHERE id = ? AND user_id = ? AND finished_at IS NULL');
+            $st->execute([$rid, $user['id']]);
+            $round = $st->fetch() ?: fail('Kolo nenalezeno.', 404);
+            $questions = json_decode($round['questions'], true);
+            if (!isset($questions[$i])) {
+                fail('Špatné číslo příkladu.');
+            }
+            if (empty($questions[$i]['hint'])) {
+                $questions[$i]['hint'] = true;
+                db()->prepare('UPDATE rounds SET questions = ? WHERE id = ?')->execute([json_encode($questions), $rid]);
+            }
+            out(['hint' => hint($questions[$i])]);
+
         case 'answer':
             $user = require_user();
             $rid = (int) ($in['round_id'] ?? 0);
@@ -114,18 +133,26 @@ try {
                 fail('Špatné číslo příkladu.');
             }
             $ex = $questions[$i];
-            [$ok, $note] = check_answer($ex, $in['answer'] ?? '');
+            $given = $in['answer'] ?? '';
+            [$ok, $note] = check_answer($ex, $given);
+            $hinted = !empty($ex['hint']);
+            $points = $ok ? ($hinted ? 5 : 10) : 0;
             // první odpověď na příklad se počítá; opakované odeslání se ignoruje
             $st = db()->prepare('SELECT is_correct FROM answers WHERE round_id = ? AND idx = ?');
             $st->execute([$rid, $i]);
             if ($st->fetch() === false) {
-                db()->prepare('INSERT INTO answers (round_id, idx, question, correct_answer, given_answer, is_correct) VALUES (?, ?, ?, ?, ?, ?)')
-                    ->execute([$rid, $i, $ex['q'], answer_str($ex), given_str($ex, $in['answer'] ?? ''), $ok ? 1 : 0]);
+                db()->prepare('INSERT INTO answers (round_id, idx, question, correct_answer, given_answer, is_correct, hint_used) VALUES (?, ?, ?, ?, ?, ?, ?)')
+                    ->execute([$rid, $i, $ex['q'], answer_str($ex), given_str($ex, $given), $ok ? 1 : 0, $hinted ? 1 : 0]);
                 if ($ok) {
-                    db()->prepare('UPDATE rounds SET correct = correct + 1, points = points + 10 WHERE id = ?')->execute([$rid]);
+                    db()->prepare('UPDATE rounds SET correct = correct + 1, points = points + ? WHERE id = ?')->execute([$points, $rid]);
                 }
             }
-            out(['correct' => $ok, 'answer' => answer_str($ex), 'note' => $note]);
+            $res = ['correct' => $ok, 'answer' => answer_str($ex), 'note' => $note, 'points' => $points];
+            if (!$ok) {
+                $res['why'] = $note !== '' ? '' : diagnose($ex, $given);   // u nečitelné odpovědi stačí poznámka
+                $res['steps'] = explain($ex);
+            }
+            out($res);
 
         case 'finish':
             $user = require_user();
@@ -143,15 +170,20 @@ try {
             $st = db()->prepare('SELECT MAX(correct) AS best FROM rounds WHERE user_id = ? AND module = ? AND level = ? AND finished_at IS NOT NULL AND id <> ?');
             $st->execute([$user['id'], $round['module'], $round['level'], $rid]);
             $best = (int) ($st->fetch()['best'] ?? 0);
-            $st = db()->prepare('SELECT idx, question, correct_answer, given_answer, is_correct FROM answers WHERE round_id = ? ORDER BY idx');
+            $st = db()->prepare('SELECT idx, question, correct_answer, given_answer, is_correct, hint_used FROM answers WHERE round_id = ? ORDER BY idx');
             $st->execute([$rid]);
+            $questions = json_decode($round['questions'], true);
+            $answers = array_map(function ($a) use ($questions) {
+                $a['steps'] = $a['is_correct'] ? [] : explain($questions[$a['idx']] ?? []);
+                return $a;
+            }, $st->fetchAll());
             out([
                 'correct' => (int) $round['correct'],
                 'total' => (int) $round['total'],
                 'points' => (int) $round['points'],
                 'stars' => stars((int) $round['correct'], (int) $round['total']),
                 'best_before' => $best,
-                'answers' => $st->fetchAll(),
+                'answers' => $answers,
             ]);
 
         case 'stats':

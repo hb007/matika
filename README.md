@@ -22,8 +22,17 @@ Pravidla, která hlídá server:
   zkrátit. V úkolu **Krácení** se vyžaduje základní tvar.
 - Desetinná čísla berou čárku i tečku.
 - U dělení s ocáskem se zadává podíl a zbytek (zbytek 0 se píše jako 0).
-- Body: 10 za správný příklad, +20 za kolo bez chyby. Hvězdičky: 3 za 10/10,
-  2 za 8–9, 1 za 5–7. Žebříček počítá body za posledních 7 dní.
+- Body: 10 za správný příklad (5, když si dítě vzalo nápovědu), +20 za kolo
+  bez chyby. Hvězdičky: 3 za 10/10, 2 za 8–9, 1 za 5–7. Žebříček počítá body
+  za posledních 7 dní.
+
+Když je odpověď špatně, appka ukáže správný výsledek, pokud to pozná, tak
+i **co konkrétně bylo špatně** („sečetl jsi místo odečtení“, „jmenovatele
+se nesčítají“, „zbytek je větší než dělitel“, „podíl má mít 4 číslice“ …)
+a **postup řešení po krocích** (rozklad na desítky, společný jmenovatel,
+dělení pod sebou číslici po číslici). Před odpovědí jde kliknout na
+**Nápovědu**, která poradí postup bez výsledku. Postup k chybným příkladům
+je i ve výsledku kola (klepnutím na příklad).
 
 ## Nasazení (MySQL)
 
@@ -66,6 +75,7 @@ a otevři http://localhost:8080.
   Příklady generuje a kontroluje server, klient správné odpovědi nedostane
   dřív, než odpoví.
 - `lib/generators.php` – generátory příkladů a kontrola odpovědí.
+- `lib/explain.php` – nápověda, postup řešení a rozbor typických chyb.
 - `lib/db.php` – PDO připojení, podpora MySQL i SQLite.
 - `schema.sql` – tabulky `users`, `rounds`, `answers`.
 

@@ -104,6 +104,21 @@ input:focus { outline: none; border-color: var(--accent); }
 .feedback small { display: block; font-weight: 500; font-size: 16px; margin-top: 4px; }
 .feedback .next { margin-top: 10px; }
 
+.hintrow { text-align: center; margin-top: 14px; }
+.hintrow .link { color: var(--muted); }
+.hint { margin: 8px auto 0; max-width: 460px; background: #fff8e1; color: #7a5200; border-radius: var(--radius); padding: 10px 14px; font-size: 17px; }
+.feedback .why { display: block; font-weight: 600; font-size: 17px; margin-top: 8px; color: inherit; }
+.steps { text-align: left; margin: 10px 0 0; padding-left: 22px; font-weight: 500; font-size: 16px; color: var(--ink); }
+.steps li { margin: 4px 0; }
+.mistakes details { padding: 6px 0; border-bottom: 1px solid #eef1f7; }
+.mistakes details:last-child { border-bottom: 0; }
+.mistakes summary { display: flex; justify-content: space-between; gap: 10px; cursor: pointer; list-style: none; }
+.mistakes summary::-webkit-details-marker { display: none; }
+.mistakes summary .answers { display: flex; gap: 8px; align-items: center; }
+.mistakes summary .answers::after { content: '▾'; color: var(--muted); font-size: 14px; }
+.mistakes details[open] summary .answers::after { content: '▴'; }
+.mistakes .steps { font-size: 15px; margin-bottom: 6px; }
+
 /* výsledek */
 .stars { font-size: 56px; text-align: center; letter-spacing: 6px; color: #d5dbea; margin-top: 12px; }
 .stars .on { color: var(--star); }

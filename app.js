@@ -126,6 +126,9 @@
     $('question').innerHTML = renderQ(q.q) + (q.kind === 'divrem' || q.q.startsWith('Zkrať') ? '' : ' =');
     $('feedback').hidden = true;
     $('feedback').innerHTML = '';
+    $('hint').hidden = true;
+    $('hint').textContent = '';
+    $('btn-hint').hidden = false;
     $('btn-submit').hidden = false;
     state.lock = false;
 
@@ -174,18 +177,38 @@
     fb.hidden = false;
     $('btn-submit').hidden = true;
     document.querySelectorAll('#inputs input').forEach((inp) => (inp.disabled = true));
+    $('btn-hint').hidden = true;
     if (r.correct) {
       state.streak++;
       fb.className = 'feedback ok';
-      fb.innerHTML = pick(['Správně!', 'Přesně tak!', 'Jo!', 'Paráda!', 'Trefa!']) + (r.note ? `<small>${esc(r.note)}</small>` : '');
+      const extra = r.points < 10 ? ` <small>+${r.points} b. (s nápovědou)</small>` : '';
+      fb.innerHTML = pick(['Správně!', 'Přesně tak!', 'Jo!', 'Paráda!', 'Trefa!']) + extra + (r.note ? `<small>${esc(r.note)}</small>` : '');
       setTimeout(next, r.note ? 2200 : 700);
     } else {
       state.streak = 0;
       fb.className = 'feedback bad';
-      fb.innerHTML = `Správně je <b>${renderQ(r.answer)}</b>` + (r.note ? `<small>${esc(r.note)}</small>` : '')
+      const steps = (r.steps || []).length ? `<ol class="steps">${r.steps.map((l) => `<li>${renderQ(l)}</li>`).join('')}</ol>` : '';
+      fb.innerHTML = `Správně je <b>${renderQ(r.answer)}</b>`
+        + (r.note ? `<small>${esc(r.note)}</small>` : '')
+        + (r.why ? `<span class="why">${esc(r.why)}</span>` : '')
+        + steps
         + `<div class="next"><button type="button" class="btn" id="btn-next">Další</button></div>`;
       $('btn-next').focus();
       $('btn-next').addEventListener('click', next);
+    }
+  });
+
+  $('btn-hint').addEventListener('click', async () => {
+    if (!state.round || state.lock) return;
+    const q = state.round.questions[state.i];
+    try {
+      const { hint } = await api('hint', { round_id: state.round.round_id, i: q.i });
+      $('hint').textContent = hint;
+      $('hint').hidden = false;
+      $('btn-hint').hidden = true;
+      (document.getElementById('ans') || document.getElementById('ans-q')).focus();
+    } catch (err) {
+      alert(err.message);
     }
   });
 
@@ -226,8 +249,9 @@
     $('result-text').textContent = text;
     const wrong = res.answers.filter((a) => !Number(a.is_correct));
     $('mistakes').innerHTML = wrong.length
-      ? `<h2>Kde to neklaplo</h2><div class="mistakes">${wrong
-          .map((a) => `<div><span>${renderQ(a.question)}</span><span><span class="wrong">${esc(a.given_answer)}</span> <span class="right">${renderQ(a.correct_answer)}</span></span></div>`)
+      ? `<h2>Kde to neklaplo</h2><p class="empty">Klepni na příklad a uvidíš postup.</p><div class="mistakes">${wrong
+          .map((a) => `<details><summary><span>${renderQ(a.question)}</span><span class="answers"><span class="wrong">${esc(a.given_answer)}</span> <span class="right">${renderQ(a.correct_answer)}</span></span></summary>`
+            + `<ol class="steps">${(a.steps || []).map((l) => `<li>${renderQ(l)}</li>`).join('')}</ol></details>`)
           .join('')}</div>`
       : '';
     show('result');

@@ -29,7 +29,7 @@ function db(): PDO
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             round_id INTEGER NOT NULL REFERENCES rounds(id) ON DELETE CASCADE,
             idx INTEGER NOT NULL, question TEXT NOT NULL, correct_answer TEXT NOT NULL,
-            given_answer TEXT NOT NULL, is_correct INTEGER NOT NULL,
+            given_answer TEXT NOT NULL, is_correct INTEGER NOT NULL, hint_used INTEGER NOT NULL DEFAULT 0,
             answered_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             UNIQUE (round_id, idx))');
     }

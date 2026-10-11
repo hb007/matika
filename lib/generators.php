@@ -7,6 +7,7 @@
 //   a    – správná odpověď: int|float pro num, [čitatel, jmenovatel] pro frac,
 //          [podíl, zbytek] pro divrem
 //   strict (jen frac) – vyžaduje se zkrácený tvar (modul krácení)
+//   p    – operandy (pro nápovědu, vysvětlení a rozbor chyby, viz explain.php)
 
 const MODULES = [
     'mala'    => ['title' => 'Malá násobilka',        'levels' => ['nasobeni' => 'Násobení', 'deleni' => 'Dělení', 'mix' => 'Obojí']],
@@ -67,10 +68,16 @@ function gen_mala(string $level): array
     $a = rand(2, 10);
     $b = rand(2, 10);
     $op = $level === 'mix' ? pick(['x', 'd']) : ($level === 'deleni' ? 'd' : 'x');
+    return mul_or_div($op, $a, $b);
+}
+
+// Příklad na násobení (a · b) nebo dělení (a·b : a) včetně operandů pro vysvětlení.
+function mul_or_div(string $op, int $a, int $b): array
+{
     if ($op === 'x') {
-        return ['q' => "$a · $b", 'kind' => 'num', 'a' => $a * $b];
+        return ['q' => "$a · $b", 'kind' => 'num', 'a' => $a * $b, 'p' => ['op' => 'x', 'a' => $a, 'b' => $b]];
     }
-    return ['q' => ($a * $b) . " : $a", 'kind' => 'num', 'a' => $b];
+    return ['q' => ($a * $b) . " : $a", 'kind' => 'num', 'a' => $b, 'p' => ['op' => 'd', 'a' => $a * $b, 'b' => $a]];
 }
 
 function gen_velka(string $level): array
@@ -78,7 +85,7 @@ function gen_velka(string $level): array
     if ($level === 'tezka') {
         $a = rand(11, 20);
         $b = rand(11, 20);
-        return ['q' => "$a · $b", 'kind' => 'num', 'a' => $a * $b];
+        return mul_or_div('x', $a, $b);
     }
     $a = rand(11, 20);
     $b = rand(2, 10);
@@ -86,10 +93,7 @@ function gen_velka(string $level): array
         [$a, $b] = [$b, $a];
     }
     $op = $level === 'mix' ? pick(['x', 'd']) : ($level === 'deleni' ? 'd' : 'x');
-    if ($op === 'x') {
-        return ['q' => "$a · $b", 'kind' => 'num', 'a' => $a * $b];
-    }
-    return ['q' => ($a * $b) . " : $a", 'kind' => 'num', 'a' => $b];
+    return mul_or_div($op, $a, $b);
 }
 
 function gen_scitani(string $level): array
@@ -100,7 +104,7 @@ function gen_scitani(string $level): array
         $a = rand(-50, 50);
         $b = rand(-50, 50);
         $r = $op === '+' ? $a + $b : $a - $b;
-        return ['q' => fmt_num($a) . " $sym " . fmt_operand($b), 'kind' => 'num', 'a' => $r];
+        return ['q' => fmt_num($a) . " $sym " . fmt_operand($b), 'kind' => 'num', 'a' => $r, 'p' => ['op' => $op, 'a' => $a, 'b' => $b, 'lvl' => 'zaporna']];
     }
     if ($level === 'desetinna') {
         $a = rand(10, 999) / 10;
@@ -109,7 +113,7 @@ function gen_scitani(string $level): array
             [$a, $b] = [$b, $a];
         }
         $r = round($op === '+' ? $a + $b : $a - $b, 1);
-        return ['q' => fmt_num($a) . " $sym " . fmt_num($b), 'kind' => 'num', 'a' => $r];
+        return ['q' => fmt_num($a) . " $sym " . fmt_num($b), 'kind' => 'num', 'a' => $r, 'p' => ['op' => $op, 'a' => $a, 'b' => $b, 'lvl' => 'desetinna']];
     }
     $max = (int) $level;
     if ($op === '+') {
@@ -120,7 +124,7 @@ function gen_scitani(string $level): array
         $b = rand(1, $a - 1);
     }
     $r = $op === '+' ? $a + $b : $a - $b;
-    return ['q' => fmt_num($a) . " $sym " . fmt_num($b), 'kind' => 'num', 'a' => $r];
+    return ['q' => fmt_num($a) . " $sym " . fmt_num($b), 'kind' => 'num', 'a' => $r, 'p' => ['op' => $op, 'a' => $a, 'b' => $b, 'lvl' => 'cela']];
 }
 
 // Čitatel tak, aby zlomek byl v základním tvaru (a ne roven 1); $mult určuje,
@@ -144,7 +148,8 @@ function gen_zlomky(string $level): array
             $n = rand(1, $d * 2);
         } while (gcd($n, $d) !== 1 || $n === $d);
         $k = rand(2, 6);
-        return ['q' => 'Zkrať: ' . ($n * $k) . '/' . ($d * $k), 'kind' => 'frac', 'a' => [$n, $d], 'strict' => true];
+        return ['q' => 'Zkrať: ' . ($n * $k) . '/' . ($d * $k), 'kind' => 'frac', 'a' => [$n, $d], 'strict' => true,
+                'p' => ['op' => 'k', 'a' => [$n * $k, $d * $k]]];
     }
     if ($level === 'scitani') {
         $op = pick(['+', '-']);
@@ -161,7 +166,7 @@ function gen_zlomky(string $level): array
         $rn = $op === '+' ? $a * $d + $c * $b : $a * $d - $c * $b;
         $rd = $b * $d;
         $sym = $op === '+' ? '+' : '−';
-        return ['q' => "$a/$b $sym $c/$d", 'kind' => 'frac', 'a' => frac_reduce($rn, $rd)];
+        return ['q' => "$a/$b $sym $c/$d", 'kind' => 'frac', 'a' => frac_reduce($rn, $rd), 'p' => ['op' => $op, 'a' => [$a, $b], 'b' => [$c, $d]]];
     }
     // násobení a dělení
     $op = pick(['·', ':']);
@@ -170,9 +175,9 @@ function gen_zlomky(string $level): array
     $a = simple_numerator($b, 1);
     $c = simple_numerator($d, 1);
     if ($op === '·') {
-        return ['q' => "$a/$b · $c/$d", 'kind' => 'frac', 'a' => frac_reduce($a * $c, $b * $d)];
+        return ['q' => "$a/$b · $c/$d", 'kind' => 'frac', 'a' => frac_reduce($a * $c, $b * $d), 'p' => ['op' => '*', 'a' => [$a, $b], 'b' => [$c, $d]]];
     }
-    return ['q' => "$a/$b : $c/$d", 'kind' => 'frac', 'a' => frac_reduce($a * $d, $b * $c)];
+    return ['q' => "$a/$b : $c/$d", 'kind' => 'frac', 'a' => frac_reduce($a * $d, $b * $c), 'p' => ['op' => '/', 'a' => [$a, $b], 'b' => [$c, $d]]];
 }
 
 function gen_deleni(string $level): array
@@ -188,6 +193,7 @@ function gen_deleni(string $level): array
         'q' => fmt_num($dividend) . ' : ' . $divisor,
         'kind' => 'divrem',
         'a' => [intdiv($dividend, $divisor), $dividend % $divisor],
+        'p' => ['a' => $dividend, 'b' => $divisor],
     ];
 }
 
@@ -218,7 +224,7 @@ function answer_str(array $ex): string
         case 'frac':
             return frac_str($ex['a'][0], $ex['a'][1]);
         case 'divrem':
-            return $ex['a'][0] . ' zb. ' . $ex['a'][1];
+            return fmt_num($ex['a'][0]) . ' zb. ' . $ex['a'][1];
         default:
             return fmt_num($ex['a']);
     }
@@ -278,7 +284,7 @@ function check_answer(array $ex, $given): array
             }
             $reduced = $f === [$n, $d];   // dítě napsalo přesně základní tvar
             if (!$reduced && !empty($ex['strict'])) {
-                return [false, 'Hodnota sedí, ale ještě to jde zkrátit.'];
+                return [false, 'Hodnota sedí, ale ještě to jde zkrátit (čitatel i jmenovatel dělit ' . gcd($f[0], $f[1]) . ').'];
             }
             return [true, $reduced ? '' : 'Správně, ale dá se zkrátit na ' . frac_str($n, $d) . '.'];
 

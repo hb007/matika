@@ -55,6 +55,10 @@
       <div id="inputs"></div>
       <button type="submit" class="btn" id="btn-submit">Hotovo</button>
     </form>
+    <div class="hintrow">
+      <button type="button" class="link" id="btn-hint">Nápověda</button>
+      <div id="hint" class="hint" hidden></div>
+    </div>
     <div id="feedback" class="feedback" hidden></div>
     <button class="link small" data-go="menu">Ukončit kolo</button>
   </section>
