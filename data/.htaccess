@@ -1,3 +1,1 @@
-# Appka data/ nepoužívá. Složka chrání databázi starší verze, pokud na serveru
-# zůstala. Nemaž ji z repa: FTP nasazení by ji smazalo i s obsahem.
 Require all denied
