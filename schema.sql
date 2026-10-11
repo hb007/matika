@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS answers (
     correct_answer VARCHAR(40) NOT NULL,
     given_answer   VARCHAR(40) NOT NULL,
     is_correct     TINYINT(1) NOT NULL,
-    hint_used      TINYINT(1) NOT NULL DEFAULT 0,
+    hint_used      TINYINT NOT NULL DEFAULT 0,   -- kolik kroků nápovědy si dítě odkrylo
     answered_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_answers_round FOREIGN KEY (round_id) REFERENCES rounds(id) ON DELETE CASCADE,
     UNIQUE KEY uq_answer (round_id, idx)

@@ -22,17 +22,26 @@ Pravidla, která hlídá server:
   zkrátit. V úkolu **Krácení** se vyžaduje základní tvar.
 - Desetinná čísla berou čárku i tečku.
 - U dělení s ocáskem se zadává podíl a zbytek (zbytek 0 se píše jako 0).
-- Body: 10 za správný příklad (5, když si dítě vzalo nápovědu), +20 za kolo
-  bez chyby. Hvězdičky: 3 za 10/10, 2 za 8–9, 1 za 5–7. Žebříček počítá body
+- Body: 10 za správný příklad, každý odkrytý krok nápovědy ubere 3 (nejméně
+  1 bod za správnou odpověď), +20 za kolo bez chyby. Hvězdičky: 3 za 10/10, 2 za 8–9, 1 za 5–7. Žebříček počítá body
   za posledních 7 dní.
 
 Když je odpověď špatně, appka ukáže správný výsledek, pokud to pozná, tak
 i **co konkrétně bylo špatně** („sečetl jsi místo odečtení“, „jmenovatele
 se nesčítají“, „zbytek je větší než dělitel“, „podíl má mít 4 číslice“ …)
 a **postup řešení po krocích** (rozklad na desítky, společný jmenovatel,
-dělení pod sebou číslici po číslici). Před odpovědí jde kliknout na
-**Nápovědu**, která poradí postup bez výsledku. Postup k chybným příkladům
-je i ve výsledku kola (klepnutím na příklad).
+dělení pod sebou číslici po číslici). Postup k chybným příkladům je i ve
+výsledku kola (klepnutím na příklad).
+
+**Nápověda po krocích.** Když dítě neví, klikne na „Nápověda“ a uvidí první
+krok (třeba „Kolikrát se 8 vejde do 66?“). Každé další kliknutí odkryje
+další krok. Poslední krok nikdy neprozradí výsledek, ten musí dítě dopočítat
+samo.
+
+**Papír na počítání.** Pod příkladem jde otevřít čtverečkovaný papír, na
+který se píše prstem, perem nebo myší (guma, krok zpět, smazat). Slouží
+k počítání pod sebou, appka z něj nic nečte. U každého nového příkladu se
+vyčistí. Na tabletu s otevřeným papírem se nevysouvá klávesnice sama.
 
 ## Nasazení (MySQL)
 
@@ -69,13 +78,14 @@ a otevři http://localhost:8080.
 
 ## Jak to funguje
 
-- `index.php` + `app.js` + `style.css` – jedna stránka, obrazovky se
+- `index.php` + `app.js` + `paper.js` + `style.css` – jedna stránka, obrazovky se
   přepínají v JS.
 - `api.php` – JSON API (`login`, `start`, `answer`, `finish`, `stats`, …).
   Příklady generuje a kontroluje server, klient správné odpovědi nedostane
   dřív, než odpoví.
 - `lib/generators.php` – generátory příkladů a kontrola odpovědí.
-- `lib/explain.php` – nápověda, postup řešení a rozbor typických chyb.
+- `lib/explain.php` – nápověda po krocích, postup řešení a rozbor typických chyb.
+- `paper.js` – papír na počítání (canvas, pero, guma).
 - `lib/db.php` – PDO připojení, podpora MySQL i SQLite.
 - `schema.sql` – tabulky `users`, `rounds`, `answers`.
 

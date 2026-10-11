@@ -55,11 +55,24 @@
       <div id="inputs"></div>
       <button type="submit" class="btn" id="btn-submit">Hotovo</button>
     </form>
-    <div class="hintrow">
-      <button type="button" class="link" id="btn-hint">Nápověda</button>
-      <div id="hint" class="hint" hidden></div>
-    </div>
     <div id="feedback" class="feedback" hidden></div>
+    <div class="hintbox">
+      <ol id="hints" class="hints" hidden></ol>
+      <button type="button" class="hintbtn" id="btn-hint">Nápověda</button>
+      <span id="hint-info" class="hint-info"></span>
+    </div>
+    <div class="paper-wrap">
+      <div class="paper-bar">
+        <button type="button" class="link" id="btn-paper">✏️ Papír na počítání</button>
+        <span class="tools" id="paper-tools" hidden>
+          <button type="button" class="tool on" data-tool="pen" title="Pero">✏️</button>
+          <button type="button" class="tool" data-tool="eraser" title="Guma">🧽</button>
+          <button type="button" class="tool" id="paper-undo" title="Zpět">↶</button>
+          <button type="button" class="tool" id="paper-clear" title="Smazat vše">🗑</button>
+        </span>
+      </div>
+      <div class="paper" id="paper" hidden><canvas id="paper-canvas"></canvas></div>
+    </div>
     <button class="link small" data-go="menu">Ukončit kolo</button>
   </section>
 
@@ -89,6 +102,7 @@
   </section>
 
 </main>
+<script src="paper.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -48,6 +48,12 @@ function require_user(): array
     return current_user() ?? fail('Nejdřív si vyber jméno.', 401);
 }
 
+// Body za správnou odpověď: 10, každý krok nápovědy −3, nejméně 1.
+function points_for(int $hints): int
+{
+    return max(1, 10 - 3 * $hints);
+}
+
 function stars(int $correct, int $total): int
 {
     $pct = $total ? $correct / $total : 0;
@@ -104,7 +110,7 @@ try {
             out(['round_id' => $rid, 'questions' => $public]);
 
         case 'hint':
-            // nápověda před odpovědí; příklad pak nese jen poloviční body
+            // další krok nápovědy; každý odkrytý krok ubere body (viz points_for)
             $user = require_user();
             $rid = (int) ($in['round_id'] ?? 0);
             $i = (int) ($in['i'] ?? -1);
@@ -115,11 +121,18 @@ try {
             if (!isset($questions[$i])) {
                 fail('Špatné číslo příkladu.');
             }
-            if (empty($questions[$i]['hint'])) {
-                $questions[$i]['hint'] = true;
+            $steps = hint_steps($questions[$i]);
+            $shown = (int) ($questions[$i]['hints'] ?? 0);
+            if ($shown < count($steps)) {
+                $shown++;
+                $questions[$i]['hints'] = $shown;
                 db()->prepare('UPDATE rounds SET questions = ? WHERE id = ?')->execute([json_encode($questions), $rid]);
             }
-            out(['hint' => hint($questions[$i])]);
+            out([
+                'steps' => array_slice($steps, 0, $shown),
+                'total' => count($steps),
+                'points' => points_for($shown),
+            ]);
 
         case 'answer':
             $user = require_user();
@@ -135,14 +148,14 @@ try {
             $ex = $questions[$i];
             $given = $in['answer'] ?? '';
             [$ok, $note] = check_answer($ex, $given);
-            $hinted = !empty($ex['hint']);
-            $points = $ok ? ($hinted ? 5 : 10) : 0;
+            $hints = (int) ($ex['hints'] ?? 0);
+            $points = $ok ? points_for($hints) : 0;
             // první odpověď na příklad se počítá; opakované odeslání se ignoruje
             $st = db()->prepare('SELECT is_correct FROM answers WHERE round_id = ? AND idx = ?');
             $st->execute([$rid, $i]);
             if ($st->fetch() === false) {
                 db()->prepare('INSERT INTO answers (round_id, idx, question, correct_answer, given_answer, is_correct, hint_used) VALUES (?, ?, ?, ?, ?, ?, ?)')
-                    ->execute([$rid, $i, $ex['q'], answer_str($ex), given_str($ex, $given), $ok ? 1 : 0, $hinted ? 1 : 0]);
+                    ->execute([$rid, $i, $ex['q'], answer_str($ex), given_str($ex, $given), $ok ? 1 : 0, $hints]);
                 if ($ok) {
                     db()->prepare('UPDATE rounds SET correct = correct + 1, points = points + ? WHERE id = ?')->execute([$points, $rid]);
                 }

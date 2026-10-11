@@ -126,9 +126,12 @@
     $('question').innerHTML = renderQ(q.q) + (q.kind === 'divrem' || q.q.startsWith('Zkrať') ? '' : ' =');
     $('feedback').hidden = true;
     $('feedback').innerHTML = '';
-    $('hint').hidden = true;
-    $('hint').textContent = '';
+    $('hints').hidden = true;
+    $('hints').innerHTML = '';
+    $('hint-info').textContent = '';
     $('btn-hint').hidden = false;
+    $('btn-hint').textContent = 'Nápověda';
+    paper.clear();
     $('btn-submit').hidden = false;
     state.lock = false;
 
@@ -137,13 +140,20 @@
       inputs.innerHTML = `<span>=</span><input type="text" inputmode="numeric" id="ans-q" autocomplete="off" placeholder="podíl">
         <span>zb.</span><input type="text" inputmode="numeric" id="ans-r" class="narrow" autocomplete="off" placeholder="0">`;
       $('ans-q').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('ans-r').focus(); } });
-      $('ans-q').focus();
+      autoFocus($('ans-q'));
     } else {
       const mode = q.kind === 'frac' ? 'text' : 'decimal';
       const ph = q.kind === 'frac' ? 'např. 3/4' : '';
       inputs.innerHTML = `<input type="text" inputmode="${mode}" id="ans" autocomplete="off" placeholder="${ph}">`;
-      $('ans').focus();
+      autoFocus($('ans'));
     }
+  }
+
+  // Na dotykovém zařízení s otevřeným papírem políčko nezaměřujeme,
+  // jinak by vyjela klávesnice a zakryla papír.
+  function autoFocus(el) {
+    const touch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    if (el && !(touch && !$('paper').hidden)) el.focus({ preventScroll: true });
   }
 
   function collectAnswer() {
@@ -178,12 +188,13 @@
     $('btn-submit').hidden = true;
     document.querySelectorAll('#inputs input').forEach((inp) => (inp.disabled = true));
     $('btn-hint').hidden = true;
+    $('hint-info').textContent = '';
     if (r.correct) {
       state.streak++;
       fb.className = 'feedback ok';
-      const extra = r.points < 10 ? ` <small>+${r.points} b. (s nápovědou)</small>` : '';
+      const extra = r.points < 10 ? ` <small>+${r.points} b. (s nápovědou)</small>` : ` <small>+${r.points} b.</small>`;
       fb.innerHTML = pick(['Správně!', 'Přesně tak!', 'Jo!', 'Paráda!', 'Trefa!']) + extra + (r.note ? `<small>${esc(r.note)}</small>` : '');
-      setTimeout(next, r.note ? 2200 : 700);
+      setTimeout(next, r.note ? 2200 : 1000);
     } else {
       state.streak = 0;
       fb.className = 'feedback bad';
@@ -198,19 +209,47 @@
     }
   });
 
+  // Nápověda po krocích: každé kliknutí odkryje další krok.
   $('btn-hint').addEventListener('click', async () => {
     if (!state.round || state.lock) return;
     const q = state.round.questions[state.i];
+    let r;
     try {
-      const { hint } = await api('hint', { round_id: state.round.round_id, i: q.i });
-      $('hint').textContent = hint;
-      $('hint').hidden = false;
-      $('btn-hint').hidden = true;
-      (document.getElementById('ans') || document.getElementById('ans-q')).focus();
+      r = await api('hint', { round_id: state.round.round_id, i: q.i });
     } catch (err) {
       alert(err.message);
+      return;
     }
+    $('hints').innerHTML = r.steps.map((l) => `<li>${renderQ(l)}</li>`).join('');
+    $('hints').hidden = false;
+    const more = r.steps.length < r.total;
+    $('btn-hint').hidden = !more;
+    $('btn-hint').textContent = 'Další krok';
+    $('hint-info').textContent = `Krok ${r.steps.length} z ${r.total}. Za správnou odpověď teď ${r.points} b.`;
+    autoFocus(document.getElementById('ans') || document.getElementById('ans-q'));
   });
+
+  // ---------- papír ----------
+  const paper = window.Paper.create($('paper-canvas'));
+  function setPaper(open) {
+    $('paper').hidden = !open;
+    $('paper-tools').hidden = !open;
+    $('btn-paper').textContent = open ? '✏️ Schovat papír' : '✏️ Papír na počítání';
+    if (open) paper.resize();
+    try { localStorage.setItem('matika_paper', open ? '1' : '0'); } catch (e) { /* bez úložiště */ }
+  }
+  $('btn-paper').addEventListener('click', () => setPaper($('paper').hidden));
+  document.querySelectorAll('#paper-tools [data-tool]').forEach((b) =>
+    b.addEventListener('click', () => {
+      paper.setTool(b.dataset.tool);
+      document.querySelectorAll('#paper-tools [data-tool]').forEach((x) => x.classList.toggle('on', x === b));
+    })
+  );
+  $('paper-undo').addEventListener('click', () => paper.undo());
+  $('paper-clear').addEventListener('click', () => paper.clear());
+  let paperOpen = false;
+  try { paperOpen = localStorage.getItem('matika_paper') === '1'; } catch (e) { /* bez úložiště */ }
+  setPaper(paperOpen);
 
   // Enter po špatné odpovědi = další příklad
   document.addEventListener('keydown', (e) => {
