@@ -487,7 +487,8 @@
       + row('Tento týden', (u) => u.week + ' b.')
       + row('Celkem', (u) => u.total + ' b.')
       + row('Dnes vyřešeno', (u) => `${u.solved_today} / ${state.goal}`)
-      + row('Série dní', (u) => (u.days ? '🔥 ' + u.days : '–'));
+      + row('Série dní', (u) => (u.days ? '🔥 ' + u.days : '–'))
+      + row('', (u) => `<button type="button" class="link reset" data-user="${u.id}">Smazat body</button>`);
     $('parent').innerHTML = s.users.map((u) => {
       const st = s.stats[u.id];
       const per = st.per_task.length
@@ -503,6 +504,18 @@
 
   $('btn-stats').addEventListener('click', () => { clearTimeout(state.timer); loadStats(); });
   $('compare').addEventListener('click', async (e) => {
+    const r = e.target.closest('.reset');
+    if (r) {
+      const u = state.users.find((x) => x.id === Number(r.dataset.user));
+      if (!confirm(`Smazat všechny body (${u.total}) dítěte ${u.name}? Vrátit to nejde. Vyřešené příklady v přehledu zůstanou.`)) return;
+      try {
+        await api('reset', { target: u.id });
+        loadStats();
+      } catch (err) {
+        alert(err.message);
+      }
+      return;
+    }
     const b = e.target.closest('.rename');
     if (!b) return;
     const u = state.users.find((x) => x.id === Number(b.dataset.user));

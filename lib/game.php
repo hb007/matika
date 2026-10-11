@@ -56,6 +56,16 @@ function rename_user(PDO $db, int $uid, string $name): void
     $db->prepare('UPDATE users SET name = ? WHERE id = ?')->execute([$name, $uid]);
 }
 
+// Smaže body a sérii v řadě; vyřešené příklady (cíl, série dní, přehled pro rodiče) zůstanou.
+function reset_points(PDO $db, int $uid): void
+{
+    if (!user_exists($db, $uid)) {
+        throw new InvalidArgumentException('Neznámý uživatel.');
+    }
+    $db->prepare('UPDATE results SET points = 0 WHERE user_id = ?')->execute([$uid]);
+    set_streak($db, $uid, 0);
+}
+
 function done_count(PDO $db, int $uid): int
 {
     $st = $db->prepare('SELECT COUNT(*) FROM results WHERE user_id = ?');

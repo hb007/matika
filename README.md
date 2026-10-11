@@ -50,7 +50,7 @@ Pravidla, která hlídá server:
 
 **Opakování chyb.** Příklad, který dítě napoprvé netrefí, se mu v téže úloze a obtížnosti vrátí po 5 dalších příkladech s odznakem „🔁 Tenhle ti minule nešel“.
 
-**Výsledky.** Porovnání obou dětí (dnes, tento týden, celkem, dnes vyřešeno, série dní) a přehled pro rodiče: úspěšnost napoprvé podle tématu a obtížnosti a příklady, které se za posledních 30 dní nejčastěji nedařily.
+**Výsledky.** Porovnání obou dětí (dnes, tento týden, celkem, dnes vyřešeno, série dní) a přehled pro rodiče: úspěšnost napoprvé podle tématu a obtížnosti a příklady, které se za posledních 30 dní nejčastěji nedařily. Tlačítko „Smazat body“ (s potvrzením) vynuluje body a sérii v řadě jednoho dítěte. Vyřešené příklady, denní cíl, série dní a přehled pro rodiče zůstanou. Vrátit to nejde.
 
 **Nápověda po krocích.** Když dítě neví, klikne na „Nápověda“ a uvidí první krok (třeba „Kolikrát se 8 vejde do 66?“). Každé další kliknutí odkryje další krok. Poslední krok nikdy neprozradí výsledek, ten musí dítě dopočítat samo.
 
@@ -105,7 +105,7 @@ Ve vývojovém Docker kontejneru (`docker-compose.yml`, image `vibecode` s PHP) 
 ## Jak to funguje
 
 * `index.php` + `app.js` + `paper.js` + `style.css` – jedna stránka, obrazovky se přepínají v JS. `index.php` pozná dítě z adresy (`/holka`, `/kluk`). Efekty za správnou odpověď jsou v `app.js` (objekt `EFFECTS`, Web Animations API, bez knihovny); nový efekt = nová položka v `EFFECTS`.
-* `api.php` – JSON API (`state`, `next`, `hint`, `answer`, `reveal`, `stats`, `rename`). Každý požadavek nese `user` (1 holka, 2 kluk). Příklady generuje a kontroluje server, rozpracovaný příklad drží v PHP session zvlášť pro každé dítě. `answer` vrací jen správně/špatně a rozbor chyby, správný výsledek s postupem dá až `reveal`. Opakované odeslání hotového příkladu vrátí 409, body se nepřičtou dvakrát.
+* `api.php` – JSON API (`state`, `next`, `hint`, `answer`, `reveal`, `stats`, `rename`, `reset`). Každý požadavek nese `user` (1 holka, 2 kluk). Příklady generuje a kontroluje server, rozpracovaný příklad drží v PHP session zvlášť pro každé dítě. `answer` vrací jen správně/špatně a rozbor chyby, správný výsledek s postupem dá až `reveal`. Opakované odeslání hotového příkladu vrátí 409, body se nepřičtou dvakrát.
 * `lib/game.php` – body, série, denní cíl, opakování chyb, statistiky. `lib/db.php` – SQLite (tabulky `users`, `results`, `review` se založí samy).
 * `lib/generators.php` – generátory příkladů podle obtížnosti a kontrola odpovědí.
 * `lib/explain.php` – nápověda po krocích, postup řešení a rozbor typických chyb.
@@ -114,4 +114,4 @@ Ve vývojovém Docker kontejneru (`docker-compose.yml`, image `vibecode` s PHP) 
 * `data/` – databáze (z nahrávání vyřazená, chrání ji `.htaccess` a `index.html`).
 * `tests/` – testy bez frameworku, `php tests/run.php`.
 
-Appka nikoho nepřihlašuje. Kdokoli s adresou může cvičit za kterékoli dítě a měnit přezdívky. Kdo to nechce, dá před web HTTP basic auth na úrovni web serveru.
+Appka nikoho nepřihlašuje. Kdokoli s adresou může cvičit za kterékoli dítě, měnit přezdívky a mazat body. Kdo to nechce, dá před web HTTP basic auth na úrovni web serveru.

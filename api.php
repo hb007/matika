@@ -76,6 +76,14 @@ try {
             }
             out(state($today));
 
+        case 'reset':
+            try {
+                reset_points(db(), (int) param($in, 'target'));
+            } catch (InvalidArgumentException $e) {
+                fail($e->getMessage());
+            }
+            out(state($today));
+
         case 'next':
             $uid = require_uid($in);
             try {
