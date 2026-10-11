@@ -90,3 +90,20 @@ $e = ['kind' => 'num', 'a' => 36, 'p' => ['op' => 'div', 'form' => 'nsn', 'a' =>
 check(str_contains(diagnose($e, '108'), 'Součin'), 'nsn: soucin');
 $e = ['kind' => 'num', 'a' => 2.6, 'p' => ['op' => 'dmd', 'form' => 'deleni', 'x' => 15.6, 'y' => 6, 'mul' => false, 'dec' => true]];
 check(str_contains(diagnose($e, '26'), 'čárka'), 'desetinna: carka');
+
+// posun čárky: zadání desetinné (nekončí nulou), výsledek nejvýš 3 místa
+$intQ = 0;
+for ($i = 0; $i < 600; $i++) {
+    foreach (array_keys(DIFFICULTIES) as $d) {
+        $e = generate_exercise('desetinna', 'posun', $d);
+        check(dec_places((float) $e['a']) <= 3, "posun $d: max 3 mista " . $e['q']);
+        $first = preg_split('/ [·:] /u', $e['q'])[0];   // první číslo (může mít mezery v tisících)
+        check(!preg_match('/,\d*0$/', $first), "posun $d: desetinne cislo nekonci nulou " . $e['q']);
+        check(abs($e['a'] - ($e['p']['mul'] ? $e['p']['x'] * $e['p']['y'] : $e['p']['x'] / $e['p']['y'])) < 0.00001, "posun $d: vysledek " . $e['q']);
+        $intQ += !str_contains($first, ',');
+    }
+}
+check($intQ < 0.15 * 1800, "posun: cele zadani jen vyjimecne ($intQ z 1800)");
+[$ok] = check_answer(['kind' => 'num', 'a' => 0.045], '0,045');
+[$bad] = check_answer(['kind' => 'num', 'a' => 0.045], '0,046');
+check($ok && !$bad, 'kontrola rozlisi tri desetinna mista');

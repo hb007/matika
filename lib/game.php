@@ -233,7 +233,8 @@ function users_state(PDO $db, string $today): array
         $st = $db->prepare('SELECT day FROM results WHERE user_id = ? AND solved = 1 GROUP BY day HAVING COUNT(*) >= ' . GOAL);
         $st->execute([$u['id']]);
         $out[] = ['id' => (int) $u['id'], 'kind' => $u['kind'], 'name' => $u['name'], 'streak' => (int) $u['streak'],
-                  'days' => day_streak($st->fetchAll(PDO::FETCH_COLUMN), $today)] + $sums;
+                  'days' => day_streak($st->fetchAll(PDO::FETCH_COLUMN), $today),
+                  'time_today' => usage_on($db, (int) $u['id'], $today)] + $sums;   // ms v appce dnes, všechna zařízení
     }
     return $out;
 }

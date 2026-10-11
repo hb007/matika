@@ -91,6 +91,7 @@
   // dítěte (jméno, body dnes, proužek denního cíle), druhé dítě je v seznamu úloh.
   function renderKids(users) {
     state.users = users;
+    usageFromUsers(users);
     const cached = Offline.load('matika_state', null);
     if (cached) { cached.users = users; Offline.save('matika_state', cached); }
     updateBar();
@@ -327,6 +328,7 @@
       setOffline(false);
       if (users) renderKids(users);
       refill();
+      flushUsage();   // čas v appce za dobu bez internetu
     } catch (e) {
       if (e.network) setOffline(true);
     } finally {
@@ -910,16 +912,57 @@
 
   // ---------- čas v appce ----------
   // Cílem je, aby dítě netrávilo na telefonu moc času. Měří se čas, kdy je
-  // appka otevřená a vidět (příklady i hry), pro každé dítě a den zvlášť na
-  // tomto zařízení. Žádný odpočet a nic se nevypíná: po TIME_WARN_MIN minutách
-  // výrazné upozornění přes celou obrazovku, pak každých TIME_REPEAT_MIN minut
-  // znovu, a nahoře zůstane lišta s tím, kolik času tu dítě dnes je.
+  // appka otevřená a vidět (příklady i hry), pro každé dítě a den, sečtený
+  // ze všech zařízení: každé zařízení posílá, kolik přibylo (api „time“,
+  // lib/usage.php), každých TIME_FLUSH_MS a po připojení. Žádný odpočet a nic
+  // se nevypíná: po TIME_WARN_MIN minutách výrazné upozornění přes celou
+  // obrazovku, pak každých TIME_REPEAT_MIN minut znovu, a nahoře lišta s časem.
   const TIME_WARN_MIN = 10;
   const TIME_REPEAT_MIN = 5;
-  const timeKey = (uid) => 'matika_time_' + uid;
-  function timeLog(uid) {
-    const l = Offline.load(timeKey(uid), null);
-    return l && l.day === today() ? l : { day: today(), ms: 0, warned: 0 };
+  const TIME_FLUSH_MS = 30000;
+  const usageKey = (uid) => 'matika_usage_' + uid;
+  // { day, server: ms dnes podle serveru, pending: { den: ms ještě neodeslané }, warned: minuta posledního upozornění }
+  function usage(uid) {
+    const u = Offline.load(usageKey(uid), null) || {};
+    u.pending = u.pending || {};
+    if (u.day !== today()) Object.assign(u, { day: today(), server: 0, warned: 0 });
+    return u;
+  }
+  function usageMs(uid) {
+    const u = usage(uid);
+    return (u.server || 0) + (u.pending[u.day] || 0);
+  }
+  // dnešní čas ze serveru (přichází se stavem dětí)
+  function usageFromUsers(users) {
+    users.forEach((x) => {
+      if (typeof x.time_today !== 'number') return;
+      const u = usage(x.id);
+      u.server = x.time_today;
+      Offline.save(usageKey(x.id), u);
+    });
+  }
+  let flushing = false;
+  async function flushUsage() {
+    if (flushing || state.offline) return;
+    flushing = true;
+    try {
+      for (const kid of state.users) {
+        const items = Object.entries(usage(kid.id).pending).filter(([, ms]) => ms > 0).map(([day, ms]) => ({ day, ms }));
+        if (!items.length) continue;
+        const r = await api('time', { user: kid.id, items });
+        const u = usage(kid.id);   // mezitím mohly přibýt další sekundy
+        items.forEach(({ day, ms }) => {
+          u.pending[day] = (u.pending[day] || 0) - ms;
+          if (u.pending[day] <= 0) delete u.pending[day];
+        });
+        u.server = r.ms;
+        Offline.save(usageKey(kid.id), u);
+      }
+    } catch (e) {
+      if (e.network) setOffline(true);
+    } finally {
+      flushing = false;
+    }
   }
   function minutes(n) {
     return `${n} ${n === 1 ? 'minutu' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'minuty' : 'minut'}`;
@@ -944,21 +987,28 @@
     $('time-warn').hidden = true;
     if (state.ex && state.lock && !$('feedback').hidden && !$('btn-next')) next();   // po správné odpovědi pokračovat
   });
+  let sinceFlush = 0;
   setInterval(() => {
     if (document.hidden || !state.user) return;
-    const l = timeLog(state.user);
-    l.ms += 1000;
-    const min = Math.floor(l.ms / 60000);
+    const u = usage(state.user);
+    u.pending[u.day] = (u.pending[u.day] || 0) + 1000;
+    const min = Math.floor(((u.server || 0) + u.pending[u.day]) / 60000);
     if (min >= TIME_WARN_MIN) {
       const due = TIME_WARN_MIN + Math.floor((min - TIME_WARN_MIN) / TIME_REPEAT_MIN) * TIME_REPEAT_MIN;
-      if ((l.warned || 0) < due) {
-        l.warned = due;
+      if ((u.warned || 0) < due) {
+        u.warned = due;
         showTimeWarning(min);
       }
     }
+    Offline.save(usageKey(state.user), u);
     renderTimeBar(min);
-    Offline.save(timeKey(state.user), l);
+    sinceFlush += 1000;
+    if (sinceFlush >= TIME_FLUSH_MS) {
+      sinceFlush = 0;
+      flushUsage();
+    }
   }, 1000);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) flushUsage(); });
 
   // ---------- běžné efekty ----------
   // Náhodný efekt za každou správnou odpověď jde vypnout; odměny (jednorožec,
@@ -1115,7 +1165,7 @@
       + row('Celkem', (u) => u.total + ' b.')
       + row('Dnes vyřešeno', (u) => `${u.solved_today} / ${state.goal}`)
       + row('Dní v řadě se splněným cílem', (u) => u.days || '–')
-      + row('Dnes v appce (na tomto zařízení)', (u) => minutes(Math.floor(timeLog(u.id).ms / 60000)))
+      + row('Dnes v appce (všechna zařízení)', (u) => minutes(Math.floor(usageMs(u.id) / 60000)))
       + row('', (u) => `<button type="button" class="link reset" data-user="${u.id}">Smazat body</button>`);
     // album: získané nálepky (kolikrát), nezískané šedě s tím, jak je dostat
     const all = Object.entries(Rewards.STICKER);

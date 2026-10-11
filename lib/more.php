@@ -360,11 +360,20 @@ function gen_desetinna(string $level, string $diff): array
     $cfg = DESETINNA_MD[$diff];
     for ($try = 0; $try < 500; $try++) {
         if ($level === 'posun') {
-            $pow = $diff === 'lehke' ? 10 : pick([10, 100, 1000]);
+            // vždy desetinné číslo s nenulovou poslední číslicí (2,47 · 10), u dělení
+            // na střední a těžké i celé (45 : 100); výsledek nejvýš na 3 desetinná místa
             $mul = (bool) rand(0, 1);
-            $x = dec(rand($cfg['m'][0], $cfg['m'][1]), rand(0, $diff === 'tezke' ? 2 : 1));
+            $k = $diff === 'lehke' ? 1 : ($diff === 'stredni' || !$mul ? rand(1, 2) : rand(1, 3));   // : 1 000 jen u násobení
+            $pow = 10 ** $k;
+            // počet desetinných míst zadání; celé číslo jen občas u dělení (45 : 100)
+            $p = $mul ? min(3, $k + 1) : ($diff !== 'lehke' && rand(0, 4) === 0 ? 0 : rand(1, 3 - $k));
+            $m = rand(11, [ 'lehke' => 999, 'stredni' => 9999, 'tezke' => 99999 ][$diff]);
+            if ($m % 10 === 0 || ($p === 0 && $m % $pow === 0)) {
+                continue;
+            }
+            $x = dec($m, $p);
             $r = $mul ? $x * $pow : $x / $pow;
-            if (dec_places($r) > 2 || $r >= 100000) {
+            if (dec_places($r) > 3) {
                 continue;
             }
             $q = dec_fmt($x) . ($mul ? ' · ' : ' : ') . fmt_num($pow);
@@ -378,8 +387,8 @@ function gen_desetinna(string $level, string $diff): array
         }
         if ($level === 'nasobeni') {
             $r = $x * $y;
-            if (dec_places($r) > 2) {
-                continue;
+            if (dec_places($r) > 2 || (dec_places($r) === 0 && rand(0, 3) > 0)) {
+                continue;   // celý výsledek jen občas
             }
             return ['q' => dec_fmt($x) . ' · ' . dec_fmt($y), 'kind' => 'num', 'a' => (float) round($r, 4),
                     'p' => ['op' => 'dmd', 'form' => 'nasobeni', 'x' => $x, 'y' => $y, 'mul' => true, 'dec' => true]];
@@ -387,7 +396,8 @@ function gen_desetinna(string $level, string $diff): array
         // dělení: dělenec = výsledek · dělitel, ať vyjde beze zbytku
         $r = $x;
         $dividend = round($r * $y, 6);
-        if (dec_places($dividend) > 2 || $y == 0 || dec_places($dividend) + dec_places($y) + dec_places($r) === 0) {
+        if (dec_places($dividend) > 2 || $y == 0 || dec_places($dividend) + dec_places($y) + dec_places($r) === 0
+            || (dec_places($r) === 0 && rand(0, 3) > 0)) {
             continue;   // aspoň jedno desetinné číslo, jinak to není úloha na desetinná čísla
         }
         return ['q' => dec_fmt($dividend) . ' : ' . dec_fmt($y), 'kind' => 'num', 'a' => (float) round($r, 4),

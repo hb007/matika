@@ -67,7 +67,7 @@ window.Offline = (() => {
     if (ex.kind === 'num') {
       const v = parseNum(given);
       if (v === null) return { ok: false, note: 'To není číslo.', readable: false };
-      return { ok: Math.abs(v - Number(ex.a)) < 0.001, note: '', readable: true };
+      return { ok: Math.abs(v - Number(ex.a)) < 0.0001, note: '', readable: true };
     }
     if (ex.kind === 'frac') {
       const f = parseFrac(given);

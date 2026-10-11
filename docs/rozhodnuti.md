@@ -9,7 +9,7 @@ Nejnovější nahoře. Zrušené rozhodnutí nemaž, označ ho jako nahrazené a
 
 **Rozhodnutí:** Měří se čas v celé appce (otevřená a viditelná). Po 10 minutách výrazné upozornění přes celou obrazovku, pak každých 5 minut znovu, a trvalá lišta s dnešním časem. Bez odpočtu a bez zamykání. Hry mají dál jen limit počtu (3 + 1 za každých 10 příkladů po cíli).
 
-**Důsledky:** Čas je v prohlížeči, na každém zařízení zvlášť (ve Výsledcích „na tomto zařízení“). Nahrazuje limit 10 minut her z rozhodnutí níž.
+**Důsledky:** Nahrazuje limit 10 minut her z rozhodnutí níž. Upřesnění téhož dne: čas se sčítá přes server ze všech zařízení (`lib/usage.php`); zařízení posílá přírůstky, server je sčítá po dnech (dny bez internetu se doplní, nejvýš 7 dní zpět a 4 hodiny na den v jednom požadavku).
 
 ## 2026-10-11: Pět vlastních her s denním limitem
 

@@ -12,6 +12,13 @@
 * [x] zásoba pro všech 46 kombinací (30 na kombinaci, bez opakování, menší strop u malých úloh), po vyčerpání hláška místo náhrady
 * [x] ověřit na skutečném Androidu: appka z plochy v režimu letadlo, po připojení se body započtou (ověřil uživatel)
 
+## Čas ze všech zařízení, desetinná čísla bez celých (2026-10-11)
+
+* [x] server: tabulka `usage`, akce `time` (přírůstky po dnech), `time_today` ve stavu dětí; testy `tests/test_usage.php`
+* [x] klient: neodeslaný čas ve frontě, odeslání každých 30 s, při odchodu do pozadí a po připojení; upozornění a lišta podle součtu
+* [x] posun čárky: zadání desetinné (nekončí nulou), výsledek až 3 místa; méně celých výsledků u · :; tolerance kontroly 0,0001; tisíce oddělené mezerou i u desetinných
+* [x] ověřeno: dvě zařízení (6 + 4 min → upozornění na druhém), Výsledky se součtem, offline čas odeslán po připojení; testy a shoda PHP/JS
+
 ## Čas v celé appce (2026-10-11)
 
 * [x] zrušen časový limit her (zámek a „zbývá X min“), zůstává limit počtu her

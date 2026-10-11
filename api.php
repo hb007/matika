@@ -11,6 +11,7 @@ require __DIR__ . '/lib/explain.php';
 require __DIR__ . '/lib/db.php';
 require __DIR__ . '/lib/game.php';
 require __DIR__ . '/lib/rewards.php';
+require __DIR__ . '/lib/usage.php';
 require __DIR__ . '/lib/offline.php';
 
 date_default_timezone_set('Europe/Prague');
@@ -134,6 +135,11 @@ try {
             $uid = require_uid($in);
             $done = sync_results(db(), $uid, is_array($in['items'] ?? null) ? $in['items'] : [], time());
             out(['done' => $done, 'users' => users_state(db(), $today)]);
+
+        case 'time':
+            // čas v appce, který přibyl na tomto zařízení (viz lib/usage.php)
+            $uid = require_uid($in);
+            out(['ms' => add_usage(db(), $uid, is_array($in['items'] ?? null) ? $in['items'] : [], $today)]);
 
         case 'stats':
             $stats = [];

@@ -211,7 +211,10 @@ function frac_str(int $n, int $d): string
 function fmt_num($n): string
 {
     if (is_float($n)) {
-        return str_replace('.', ',', rtrim(rtrim(number_format($n, 2, '.', ''), '0'), '.'));
+        // nejvýš 3 desetinná místa (posun čárky), tisíce oddělené mezerou jako u celých čísel
+        $s = rtrim(rtrim(number_format(abs($n), 3, '.', ''), '0'), '.');
+        [$int, $frac] = array_pad(explode('.', $s), 2, '');
+        return ($n < 0 ? '−' : '') . number_format((int) $int, 0, ',', ' ') . ($frac !== '' ? ',' . $frac : '');
     }
     $s = number_format(abs($n), 0, ',', ' ');
     return ($n < 0 ? '−' : '') . $s;
@@ -322,7 +325,7 @@ function check_answer(array $ex, $given): array
             if ($v === null) {
                 return [false, 'To není číslo.'];
             }
-            return [abs($v - (float) $ex['a']) < 0.001, ''];
+            return [abs($v - (float) $ex['a']) < 0.0001, ''];   // výsledky mají nejvýš 3 desetinná místa
 
         case 'frac':
             $f = parse_frac((string) $given);
