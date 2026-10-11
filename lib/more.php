@@ -276,8 +276,8 @@ function gen_statistika(string $level, string $diff): array
             $cnt = array_count_values($xs);
             arsort($cnt);
             $top = array_values($cnt);
-            if (count($top) > 1 && $top[0] === $top[1]) {
-                continue;
+            if (count($top) < 2 || $top[0] === $top[1]) {
+                continue;   // aspoň dvě různá čísla a jediné nejčastější
             }
             $ans = array_key_first($cnt);
         } elseif ($level === 'prumer') {

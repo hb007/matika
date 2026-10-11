@@ -3,7 +3,17 @@
 Proč je projekt tak, jak je. Jedno rozhodnutí = jedna sekce: datum, kontext, rozhodnutí, důsledky.
 Nejnovější nahoře. Zrušené rozhodnutí nemaž, označ ho jako nahrazené a odkaž na nové.
 
+## 2026-10-11: Čas v celé appce: upozornění, ne vypínání
+
+**Kontext:** Cílem je, aby dítě netrávilo na telefonu čas. Limit 10 minut jen na hry nestačil a vypínání s odpočtem nebylo žádoucí.
+
+**Rozhodnutí:** Měří se čas v celé appce (otevřená a viditelná). Po 10 minutách výrazné upozornění přes celou obrazovku, pak každých 5 minut znovu, a trvalá lišta s dnešním časem. Bez odpočtu a bez zamykání. Hry mají dál jen limit počtu (3 + 1 za každých 10 příkladů po cíli).
+
+**Důsledky:** Čas je v prohlížeči, na každém zařízení zvlášť (ve Výsledcích „na tomto zařízení“). Nahrazuje limit 10 minut her z rozhodnutí níž.
+
 ## 2026-10-11: Pět vlastních her s denním limitem
+
+**Stav:** časový limit her nahrazen rozhodnutím „Čas v celé appce: upozornění, ne vypínání“.
 
 **Kontext:** Víc her jako odměna, ale ne neomezeně. Otázka, jestli převzít hotové hry (2048 MIT, Hextris GPL, klony Pac-Mana s různými licencemi) nebo herní knihovnu (Phaser).
 

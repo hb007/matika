@@ -12,6 +12,12 @@
 * [x] zásoba pro všech 46 kombinací (30 na kombinaci, bez opakování, menší strop u malých úloh), po vyčerpání hláška místo náhrady
 * [x] ověřit na skutečném Androidu: appka z plochy v režimu letadlo, po připojení se body započtou (ověřil uživatel)
 
+## Čas v celé appce (2026-10-11)
+
+* [x] zrušen časový limit her (zámek a „zbývá X min“), zůstává limit počtu her
+* [x] čas v appce na dítě a den, upozornění přes celou obrazovku po 10 min a pak každých 5 min, červená lišta, řádek ve Výsledcích
+* [x] ověřeno v Playwright (světlý i tmavý): před 10 min nic, v 10 min upozornění a lišta, Rozumím pokračuje, v 15 min znovu, mezi tím ne; hry bez minut
+
 ## Procenta, dělitelnost, statistika, desetinná čísla; pět her s limitem (2026-10-11)
 
 * [x] `lib/more.php`: 4 nové úlohy po 3 úrovních, nápověda, postup, rozbor chyb; popisky políček (průměr =, □ =, … %), klávesa čárky; testy rozsahů a rozborů

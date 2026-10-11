@@ -82,6 +82,7 @@ if ($kid) {
 
 <main id="app">
   <div class="offline-bar" id="offline-bar" role="status" hidden></div>
+  <div class="time-bar" id="time-bar" role="status" hidden></div>
 
   <!-- kdo cvičí -->
   <section id="screen-who" class="screen" hidden>
@@ -173,6 +174,15 @@ if ($kid) {
     <button type="button" class="link" data-go="back">Zpět k příkladům</button>
   </section>
 </main>
+<!-- upozornění na čas v appce (app.js, „čas v appce“) -->
+<div class="time-warn" id="time-warn" role="alertdialog" aria-modal="true" aria-labelledby="time-warn-text" hidden>
+  <div class="time-warn-box">
+    <div class="time-warn-icon" aria-hidden="true">⏰</div>
+    <p class="time-warn-big" id="time-warn-text"></p>
+    <p>Dej si pauzu: jdi ven, protáhni se, napij se.</p>
+    <button type="button" class="btn" id="time-warn-ok">Rozumím</button>
+  </div>
+</div>
 <script src="<?= $v('paper.js') ?>"></script>
 <script src="<?= $v('offline.js') ?>"></script>
 <script src="<?= $v('rewards.js') ?>"></script>

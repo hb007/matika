@@ -51,7 +51,7 @@
 
   function show(name) {
     closeTaskMenu();
-    if (name !== 'game' && game) { game.stop(); clearInterval(gameTick); }
+    if (name !== 'game' && game) game.stop();
     if (name !== 'round') delete document.body.dataset.diff;
     document.querySelectorAll('.screen').forEach((s) => (s.hidden = true));
     $('screen-' + name).hidden = false;
@@ -724,13 +724,12 @@
 
   // ---------- hry ----------
   // Hry jsou odměna. Odemknou se splněním denního cíle a mají denní limit:
-  // GAME_PLAYS her (každá hra = jedno kolo od startu do konce), za každých
-  // GAME_EXTRA_EVERY dalších vyřešených příkladů jedna hra navíc, a nejvýš
-  // GAME_MINUTES minut hraní za den; pak upozornění a hry jsou do zítřka
-  // zamčené. Počítá se v prohlížeči (pro každé dítě zvlášť), funguje i offline.
+  // GAME_PLAYS her (každá hra = jedno kolo od startu do konce) a za každých
+  // GAME_EXTRA_EVERY dalších vyřešených příkladů jedna hra navíc. Počítá se
+  // v prohlížeči (pro každé dítě zvlášť), funguje i offline. Čas v celé appce
+  // hlídá oddíl „čas v appce“ níž.
   const GAME_PLAYS = 3;
   const GAME_EXTRA_EVERY = 10;
-  const GAME_MINUTES = 10;
   const GAMES = {
     had: { title: 'Had', icon: '🐍', label: 'Jablka', how: 'Táhni prstem po ploše, ťukej na šipky, nebo hraj šipkami na klávesnici.',
       pad: ['up', 'left', 'down', 'right'], make: (stage, cb) => { const c = document.createElement('canvas'); stage.appendChild(c); return window.Snake.create(c, cb); } },
@@ -744,7 +743,6 @@
       pad: [], make: (stage, cb) => window.Flappy.create(stage, cb) },
   };
   let gameId = null;    // právě otevřená hra
-  let gameTick = null;  // počítání času hraní
 
   const today = () => {
     const d = new Date();
@@ -767,7 +765,6 @@
     const m = me();
     const log = gameLog();
     if (!m || m.solved_today < state.goal) return `Hry se odemknou po splnění denního cíle (${m ? m.solved_today : 0} z ${state.goal}).`;
-    if (log.ms >= GAME_MINUTES * 60000) return `Dnes už jsi hrál${m.kind === 'holka' ? 'a' : ''} ${GAME_MINUTES} minut. Hry jsou zase zítra.`;
     if (log.plays >= playsAllowed()) {
       const need = GAME_EXTRA_EVERY - ((m.solved_today - state.goal) % GAME_EXTRA_EVERY);
       return `Dnešní hry jsou vyčerpané. Další hru dostaneš za ${need} ${need === 1 ? 'vyřešený příklad' : need <= 4 ? 'vyřešené příklady' : 'vyřešených příkladů'}.`;
@@ -777,8 +774,7 @@
   function gameStatus() {
     const log = gameLog();
     const plays = Math.max(0, playsAllowed() - log.plays);
-    const min = Math.max(0, Math.ceil((GAME_MINUTES * 60000 - log.ms) / 60000));
-    return `Zbývá ${plays} ${plays === 1 ? 'hra' : plays >= 2 && plays <= 4 ? 'hry' : 'her'} a ${min} min hraní.`;
+    return `Zbývá ${plays} ${plays === 1 ? 'hra' : plays >= 2 && plays <= 4 ? 'hry' : 'her'}.`;
   }
   function renderGameButtons() {
     const block = gameBlock();
@@ -835,7 +831,6 @@
     gameOverlay(g.how, 'Hrát');
   }
   function gameOver(id, n) {
-    stopTick();
     const g = GAMES[id];
     const best = bestOf(id);
     const record = g.low ? n > 0 && (!best || n < best) : n > best;
@@ -863,43 +858,16 @@
     game.paused = false;
     $('game-overlay').hidden = true;
     game.start();
-    startTick();
     renderGameButtons();
     $('game-limit').textContent = gameStatus();
   }
-  // Čas hraní: každou sekundu, kdy hra běží a appka je vidět.
-  function startTick() {
-    stopTick();
-    gameTick = setInterval(() => {
-      if (!game || !game.running || document.hidden) return;
-      const log = gameLog();
-      log.ms += 1000;
-      saveLog(log);
-      if (log.ms >= GAME_MINUTES * 60000) {
-        game.stop();
-        stopTick();
-        renderGameButtons();
-        const holka = (me() || {}).kind === 'holka';
-        alert(`Dnes už jsi hrál${holka ? 'a' : ''} ${GAME_MINUTES} minut. Dej si pauzu, hry jsou zase zítra.`);
-        gameOverlay(gameBlock(), '');
-        $('game-limit').textContent = gameBlock();
-      } else if (log.ms % 60000 === 0) {
-        $('game-limit').textContent = gameStatus();   // zbývající minuty
-      }
-    }, 1000);
-  }
-  function stopTick() {
-    clearInterval(gameTick);
-    gameTick = null;
-  }
-
   document.querySelectorAll('[data-games]').forEach((b) => b.addEventListener('click', openGames));
   $('games-list').addEventListener('click', (e) => {
     const b = e.target.closest('[data-game-id]');
     if (b) openGame(b.dataset.gameId);
   });
   $('btn-random-game').addEventListener('click', () => openGame(pick(Object.keys(GAMES))));
-  $('btn-games-back').addEventListener('click', () => { if (game) game.stop(); stopTick(); openGames(); });
+  $('btn-games-back').addEventListener('click', () => { if (game) game.stop(); openGames(); });
   $('game-start').addEventListener('click', gameGo);
   // první ťuknutí na plochu hru spustí (u ptáčka a cihel je to zároveň první akce)
   $('game-stage').addEventListener('pointerdown', () => { if (game && !game.running && !$('game-overlay').hidden && !game.over && $('game-start').hidden === false) gameGo(); }, true);
@@ -939,6 +907,58 @@
       gameOverlay('Pauza.', 'Pokračovat');
     }
   });
+
+  // ---------- čas v appce ----------
+  // Cílem je, aby dítě netrávilo na telefonu moc času. Měří se čas, kdy je
+  // appka otevřená a vidět (příklady i hry), pro každé dítě a den zvlášť na
+  // tomto zařízení. Žádný odpočet a nic se nevypíná: po TIME_WARN_MIN minutách
+  // výrazné upozornění přes celou obrazovku, pak každých TIME_REPEAT_MIN minut
+  // znovu, a nahoře zůstane lišta s tím, kolik času tu dítě dnes je.
+  const TIME_WARN_MIN = 10;
+  const TIME_REPEAT_MIN = 5;
+  const timeKey = (uid) => 'matika_time_' + uid;
+  function timeLog(uid) {
+    const l = Offline.load(timeKey(uid), null);
+    return l && l.day === today() ? l : { day: today(), ms: 0, warned: 0 };
+  }
+  function minutes(n) {
+    return `${n} ${n === 1 ? 'minutu' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'minuty' : 'minut'}`;
+  }
+  function renderTimeBar(min) {
+    const bar = $('time-bar');
+    bar.hidden = min < TIME_WARN_MIN;
+    if (!bar.hidden) bar.textContent = `Dnes jsi v Matice už ${minutes(min)}. Dej si pauzu.`;
+  }
+  function showTimeWarning(min) {
+    if (game && game.running) {   // hra počká
+      game.stop();
+      game.paused = true;
+      gameOverlay('Pauza.', 'Pokračovat');
+    }
+    clearTimeout(state.timer);
+    $('time-warn-text').textContent = `Dnes jsi v Matice už ${minutes(min)}.`;
+    $('time-warn').hidden = false;
+    $('time-warn-ok').focus();
+  }
+  $('time-warn-ok').addEventListener('click', () => {
+    $('time-warn').hidden = true;
+    if (state.ex && state.lock && !$('feedback').hidden && !$('btn-next')) next();   // po správné odpovědi pokračovat
+  });
+  setInterval(() => {
+    if (document.hidden || !state.user) return;
+    const l = timeLog(state.user);
+    l.ms += 1000;
+    const min = Math.floor(l.ms / 60000);
+    if (min >= TIME_WARN_MIN) {
+      const due = TIME_WARN_MIN + Math.floor((min - TIME_WARN_MIN) / TIME_REPEAT_MIN) * TIME_REPEAT_MIN;
+      if ((l.warned || 0) < due) {
+        l.warned = due;
+        showTimeWarning(min);
+      }
+    }
+    renderTimeBar(min);
+    Offline.save(timeKey(state.user), l);
+  }, 1000);
 
   // ---------- běžné efekty ----------
   // Náhodný efekt za každou správnou odpověď jde vypnout; odměny (jednorožec,
@@ -1095,6 +1115,7 @@
       + row('Celkem', (u) => u.total + ' b.')
       + row('Dnes vyřešeno', (u) => `${u.solved_today} / ${state.goal}`)
       + row('Dní v řadě se splněným cílem', (u) => u.days || '–')
+      + row('Dnes v appce (na tomto zařízení)', (u) => minutes(Math.floor(timeLog(u.id).ms / 60000)))
       + row('', (u) => `<button type="button" class="link reset" data-user="${u.id}">Smazat body</button>`);
     // album: získané nálepky (kolikrát), nezískané šedě s tím, jak je dostat
     const all = Object.entries(Rewards.STICKER);
