@@ -1,6 +1,6 @@
 <?php
-// Připojení k DB přes PDO. MySQL je hlavní cíl; SQLite se hodí na lokální
-// zkoušení (schéma se pak založí samo).
+// Připojení k DB přes PDO. Výchozí je SQLite (schéma se založí samo),
+// volitelně MySQL/MariaDB (schéma zakládá install.php ze schema.sql).
 function db(): PDO
 {
     static $pdo = null;
@@ -8,12 +8,19 @@ function db(): PDO
         return $pdo;
     }
     $cfg = require __DIR__ . '/../config.php';
+    if (str_starts_with($cfg['dsn'], 'sqlite:')) {
+        $dir = dirname(substr($cfg['dsn'], 7));
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0775, true);
+        }
+    }
     $pdo = new PDO($cfg['dsn'], $cfg['user'], $cfg['pass'], [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
     if (str_starts_with($cfg['dsn'], 'sqlite:')) {
         $pdo->exec('PRAGMA foreign_keys = ON');
+        $pdo->exec('PRAGMA busy_timeout = 3000');   // víc dětí najednou
         $pdo->exec('CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL UNIQUE,

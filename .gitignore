@@ -1,2 +1,5 @@
 *.sqlite
 *.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+config.local.php

@@ -15,6 +15,14 @@ const MODULES = [
     'scitani' => ['title' => 'Sčítání a odčítání',    'levels' => ['100' => 'Do 100', '1000' => 'Do 1 000', '10000' => 'Do 10 000', 'zaporna' => 'Záporná čísla', 'desetinna' => 'Desetinná čísla']],
     'zlomky'  => ['title' => 'Zlomky',                'levels' => ['kraceni' => 'Krácení', 'scitani' => 'Sčítání a odčítání', 'nasobeni' => 'Násobení a dělení', 'mix' => 'Všechno']],
     'deleni'  => ['title' => 'Dělení s ocáskem',      'levels' => ['1' => 'Jednociferný dělitel', '2' => 'Dvojciferný dělitel']],
+    'mix'     => ['title' => 'Náhodný mix',           'levels' => ['lehky' => 'Lehčí', 'vse' => 'Všechno']],
+];
+
+// Z čeho se skládá náhodný mix: každý příklad má náhodné téma i úroveň.
+const MIX_POOLS = [
+    'lehky' => [['mala', 'mix'], ['velka', 'nasobeni'], ['scitani', '100'], ['scitani', '1000'],
+                ['zlomky', 'kraceni'], ['zlomky', 'nasobeni'], ['deleni', '1']],
+    'vse'   => null,   // všechny úrovně všech témat
 ];
 
 function gcd(int $a, int $b): int
@@ -202,12 +210,25 @@ function generate_round(string $module, string $level, int $count): array
     if (!isset(MODULES[$module]) || !isset(MODULES[$module]['levels'][$level])) {
         throw new InvalidArgumentException('Neznámý modul nebo úroveň');
     }
-    $fn = 'gen_' . $module;
+    $pool = [];
+    if ($module === 'mix') {
+        $pool = MIX_POOLS[$level];
+        if ($pool === null) {
+            foreach (MODULES as $m => $def) {
+                if ($m !== 'mix') {
+                    foreach (array_keys($def['levels']) as $l) {
+                        $pool[] = [$m, (string) $l];
+                    }
+                }
+            }
+        }
+    }
     $out = [];
     $seen = [];
     $guard = 0;
     while (count($out) < $count && $guard++ < 500) {
-        $ex = $fn($level);
+        [$m, $l] = $pool ? $pool[random_int(0, count($pool) - 1)] : [$module, $level];
+        $ex = ('gen_' . $m)($l);
         if (isset($seen[$ex['q']])) {
             continue;   // žádné opakování v jednom kole
         }
@@ -215,6 +236,16 @@ function generate_round(string $module, string $level, int $count): array
         $out[] = $ex;
     }
     return $out;
+}
+
+// Které klávesy kromě číslic příklad potřebuje (pro klávesnici na mobilu).
+function extra_keys(array $ex): array
+{
+    if ($ex['kind'] === 'frac') {
+        return ['/'];
+    }
+    $lvl = $ex['p']['lvl'] ?? '';
+    return $lvl === 'zaporna' ? ['−'] : ($lvl === 'desetinna' ? [','] : []);
 }
 
 // Správná odpověď jako text (do DB a do zpětné vazby).

@@ -1,0 +1,6 @@
+# Apache: zakázat přímý přístup k citlivým souborům.
+<FilesMatch "^(config\.local\.php|schema\.sql|README\.md|.*\.sqlite.*)$">
+    Require all denied
+</FilesMatch>
+Options -Indexes
+DirectoryIndex index.php

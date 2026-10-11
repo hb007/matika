@@ -71,6 +71,7 @@
     scitani: 'do 100 až 10 000, záporná, desetinná',
     zlomky: 'krácení, +, −, ·, :',
     deleni: 'podíl a zbytek',
+    mix: 'všechno napřeskáčku',
   };
 
   async function loadMenu() {
@@ -136,18 +137,92 @@
     state.lock = false;
 
     const inputs = $('inputs');
+    // na dotykovém zařízení píšeme vlastní klávesnicí, systémová se nevysouvá
+    const ro = KEYPAD ? ' readonly inputmode="none"' : '';
     if (q.kind === 'divrem') {
-      inputs.innerHTML = `<span>=</span><input type="text" inputmode="numeric" id="ans-q" autocomplete="off" placeholder="podíl">
-        <span>zb.</span><input type="text" inputmode="numeric" id="ans-r" class="narrow" autocomplete="off" placeholder="0">`;
+      inputs.innerHTML = `<span>=</span><input type="text" inputmode="numeric" id="ans-q" autocomplete="off" placeholder="podíl"${ro}>
+        <span>zb.</span><input type="text" inputmode="numeric" id="ans-r" class="narrow" autocomplete="off" placeholder="0"${ro}>`;
       $('ans-q').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('ans-r').focus(); } });
-      autoFocus($('ans-q'));
     } else {
       const mode = q.kind === 'frac' ? 'text' : 'decimal';
       const ph = q.kind === 'frac' ? 'např. 3/4' : '';
-      inputs.innerHTML = `<input type="text" inputmode="${mode}" id="ans" autocomplete="off" placeholder="${ph}">`;
-      autoFocus($('ans'));
+      inputs.innerHTML = `<input type="text" inputmode="${mode}" id="ans" autocomplete="off" placeholder="${ph}"${ro}>`;
+    }
+    if (KEYPAD) {
+      $('btn-submit').hidden = true;
+      inputs.querySelectorAll('input').forEach((inp) => inp.addEventListener('click', () => setActive(inp)));
+      setActive(inputs.querySelector('input'));
+      renderKeypad(q);
+    } else {
+      autoFocus(inputs.querySelector('input'));
     }
   }
+
+  // ---------- vlastní klávesnice (telefon, tablet) ----------
+  const KEYPAD = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  let activeInput = null;
+
+  function setActive(inp) {
+    activeInput = inp;
+    document.querySelectorAll('#inputs input').forEach((x) => x.classList.toggle('active', x === inp));
+  }
+
+  function renderKeypad(q) {
+    const extra = q.keys || [];
+    const k1 = q.kind === 'divrem' ? 'zb.' : extra[0] || '';
+    const k2 = q.kind === 'divrem' ? '' : extra[1] || '';
+    const key = (label, cls = '') => label
+      ? `<button type="button" class="key ${cls}" data-key="${esc(label)}">${esc(label)}</button>`
+      : '<button type="button" class="key blank" tabindex="-1" aria-hidden="true"></button>';
+    $('keypad').innerHTML =
+      key('7') + key('8') + key('9') + `<button type="button" class="key fn" data-key="del" aria-label="Smazat">⌫</button>` +
+      key('4') + key('5') + key('6') + key(k1, 'fn') +
+      key('1') + key('2') + key('3') + key(k2, 'fn') +
+      key('0', 'wide') + `<button type="button" class="key ok wide" data-key="ok">Hotovo</button>`;
+    $('keypad').hidden = false;
+  }
+
+  function pressKey(k) {
+    if (state.lock || !activeInput) return;
+    const v = activeInput.value;
+    if (k === 'ok') {
+      $('form-answer').requestSubmit ? $('form-answer').requestSubmit() : $('form-answer').dispatchEvent(new Event('submit', { cancelable: true }));
+      return;
+    }
+    if (k === 'zb.') {
+      setActive($('ans-r') || activeInput);
+      return;
+    }
+    if (k === 'del') {
+      activeInput.value = v.slice(0, -1);
+      return;
+    }
+    if (v.length >= 12) return;
+    if (k === '−') {
+      activeInput.value = v.startsWith('-') ? v.slice(1) : '-' + v;   // přepíná znaménko
+    } else if (k === ',') {
+      if (!v.includes(',')) activeInput.value = (v === '' || v === '-' ? v + '0' : v) + ',';
+    } else if (k === '/') {
+      if (v !== '' && !v.includes('/')) activeInput.value = v + '/';
+    } else {
+      activeInput.value = v + k;
+    }
+  }
+
+  $('keypad').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-key]');
+    if (b) pressKey(b.dataset.key);
+  });
+
+  // tablet s fyzickou klávesnicí: psaní funguje i do políček jen pro čtení
+  document.addEventListener('keydown', (e) => {
+    if (!KEYPAD || $('screen-round').hidden || state.lock || e.metaKey || e.ctrlKey) return;
+    const map = { Backspace: 'del', Enter: 'ok', '-': '−', ',': ',', '.': ',', '/': '/' };
+    const k = /^[0-9]$/.test(e.key) ? e.key : map[e.key];
+    if (!k) return;
+    e.preventDefault();
+    pressKey(k);
+  });
 
   // Na dotykovém zařízení s otevřeným papírem políčko nezaměřujeme,
   // jinak by vyjela klávesnice a zakryla papír.
@@ -185,6 +260,7 @@
     }
     const fb = $('feedback');
     fb.hidden = false;
+    $('keypad').hidden = true;
     $('btn-submit').hidden = true;
     document.querySelectorAll('#inputs input').forEach((inp) => (inp.disabled = true));
     $('btn-hint').hidden = true;
@@ -204,8 +280,10 @@
         + (r.why ? `<span class="why">${esc(r.why)}</span>` : '')
         + steps
         + `<div class="next"><button type="button" class="btn" id="btn-next">Další</button></div>`;
-      $('btn-next').focus();
+      if (!KEYPAD) $('btn-next').focus();
       $('btn-next').addEventListener('click', next);
+      // na telefonu může být vysvětlení pod okrajem obrazovky
+      fb.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
   });
 
@@ -247,8 +325,12 @@
   );
   $('paper-undo').addEventListener('click', () => paper.undo());
   $('paper-clear').addEventListener('click', () => paper.clear());
-  let paperOpen = false;
-  try { paperOpen = localStorage.getItem('matika_paper') === '1'; } catch (e) { /* bez úložiště */ }
+  // výchozí stav: na širokém displeji (tablet na šířku) je papír vedle příkladu otevřený
+  let paperOpen = window.matchMedia && window.matchMedia('(min-width: 900px)').matches;
+  try {
+    const saved = localStorage.getItem('matika_paper');
+    if (saved !== null) paperOpen = saved === '1';
+  } catch (e) { /* bez úložiště */ }
   setPaper(paperOpen);
 
   // Enter po špatné odpovědi = další příklad
@@ -340,9 +422,25 @@
   );
 
   // ---------- start ----------
+  $('form-access').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      await api('access', { password: $('access-pass').value });
+      location.reload();
+    } catch (err) {
+      $('access-error').textContent = err.message;
+    }
+  });
+
   (async () => {
     try {
-      const { modules, user } = await api('modules');
+      const res = await api('modules');
+      if (res.locked) {
+        show('access');
+        $('access-pass').focus();
+        return;
+      }
+      const { modules, user } = res;
       state.modules = modules;
       state.user = user;
       if (user) await loadMenu();

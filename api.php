@@ -8,10 +8,12 @@ require __DIR__ . '/lib/db.php';
 require __DIR__ . '/lib/generators.php';
 require __DIR__ . '/lib/explain.php';
 
+date_default_timezone_set('Europe/Prague');
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
 const COOKIE = 'matika_uid';
+const ACCESS_COOKIE = 'matika_access';
 
 function out($data, int $code = 200): never
 {
@@ -64,6 +66,24 @@ $cfg = require __DIR__ . '/config.php';
 $action = $_GET['action'] ?? '';
 $in = body();
 
+// Volitelné přístupové heslo pro celou appku (nastavuje install.php).
+// V cookie je odvozený token, ne heslo; po změně hesla přestane platit.
+$accessToken = $cfg['access_hash'] !== '' ? hash_hmac('sha256', 'matika-access', $cfg['access_hash']) : '';
+$unlocked = $accessToken === '' || hash_equals($accessToken, (string) ($_COOKIE[ACCESS_COOKIE] ?? ''));
+if ($action === 'access') {
+    if ($accessToken !== '' && !password_verify((string) ($in['password'] ?? ''), $cfg['access_hash'])) {
+        usleep(500000);   // zpomalit zkoušení hesel
+        fail('Špatné heslo.', 403);
+    }
+    setcookie(ACCESS_COOKIE, $accessToken, [
+        'expires' => time() + 365 * 86400, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax',
+    ]);
+    out(['ok' => true]);
+}
+if (!$unlocked) {
+    out(['locked' => true], $action === 'modules' ? 200 : 403);
+}
+
 try {
     switch ($action) {
         case 'modules':
@@ -106,7 +126,7 @@ try {
                 ->execute([$user['id'], $module, $level, json_encode($questions), count($questions)]);
             $rid = (int) db()->lastInsertId();
             // klientovi jdou jen zadání, odpovědi zůstávají na serveru
-            $public = array_map(fn($ex, $i) => ['i' => $i, 'q' => $ex['q'], 'kind' => $ex['kind']], $questions, array_keys($questions));
+            $public = array_map(fn($ex, $i) => ['i' => $i, 'q' => $ex['q'], 'kind' => $ex['kind'], 'keys' => extra_keys($ex)], $questions, array_keys($questions));
             out(['round_id' => $rid, 'questions' => $public]);
 
         case 'hint':

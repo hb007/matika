@@ -1,6 +1,7 @@
 # Matika – procvičování pro 2. stupeň ZŠ
 
-Jednoduchá webová appka (PHP 8 + MySQL, bez frameworků a bez buildu).
+Jednoduchá webová appka (PHP 8.1+, SQLite nebo MySQL, bez frameworků
+a bez buildu). Funguje na počítači, tabletu i telefonu.
 Dítě si vybere jméno, úkol a úroveň, odehraje kolo 10 příkladů, hned vidí,
 co mělo špatně, a sbírá body a hvězdičky. Rodič vidí ve „Výsledcích“
 úspěšnost podle úkolů a příklady, které se opakovaně nedaří.
@@ -14,6 +15,9 @@ co mělo špatně, a sbírá body a hvězdičky. Rodič vidí ve „Výsledcích
 | Sčítání a odčítání | do 100 · do 1 000 · do 10 000 · záporná čísla · desetinná čísla |
 | Zlomky | krácení · sčítání a odčítání · násobení a dělení · všechno |
 | Dělení s ocáskem | jednociferný dělitel (100–9 999) · dvojciferný dělitel (1 000–99 999) |
+| Náhodný mix | lehčí · všechno (každý příklad z jiného tématu) |
+
+Příklady se generují náhodně při každém kole a v jednom kole se neopakují.
 
 Pravidla, která hlídá server:
 
@@ -38,43 +42,59 @@ krok (třeba „Kolikrát se 8 vejde do 66?“). Každé další kliknutí odkry
 další krok. Poslední krok nikdy neprozradí výsledek, ten musí dítě dopočítat
 samo.
 
+**Telefon a tablet.** Na dotykovém zařízení se místo systémové klávesnice
+ukáže velká číselná klávesnice přímo pod příkladem, jen s klávesami, které
+příklad potřebuje (lomítko u zlomků, minus u záporných čísel, čárka
+u desetinných, „zb.“ u dělení se zbytkem). Na tabletu na šířku je papír
+na počítání vedle příkladu.
+
 **Papír na počítání.** Pod příkladem jde otevřít čtverečkovaný papír, na
 který se píše prstem, perem nebo myší (guma, krok zpět, smazat). Slouží
 k počítání pod sebou, appka z něj nic nečte. U každého nového příkladu se
 vyčistí. Na tabletu s otevřeným papírem se nevysouvá klávesnice sama.
 
-## Nasazení (MySQL)
+## Nasazení na hosting
 
-1. Vytvoř databázi a naimportuj schéma:
+Stačí běžný webhosting s **PHP 8.1 nebo novějším**. MySQL není potřeba,
+appka umí ukládat data do SQLite, což je jeden soubor ve složce `data/`.
 
-   ```sh
-   mysql -u root -p -e "CREATE DATABASE matika CHARACTER SET utf8mb4 COLLATE utf8mb4_czech_ci"
-   mysql -u root -p matika < schema.sql
-   ```
+1. **Stáhni appku.** Na GitHubu: Code → Download ZIP a rozbal.
+2. **Nahraj soubory přes FTP** do kořene webu nebo do podsložky (třeba
+   `/matika`). Nahraj všechno včetně skrytého `.htaccess`.
+3. **Otevři v prohlížeči `https://tvuj-web.cz/install.php`** (případně
+   `/matika/install.php`). Instalátor zkontroluje hosting, nabídne SQLite
+   (doporučeno) nebo MySQL a volitelné přístupové heslo. Po úspěchu se sám
+   smaže.
+4. Hotovo. Na tabletu nebo telefonu jde stránku přidat na plochu
+   (Sdílet → Přidat na plochu), pak se otevírá jako appka přes celou obrazovku.
 
-2. Nastav přístup k DB – buď proměnnými prostředí (`MATIKA_DSN`,
-   `MATIKA_DB_USER`, `MATIKA_DB_PASS`), nebo úpravou výchozích hodnot
-   v `config.php`:
+Instalátor není povinný. Když se soubory jen nahrají a otevře se web, appka
+si SQLite databázi založí sama, jen bez hesla a s výchozím názvem souboru.
 
-   ```php
-   'dsn'  => 'mysql:host=localhost;dbname=matika;charset=utf8mb4',
-   'user' => 'matika',
-   'pass' => 'tajne',
-   ```
+**Když chceš MySQL:** v administraci hostingu nejdřív založ databázi
+a uživatele, údaje pak zadej v instalátoru. Tabulky založí instalátor sám
+ze `schema.sql`.
 
-3. Nasměruj web server (Apache, nginx + php-fpm) na složku `matika/` jako
-   document root. Potřebné PHP rozšíření: `pdo_mysql`, `mbstring`.
-   Složku `lib/` chrání `.htaccess` (Apache); u nginx ji zakaž v konfiguraci.
+**Když instalátor hlásí chybu:**
 
-## Lokální spuštění bez MySQL
+- *PHP je starší než 8.1:* verze PHP se přepíná v administraci hostingu.
+- *Nejde zapisovat do složky:* nastav přes FTP práva složky appky
+  a složky `data/` na 755 (případně 775).
+- *Chybí SQLite i MySQL:* napiš podpoře hostingu, ať zapne rozšíření
+  `pdo_sqlite`.
 
-Stejný kód umí běžet nad SQLite (tabulky se založí samy):
+**Bezpečnost:** nastavení s přístupem k databázi je v `config.local.php`
+a data v `data/`. Na Apache je chrání `.htaccess`, SQLite soubor navíc
+dostane náhodný název. Přihlášení dětí je jen jménem; pokud je web
+veřejný, nastav v instalátoru přístupové heslo.
+
+## Lokální spuštění
 
 ```sh
-MATIKA_DSN="sqlite:$PWD/matika.sqlite" php -S localhost:8080 -t .
+php -S localhost:8080
 ```
 
-a otevři http://localhost:8080.
+a otevři http://localhost:8080. Data se uloží do `data/matika.sqlite`.
 
 ## Jak to funguje
 
@@ -86,8 +106,10 @@ a otevři http://localhost:8080.
 - `lib/generators.php` – generátory příkladů a kontrola odpovědí.
 - `lib/explain.php` – nápověda po krocích, postup řešení a rozbor typických chyb.
 - `paper.js` – papír na počítání (canvas, pero, guma).
-- `lib/db.php` – PDO připojení, podpora MySQL i SQLite.
-- `schema.sql` – tabulky `users`, `rounds`, `answers`.
+- `lib/db.php` – PDO připojení, podpora SQLite i MySQL.
+- `schema.sql` – tabulky `users`, `rounds`, `answers` (pro MySQL; SQLite si je založí samo).
+- `install.php` – instalátor pro hosting, `config.php` – výchozí nastavení,
+  `config.local.php` – nastavení z instalátoru (není v gitu).
 
 Přihlášení je jen jménem bez hesla – appka je určená pro rodinu nebo třídu,
 ne pro veřejný internet. Pokud ji chceš vystavit ven, dej před ni HTTP
