@@ -1,0 +1,68 @@
+# ============================================================
+#  docker-compose.clean.yml — ČISTÝ režim (EFEMÉRNÍ kontejner)
+#  Pro NEDŮVĚRYHODNÁ repa. Žádné sdílené skills/plugins/settings
+#  (pluginy mohou nést hooks a MCP servery, co se spustí automaticky).
+#  Spouštěj přes:  docker compose -f docker-compose.clean.yml run --rm vibecode
+#  Po exitu se kontejner díky --rm smaže celý (případná infekce nepřežije).
+# ============================================================
+
+services:
+  vibecode:
+    image: vibecode
+
+    # --- PORTY: v čistém režimu ZÁMĚRNĚ vypnuté ---
+    # Publikovaný port vpustí do kontejneru requesty z hostu, což u cizího
+    # repa nechceš (dev server nedůvěryhodného projektu si tím pouštíš do
+    # prohlížeče, kde má session cookies tvých ostatních localhost aplikací).
+    # Potřebuješ-li si cizí web vážně prohlédnout, odkomentuj a vždycky s
+    # `127.0.0.1:` na začátku — bez něj publikuje Docker na 0.0.0.0 (celá LAN)
+    # a obchází při tom UFW.
+    # ports:
+    #   - "127.0.0.1:${HOST_PORT:-3000}:${DEV_PORT:-3000}"
+
+    environment:
+      CLAUDE_CONFIG_DIR: /home/dev/.claude-config
+      # Bez TZ jede kontejner v UTC. Podrobnosti v docker-compose.yml.
+      TZ: ${TZ:-Europe/Prague}
+      # Ponytail: hostový ~/.config/ponytail/config.json se do kontejneru
+      # nemountuje, uvnitř by proto platil default "full". Nastav explicitně;
+      # podrobnosti v docker-compose.yml.
+      PONYTAIL_DEFAULT_MODE: ${PONYTAIL_DEFAULT_MODE:-full}
+      # CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC tu záměrně není — schovala by
+      # Claude Fable 5 z pickeru /model. Podrobnosti v docker-compose.yml.
+
+    volumes:
+      # --- KÓD PROJEKTU ---
+      - type: bind
+        source: .
+        target: /workspace
+
+      # --- ODDĚLENÝ čistý runtime (jiný než běžný režim) ---
+      - type: bind
+        source: ./.claude-clean-runtime
+        target: /home/dev/.claude-config
+        bind:
+          create_host_path: true
+
+      # ŽÁDNÉ skills/plugins/settings submounty — to je smysl čistého režimu.
+
+    working_dir: /workspace
+
+    stdin_open: true
+    tty: true
+    init: true
+
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 512
+    mem_limit: 8g                # strop paměti, viz docker-compose.yml
+
+    # --- Spouštění podezřelého kódu BEZ sítě (odkomentuj podle potřeby) ---
+    # Pozn.: network_mode:none vypne i spojení Claude s Anthropic → Claude
+    # takhle nespustíš, hodí se na lokální běh cizího buildu/testů.
+    # network_mode: "none"
+    # read_only: true
+    # tmpfs:
+    #   - /tmp:size=512m,mode=1777

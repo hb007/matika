@@ -1,0 +1,413 @@
+# ============================================================
+#  docker-compose.yml — BĚŽNÝ režim (TRVALÝ kontejner)
+#  Zkopíruj do kořene projektu spolu s .env a .gitignore.
+#
+#  Kontejner je trvalý: přežije exit i restart počítače.
+#  Mažeš ho ručně přes `docker compose down`.
+#
+#  Architektura:
+#   - .claude-runtime  -> CELÝ config dir (auth, historie, sezení přežijí)
+#   - skills -> read-only SUBMOUNT přes config dir
+#   - globální CLAUDE.md -> read-only SUBMOUNT přes config dir (Claude se jím
+#     řídí stejně jako na hostu; zápis memory v kontejneru záměrně selže)
+#   - hooks -> read-only SUBMOUNT přes config dir (skripty hooků ze settings.json)
+#   - plugins + settings -> read-only ZDROJ na staging cestě + kopie do
+#     zapisovatelné verze v config dir při startu (Claude do obojího zapisuje;
+#     u pluginů se navíc přepíšou hostové cesty v registru — viz `command`)
+#   - statusline -> read-only mount na stejnou cestu jako na hostu
+#   - .codex-runtime -> /home/dev/.codex (per-projekt přihlášení Codex CLI)
+#   - .gog-runtime   -> /home/dev/.gog (Google Workspace CLI, VYPNUTO by default)
+#   - cesty se berou z .env (absolutní, ne ~)
+#
+#  Volitelná lokální PostgreSQL:
+#   - docker compose up -d         → vibecode (bez db, appka používá SQLite)
+#   - docker compose up -d vibecode → jen vibecode (bez DB)
+#   - přepnutí na Neon/produkci: změň DATABASE_URL v .env
+#
+#  Dev server z prohlížeče na hostu: viz blok PORTY níže
+#  (http://localhost:${HOST_PORT}; server uvnitř musí poslouchat na 0.0.0.0)
+# ============================================================
+
+# Pevný název Compose projektu, nezávislý na názvu složky. Bez něj Compose
+# odvozuje název od složky a po jejím přejmenování považuje starý kontejner
+# za cizí projekt -> `up -d` selže na „Conflict. The container name ... is
+# already in use". Hodnota musí být malými písmeny (Compose jinak odmítne).
+name: ${PROJECT_NAME}
+
+services:
+  vibecode:
+    image: vibecode
+
+    # Pevné jméno kontejneru, ať ho snadno najdeš a nekoliduje mezi projekty.
+    # PROJECT_NAME vyplň v .env (jiné pro každý projekt).
+    container_name: vibecode-${PROJECT_NAME}
+
+    # Po restartu PC se kontejner sám spustí — pokud jsi ho ručně nezastavil.
+    restart: unless-stopped
+
+    # --- PORTY: dev server dostupný z prohlížeče na hostu ---
+    # Bez tohoto bloku se na dev server v kontejneru z hostu NEDOSTANEŠ —
+    # `localhost:3000` na hostu je jiný síťový namespace než v kontejneru.
+    #
+    # `127.0.0.1:` na začátku je ZÁMĚRNÝ a nemaž ho: bez něj Docker publikuje
+    # na 0.0.0.0, takže dev server (typicky bez autentizace, s HMR websocketem
+    # a debug endpointy) je dostupný z celé LAN. Publikované porty se navíc
+    # vkládají do nat/DOCKER chainu PŘED filter/INPUT, takže je UFW nezachytí
+    # a `ufw deny 3000` dává jen falešný pocit bezpečí.
+    #
+    # HOST_PORT (na hostu) a DEV_PORT (v kontejneru) vyplň v .env. Různé
+    # projekty musí mít různý HOST_PORT, jinak druhý `up -d` selže na
+    # „port is already allocated". DEV_PORT může zůstat u všech stejný.
+    #
+    # Projekt bez dev serveru (skripty, markdown)? Celý blok zakomentuj,
+    # ať zbytečně neobsazuje port na hostu.
+    ports:
+      # noVNC (volitelný prohlížeč, VIBECODE_DISPLAY=1). VNC_PORT nenastaven = náhodný port
+      # (zjistíš: docker compose port vibecode 6080), takže se projekty nepoperou.
+      - "127.0.0.1:${VNC_PORT:-0}:6080"
+      - "127.0.0.1:${HOST_PORT:-3000}:${DEV_PORT:-3000}"
+      # Druhá služba (API, Storybook, samostatný Vite HMR port…):
+      # - "127.0.0.1:${HOST_PORT_2:-3001}:${DEV_PORT_2:-3001}"
+
+    environment:
+      CLAUDE_CONFIG_DIR: /home/dev/.claude-config
+      # Volitelný prohlížeč s oknem přes noVNC: VIBECODE_DISPLAY=1 v .env (viz vibecode-display).
+      VIBECODE_DISPLAY: ${VIBECODE_DISPLAY:-}
+      DISPLAY: ${VIBECODE_DISPLAY:+:99}
+      # Trvalý profil Playwright MCP (přihlášení přežije recreate), na hostu .claude-runtime/browser-profile.
+      PLAYWRIGHT_MCP_USER_DATA_DIR: /home/dev/.claude-config/browser-profile
+      # Konfigurace Playwright MCP (Chromium z image, headless / s oknem); soubor zapisuje vibecode-display při startu.
+      PLAYWRIGHT_MCP_CONFIG: /home/dev/.claude-config/playwright-mcp.json
+      WIKI_ROOT: /home/dev/wiki   # skill wiki: v kontejneru čte odsud, zapisuje do inbox/z-kontejneru
+
+      # --- Ponytail (lazy-coding režim, plugin ponytail) ---
+      # Nastav vždy explicitně. Ponytail čte default z
+      # ~/.config/ponytail/config.json, ten se do kontejneru nemountuje, takže
+      # uvnitř spadne na svůj vlastní default "full" bez ohledu na to, co máš
+      # na hostu. Izolovaný projekt je skoro vždy programování, takže "full"
+      # sedí; "off" nastav u projektů, kde se nekóduje (ušetří ~1300 tokenů
+      # instrukcí injektovaných do každé session i do subagentů).
+      # Ověření uvnitř kontejneru: cat ~/.claude-config/.ponytail-active
+      PONYTAIL_DEFAULT_MODE: ${PONYTAIL_DEFAULT_MODE:-full}
+
+      # --- Časová zóna ---
+      # Bez ní jede kontejner v UTC a testy nad datem/časem i screenshoty
+      # s časem nesedí s tím, co vidíš na hostu. Balíček tzdata je v image,
+      # zóna se ale nastavuje až tady, aby nebyla zamrzlá pro všechny projekty.
+      TZ: ${TZ:-Europe/Prague}
+
+      # --- Google Workspace CLI (gog) - volitelné, defaultně vypnuté ---
+      # Odkomentuj SPOLU s mountem GOG RUNTIME v sekci volumes níž; samotné
+      # proměnné bez mountu jsou k ničemu (přihlášení by zmizelo při recreate).
+      # GOG_KEYRING_BACKEND=file je v kontejneru povinné: gog ukládá refresh
+      # token do keyringu operačního systému, a ten tu žádný neběží. Heslo
+      # k šifrovanému souboru se bere z .env (viz env.example) - bez něj se
+      # gog při každém volání ptá interaktivně.
+      # GOG_HOME: /home/dev/.gog
+      # GOG_KEYRING_BACKEND: file
+      # GOG_KEYRING_PASSWORD: ${GOG_KEYRING_PASSWORD:-}
+
+      # Pozor: CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC tu ZÁMĚRNĚ NENÍ.
+      # Tváří se jako neškodné omezení telemetrie, ale vedle version lookupu,
+      # /feedback, DesignSync a Projects zároveň schová Claude Fable 5
+      # z pickeru /model. Ověřeno 2026-08-20 na Claude Code 2.1.234: se
+      # zrušenou proměnnou (`docker compose exec -e
+      # CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC= vibecode claude`) se Fable
+      # v pickeru objeví, s nastavenou ne. Nevracej ji zpátky, dokud si
+      # neověříš, že to novější verze Claude Code nedělá.
+      # Stejná proměnná (a DISABLE_TELEMETRY, DO_NOT_TRACK, DISABLE_GROWTHBOOK)
+      # navíc blokuje Remote Control — viz README, sekce „Remote Control".
+
+      # --- Dev server: bind na 0.0.0.0 (volitelné) ---
+      # Publikovaný port sám nestačí — dev server, který uvnitř kontejneru
+      # poslouchá jen na 127.0.0.1, nedoručí z hostu nic (prohlížeč hlásí
+      # „connection reset"). Většina frameworků se přepne přepínačem:
+      #   Next.js → next dev -H 0.0.0.0 -p $DEV_PORT
+      #   Vite    → vite --host 0.0.0.0 --port $DEV_PORT
+      #   Django  → manage.py runserver 0.0.0.0:$DEV_PORT
+      #   Rails   → rails s -b 0.0.0.0 -p $DEV_PORT
+      #   PHP     → php -S 0.0.0.0:$DEV_PORT
+      # Vite, CRA, Nuxt a Astro respektují i proměnnou HOST. Odkomentuj, jen
+      # když víš, že si ji projekt neplete s hostem databáze nebo API:
+      # HOST: 0.0.0.0
+      # PORT: ${DEV_PORT:-3000}
+      # DEV_PORT je uvnitř k dispozici, aby šlo psát `-p $DEV_PORT` a nemusel
+      # se číslo portu držet na dvou místech.
+      DEV_PORT: ${DEV_PORT:-3000}
+
+      # --- Databáze ---
+      # Bez tohoto řádku není $DATABASE_URL v shellu kontejneru dostupná —
+      # compose čte .env jen pro interpolaci compose souboru, do kontejneru
+      # nic nepředá. Aplikace, které si .env načtou samy (dotenv), ho mají
+      # v /workspace/.env; tenhle řádek je pro ruční `psql $DATABASE_URL`.
+      DATABASE_URL: ${DATABASE_URL:-}
+
+      # --- GitHub (volitelné) ---
+      # Token pro gh i pro `git push` přes HTTPS (git ho bere přes credential
+      # helper `gh auth git-credential`, nastavený už v image). Vyplň GH_TOKEN
+      # v .env; nevyplněný = prázdná hodnota, kterou gh čte jako "nepřihlášen",
+      # takže tenhle řádek nemusíš komentovat. Používej fine-grained PAT omezený
+      # na tenhle repozitář a s krátkou expirací — do kontejneru nikdy nedávej
+      # klasický PAT s plným rozsahem ani SSH klíč.
+      GH_TOKEN: ${GH_TOKEN:-}
+
+      # --- Deploy: Railway / Cloudflare (volitelné) ---
+      # V image jsou CLI `railway` a `wrangler`. Tokeny vyplň v .env jen tehdy,
+      # když z tohohle kontejneru opravdu deployuješ — token vidí každý proces
+      # uvnitř, tedy i kompromitovaný npm balíček. Nevyplněné = prázdná hodnota,
+      # CLI se pak chová jako nepřihlášené, takže řádky nemusíš komentovat.
+      # RAILWAY_TOKEN je projektový token (deploy do jednoho projektu);
+      # účtový RAILWAY_API_TOKEN do kontejneru nedávej, má rozsah celého účtu.
+      RAILWAY_TOKEN: ${RAILWAY_TOKEN:-}
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
+      CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
+
+    volumes:
+      # --- KÓD PROJEKTU: živě obousměrně ---
+      - type: bind
+        source: .
+        target: /workspace
+
+      # --- PER-PROJEKT config dir: auth, credentials, historie, sezení ---
+      # Mountuje se na CELÝ CLAUDE_CONFIG_DIR, ne na podsložku — jinak by se
+      # přihlášení uložilo do efemérní vrstvy kontejneru a po exitu zmizelo.
+      # create_host_path: true zajistí, že Compose složku vytvoří automaticky,
+      # pokud ještě neexistuje (alternativa: mkdir -p .claude-runtime při zakládání).
+      - type: bind
+        source: ./.claude-runtime
+        target: /home/dev/.claude-config
+        bind:
+          create_host_path: true
+
+      # --- SKILLS: read-only submount PŘES config dir ---
+      # !! Cestu vyplň v .env: readlink -f ~/.claude/skills
+      - type: bind
+        source: ${CLAUDE_SKILLS_DIR}
+        target: /home/dev/.claude-config/skills
+        read_only: true
+        bind:
+          create_host_path: false   # když cesta neexistuje, RADĚJI SELŽI
+
+      # --- CLAUDE MD: globální CLAUDE.md read-only submount PŘES config dir ---
+      # !! Cestu vyplň v .env: readlink -f ~/.claude/CLAUDE.md
+      # Claude Code v kontejneru se jím řídí stejně jako na hostu. Přímý RO
+      # mount jednotlivého souboru je tu ZÁMĚR (výjimka z pravidla staging +
+      # kopie): zápis memory z kontejneru (`#`, /memory) má selhat — soubor se
+      # edituje na hostu a díky živému mountu se změna projeví hned.
+      # Kdo globální CLAUDE.md nemá nebo sdílet nechce, smaže tento blok
+      # i řádek CLAUDE_MEMORY_FILE v .env.
+      - type: bind
+        source: ${CLAUDE_MEMORY_FILE}
+        target: /home/dev/.claude-config/CLAUDE.md
+        read_only: true
+        bind:
+          create_host_path: false   # když soubor neexistuje, RADĚJI SELŽI
+
+      # --- HOOKS: read-only submount PŘES config dir ---
+      # !! Cestu vyplň v .env: readlink -f ~/.claude/hooks
+      # Skripty hooků, na které odkazuje hostový settings.json (PreToolUse
+      # curl-allowlist, SessionStart). settings.json se do kontejneru kopíruje,
+      # ale skripty ne - proto musí settings odkazovat přes proměnnou
+      # CLAUDE_CONFIG_DIR (tady /home/dev/.claude-config/hooks/...), ne přes
+      # absolutní hostovou cestu. Bez tohoto mountu hook v kontejneru
+      # neexistuje: curl whitelist neběží a curl jde bez promptu rovnou na
+      # auto classifier. Jen se čte, proto RO submount jako u skills.
+      - type: bind
+        source: ${CLAUDE_HOOKS_DIR}
+        target: /home/dev/.claude-config/hooks
+        read_only: true
+        bind:
+          create_host_path: false   # když cesta neexistuje, RADĚJI SELŽI
+
+      # --- RULES: read-only submount PŘES config dir ---
+      # !! Cestu vyplň v .env: readlink -f ~/.claude/rules
+      # Globální pravidla (~/.claude/rules -> AI-first/20-tools/rules), např. context7.md.
+      # Jen se čtou, proto RO submount jako u skills a hooks.
+      - type: bind
+        source: ${CLAUDE_RULES_DIR}
+        target: /home/dev/.claude-config/rules
+        read_only: true
+        bind:
+          create_host_path: false   # když cesta neexistuje, RADĚJI SELŽI
+
+      # --- WIKI: čtení wiki + sběr do inboxu (doplněno 2026-10-02) ---
+      # 10-wiki read-only (wiki/, index.md, log.md, templates/); raw/, inbox/ a ideas/
+      # skryté prázdným tmpfs (přepisy schůzek a osobní capture do kontejneru nepatří).
+      # Zapisovatelná je jen inbox/z-kontejneru/: skill wiki sem v kontejneru ukládá
+      # poznatky, na hostu je zpracuje zpracuj-inbox (obsah = nedůvěryhodná data).
+      - type: bind
+        source: ${CLAUDE_WIKI_DIR}
+        target: /home/dev/wiki
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: tmpfs
+        target: /home/dev/wiki/raw
+      - type: tmpfs
+        target: /home/dev/wiki/inbox
+      - type: tmpfs
+        target: /home/dev/wiki/ideas
+      - type: bind
+        source: ${CLAUDE_WIKI_INBOX_DIR}
+        target: /home/dev/wiki/inbox/z-kontejneru
+        bind:
+          create_host_path: false
+
+      # --- PLUGINS: read-only ZDROJ na staging cestě (NE přímo do config dir) ---
+      # !! Cestu vyplň v .env: readlink -f ~/.claude/plugins
+      # Claude Code do plugins/ ZAPISUJE (migrace registru installed_plugins*.json,
+      # .last_inuse_sweep, cache). RO submount přímo přes config dir zápis zablokuje
+      # (EROFS) → migrace selže → "Found 0 plugins" → žádné pluginy se nenačtou.
+      # Proto mountujeme hostové plugins jen pro čtení na staging cestu a `command`
+      # níže je při startu zkopíruje do zapisovatelné kopie uvnitř config dir.
+      - type: bind
+        source: ${CLAUDE_PLUGINS_DIR}
+        target: /opt/claude-plugins-ro
+        read_only: true
+        bind:
+          create_host_path: false
+
+      # --- SETTINGS: read-only ZDROJ na staging cestě (NE přímo do config dir) ---
+      # Stejný důvod jako u plugins výše: Claude Code do settings.json ZAPISUJE
+      # (/tui, /config, /model, /scroll-speed, „always allow" u oprávnění) a dělá
+      # to atomicky přes tmp soubor + rename. Bind mount JEDNOTLIVÉHO souboru
+      # rename přepsat nedovolí → `EBUSY: resource busy or locked` a nastavení se
+      # neuloží (u read_only navíc EROFS). Mountujeme proto jen pro čtení na
+      # staging cestu a `command` níže soubor při startu zkopíruje do
+      # zapisovatelné kopie v config dir.
+      # Daň: změny nastavení udělané v kontejneru se na hosta nepropíšou a
+      # při restartu je přepíše hostová verze (stejně jako u pluginů).
+      # Pokud settings sdílet nechceš, smaž tento blok i řádek v .env.
+      - type: bind
+        source: ${CLAUDE_SETTINGS_FILE}
+        target: /opt/claude-settings-ro.json
+        read_only: true
+        bind:
+          create_host_path: false
+
+      # --- STATUSLINE: read-only mount skriptu ze settings.json ---
+      # SRC = reálná cesta na hostu (vlnovku a symlinky vyřeš přes readlink -f,
+      # Docker je v bind mountu neexpanduje!). TARGET = cesta, jak ji resolvne
+      # shell UVNITŘ kontejneru: u absolutní cesty v settings.json stejná jako
+      # SRC, u cesty s ~ je to /home/dev/... (home uživatele dev).
+      # Úprava skriptu na hostu se projeví všude okamžitě.
+      # Pokud statusline nepoužíváš, smaž tento blok i oba řádky v .env.
+      - type: bind
+        source: ${CLAUDE_STATUSLINE_SRC}
+        target: ${CLAUDE_STATUSLINE_TARGET}
+        read_only: true
+        bind:
+          create_host_path: false
+
+      # --- CODEX RUNTIME: per-projekt přihlášení Codex CLI (OpenAI) ---
+      # Codex ukládá credentials do ~/.codex/auth.json. Bez tohoto mountu by
+      # přihlášení skončilo v efemérní vrstvě a zmizelo při recreate.
+      # Přihlašuj se uvnitř kontejneru přes `codex login --device-auth`
+      # (browser flow na localhost:1455 z kontejneru nefunguje) nebo
+      # `printenv OPENAI_API_KEY | codex login --with-api-key`.
+      # Adresář je v .gitignore. Vytvoř ho PŘEDEM přes `mkdir -p .codex-runtime`
+      # (dělá to skill) — složku založenou Composem vlastní root a dev do ní
+      # nezapíše (cap_drop: ALL bere i CAP_CHOWN, oprava za běhu nejde).
+      # Codex nepoužíváš? Blok klidně nech, jen zůstane prázdná složka.
+      - type: bind
+        source: ./.codex-runtime
+        target: /home/dev/.codex
+        bind:
+          create_host_path: true
+
+      # --- GH CONFIG: per-projekt přihlášení gh (volitelné) ---
+      # Druhá cesta místo GH_TOKEN: interaktivní `gh auth login` uvnitř
+      # kontejneru. Bez tohoto mountu skončí přihlášení v efemérní vrstvě
+      # a zmizí při recreate kontejneru. Adresář je v .gitignore.
+      # Pozor: uložený token je pak na disku hosta a vidí ho každý balíček
+      # běžící v kontejneru — proto i tady jen minimální rozsah.
+      # - type: bind
+      #   source: ./.gh-runtime
+      #   target: /home/dev/.config/gh
+      #   bind:
+      #     create_host_path: true
+
+      # --- GOG RUNTIME: per-projekt přihlášení Google Workspace (volitelné) ---
+      # Defaultně VYPNUTO a je to záměr. Kontejner má izolovat cizí závislosti
+      # od zbytku systému; token do Gmailu a Disku ten smysl zčásti ruší -
+      # dosáhne na něj každý balíček, který se v projektu spustí. Odkomentuj
+      # jen v projektu, který Workspace opravdu potřebuje, a přihlas se
+      # s minimem služeb, ideálně read-only:
+      #   gog auth credentials /home/dev/.gog/client.json
+      #   gog auth add ty@example.com --services drive --manual
+      # Prohlížeč v kontejneru není, proto `--manual` (vypíše URL k otevření
+      # na hostu) nebo `--remote --step 1` / `--step 2`.
+      # Odkomentuj spolu s proměnnými GOG_* v sekci environment výš.
+      # Adresář je v .gitignore. Vytvoř ho PŘEDEM přes `mkdir -p .gog-runtime`
+      # - složku založenou Composem vlastní root a dev do ní nezapíše.
+      # Viz README, sekce „Google Workspace z kontejneru (gog)".
+      # - type: bind
+      #   source: ./.gog-runtime
+      #   target: /home/dev/.gog
+      #   bind:
+      #     create_host_path: true
+
+      # --- NODE_MODULES jen v kontejneru (volitelné) ---
+      # Bind mount . -> /workspace jinak propíše node_modules na hosta.
+      # Odkomentuj tento blok (a volume node_modules dole), nemají-li unikat.
+      # Daň: hostové nástroje (IDE, tsserver) je neuvidí.
+      # - type: volume
+      #   source: node_modules
+      #   target: /workspace/node_modules
+
+    working_dir: /workspace
+
+    stdin_open: true   # -i : drží STDIN otevřený (umožní pozdější `exec bash`)
+    tty: true          # -t : alokuje terminál (prompt, barvy)
+    init: true         # správně ukončuje child procesy (žádné zombie)
+
+    # --- Základní hardening (běžný Node/npm vývoj nerozbije) ---
+    cap_drop:
+      - ALL                      # zahodí všechny Linux capabilities
+    security_opt:
+      - no-new-privileges:true   # proces nemůže získat víc práv (blok eskalace)
+    pids_limit: 512              # strop počtu procesů (ochrana proti fork bomb)
+    # Strop paměti: bez něj může build nebo test s únikem paměti vyvolat
+    # OOM killer na celém hostu (desktop padá dřív než kontejner). Hodnota
+    # sedí pro 30 GB RAM; na menším stroji sniž (limit = max. co kontejner smí
+    # sebrat, ne rezervace).
+    mem_limit: 8g
+
+    # Síť ZAPNUTÁ (default) — nutná pro npm install i přihlášení Claude Code.
+    # Pro běžnou práci ji NEVYPÍNEJ (vypla by i spojení Claude s Anthropic).
+
+    # Při startu zkopíruj read-only hostové settings.json a plugins ze staging
+    # cest do zapisovatelných kopií v config dir (Claude do obojího MUSÍ umět
+    # zapisovat — viz mounty SETTINGS a PLUGINS výše), pak drž kontejner naživu.
+    # Do shellu vstupuješ přes `docker compose exec vibecode bash`.
+    # Re-seed při každém startu → update settings i pluginů na hostu se projeví
+    # po `docker compose restart vibecode`.
+    command:
+      - bash
+      - -lc
+      - |
+        # Settings ze staging cesty do zapisovatelné kopie (viz mount SETTINGS
+        # výše) — bez toho selže každý zápis nastavení na EBUSY/EROFS.
+        # Podmínka -f: kdo blok SETTINGS smazal, nesmí spadnout na startu.
+        if [ -f /opt/claude-settings-ro.json ]; then
+          cp /opt/claude-settings-ro.json /home/dev/.claude-config/settings.json
+          chmod u+w /home/dev/.claude-config/settings.json
+        fi
+        rm -rf /home/dev/.claude-config/plugins
+        mkdir -p /home/dev/.claude-config/plugins
+        cp -a /opt/claude-plugins-ro/. /home/dev/.claude-config/plugins/
+        # Registr (installed_plugins.json, known_marketplaces.json) má v cestách
+        # napevno HOSTOVÉ /home/<user>/.claude/plugins/..., které uvnitř kontejneru
+        # neexistují → Claude kód pluginů nenajde (i bez EROFS). Přepiš prefix na
+        # zdejší config dir. Pozn.: $$ kvůli escapingu před interpolací composem.
+        for f in installed_plugins.json known_marketplaces.json; do
+          p="/home/dev/.claude-config/plugins/$$f"
+          [ -f "$$p" ] && sed -i -E 's#/[^"]*/plugins/(cache|marketplaces)/#/home/dev/.claude-config/plugins/\1/#g' "$$p"
+        done
+        # Konfigurace Playwright MCP + volitelný displej s prohlížečem (noVNC při VIBECODE_DISPLAY=1).
+        if command -v vibecode-display >/dev/null; then vibecode-display; fi
+        exec sleep infinity
+
+# Odkomentuj spolu s blokem NODE_MODULES výše:
+# volumes:
+#   node_modules:

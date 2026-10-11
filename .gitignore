@@ -1,5 +1,28 @@
+# Data a nastavení appky (SQLite, výstup instalátoru)
 *.sqlite
 *.sqlite-journal
 *.sqlite-wal
 *.sqlite-shm
 config.local.php
+
+# Runtime Claude Code (auth, credentials, transkripty) — NIKDY necommituj
+.claude-runtime/
+.claude-clean-runtime/
+
+# Runtime gh (token z `gh auth login`) — NIKDY necommituj
+.gh-runtime/
+
+# Runtime Codex CLI (auth.json z `codex login`) — NIKDY necommituj
+.codex-runtime/
+
+# Runtime Google Workspace CLI (OAuth client + tokeny z `gog auth`) — NIKDY necommituj
+.gog-runtime/
+
+# Baseline kvality z `ripwire --quality-baseline`
+.ripwire_quality_baseline
+
+# Lokální konfigurace s cestami
+.env
+
+# Scratch (konvence projektů ze skillu zaloz-projekt) - smí se kdykoli smazat
+.working/
