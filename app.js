@@ -28,7 +28,7 @@
     });
     const json = await res.json().catch(() => ({ error: 'Server neodpověděl.' }));
     if (res.status === 401) { state.user = null; showWho(); }
-    if (!res.ok) throw new Error(json.error || 'Chyba serveru');
+    if (!res.ok) throw Object.assign(new Error(json.error || 'Chyba serveru'), { status: res.status });
     return json;
   }
 
@@ -176,6 +176,13 @@
     if (b) startTask(state.module, state.level, b.dataset.diff);
   });
 
+  // Session na serveru vypršela (příklad dlouho ležel): místo zaseknutí nový příklad.
+  async function failOrRenew(err) {
+    if (err.status !== 404) { alert(err.message); return; }
+    await next();
+    $('hint-info').textContent = 'Předchozí příklad vypršel, tady je nový.';
+  }
+
   async function next() {
     clearTimeout(state.timer);
     try {
@@ -320,8 +327,8 @@
     try {
       r = await api('answer', { answer });
     } catch (err) {
-      alert(err.message);
       state.lock = false;
+      failOrRenew(err);
       return;
     }
     const fb = $('feedback');
@@ -341,6 +348,7 @@
         + extra.map((t) => `<small>${t}</small>`).join('');
       renderKids(r.users);
       celebrate($('question'));
+      if (offerSuggestion(fb, r.suggest)) return;   // s návrhem čeká na dítě, jinak sám další příklad
       state.timer = setTimeout(next, r.note ? 2400 : 1500);
       return;
     }
@@ -369,6 +377,22 @@
     $('hint-info').textContent = '';
   }
 
+  // Návrh těžší nebo lehčí obtížnosti (server ho dává po 10 příkladech v téže úloze).
+  // Odmítnutý návrh se u úlohy do obnovení stránky neopakuje.
+  const declined = {};
+  function offerSuggestion(fb, suggest) {
+    if (!suggest || declined[state.module + suggest]) return false;
+    const keys = Object.keys(state.diffs);
+    const harder = keys.indexOf(suggest) > keys.indexOf(state.diff);
+    fb.insertAdjacentHTML('beforeend', `<div class="next suggest"><span>${harder ? 'Jde ti to skvěle.' : 'Tohle je zatím těžké.'}</span>`
+      + `<button type="button" class="btn" id="btn-suggest">${DIFF_ICON[suggest]}Zkus ${harder ? 'těžší' : 'lehčí'}</button>`
+      + '<button type="button" class="ghostbtn" id="btn-next">Další</button></div>');
+    $('btn-suggest').addEventListener('click', () => startTask(state.module, state.level, suggest));
+    $('btn-next').addEventListener('click', () => { declined[state.module + suggest] = true; next(); });
+    if (!KEYPAD) $('btn-suggest').focus();
+    return true;
+  }
+
   // Správný výsledek s postupem, jen když si o něj dítě řekne.
   $('btn-reveal').addEventListener('click', async () => {
     if (!state.ex || state.lock) return;
@@ -376,7 +400,7 @@
     try {
       r = await api('reveal');
     } catch (err) {
-      alert(err.message);
+      failOrRenew(err);
       return;
     }
     endQuestion();
@@ -386,10 +410,12 @@
     fb.className = 'feedback bad reveal';
     const steps = r.steps.length ? `<ol class="steps">${r.steps.map((l) => `<li>${renderQ(l)}</li>`).join('')}</ol>` : '';
     fb.innerHTML = `Správně je <b>${renderQ(r.answer)}</b>`
-      + steps
-      + `<div class="next"><button type="button" class="btn" id="btn-next">Další</button></div>`;
-    if (!KEYPAD) $('btn-next').focus();
-    $('btn-next').addEventListener('click', next);
+      + steps;
+    if (!offerSuggestion(fb, r.suggest)) {
+      fb.insertAdjacentHTML('beforeend', '<div class="next"><button type="button" class="btn" id="btn-next">Další</button></div>');
+      if (!KEYPAD) $('btn-next').focus();
+      $('btn-next').addEventListener('click', next);
+    }
     // na telefonu může být vysvětlení pod okrajem obrazovky
     fb.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   });
@@ -401,7 +427,7 @@
     try {
       r = await api('hint');
     } catch (err) {
-      alert(err.message);
+      failOrRenew(err);
       return;
     }
     $('hints').innerHTML = r.steps.map((l) => `<li>${renderQ(l)}</li>`).join('');
@@ -441,6 +467,7 @@
 
   // Enter po ukázání výsledku = další příklad
   document.addEventListener('keydown', (e) => {
+    if (document.activeElement && document.activeElement.closest('#feedback button')) return;   // Enter stiskne tlačítko s fokusem
     if (e.key === 'Enter' && state.lock && !$('feedback').hidden && $('btn-next')) {
       e.preventDefault();
       next();

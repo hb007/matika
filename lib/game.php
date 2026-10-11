@@ -6,6 +6,7 @@ const DIFF_POINTS = ['lehke' => 1, 'stredni' => 2, 'tezke' => 3];
 const GOAL = 20;           // denní cíl: vyřešených příkladů
 const STREAK_BONUS = 5;    // každých 5 napoprvé správně v řadě = +1 bod
 const REVIEW_AFTER = 5;    // chybný příklad se vrátí po 5 dalších
+const SUGGEST_WINDOW = 10; // návrh jiné obtížnosti podle posledních 10 příkladů
 
 function base_points(string $diff, int $tries): int
 {
@@ -35,6 +36,34 @@ function day_streak(array $goalDays, string $today): int
         $day = date('Y-m-d', strtotime("$day -1 day"));
     }
     return $n;
+}
+
+// Návrh jiné obtížnosti v téže úloze: 10× v řadě napoprvé → o stupeň těžší,
+// pod polovinu napoprvé z posledních 10 → o stupeň lehčí. V mixu se nenavrhuje.
+function suggest_difficulty(PDO $db, int $uid, string $module, string $diff): ?string
+{
+    if ($module === 'mix' || !isset(DIFFICULTIES[$diff])) {
+        return null;
+    }
+    $st = $db->prepare('SELECT tries = 1 AND solved = 1 FROM results WHERE user_id = ? AND module = ? AND difficulty = ?
+        ORDER BY id DESC LIMIT ' . SUGGEST_WINDOW);
+    $st->execute([$uid, $module, $diff]);
+    $first = array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN));
+    if (count($first) < SUGGEST_WINDOW) {
+        return null;
+    }
+    $keys = array_keys(DIFFICULTIES);
+    $i = array_search($diff, $keys, true);
+    $hits = array_sum($first);
+    if ($hits === SUGGEST_WINDOW) {
+        return $keys[$i + 1] ?? null;
+    }
+    return $hits * 2 < SUGGEST_WINDOW ? ($keys[$i - 1] ?? null) : null;
+}
+
+function task_module(array $cur): string
+{
+    return explode('|', $cur['task'])[0];
 }
 
 function user_exists(PDO $db, int $uid): bool
@@ -89,9 +118,16 @@ function set_streak(PDO $db, int $uid, int $streak): void
 function next_exercise(PDO $db, int $uid, string $module, string $level, string $diff): array
 {
     $ex = generate_exercise($module, $level, $diff);   // zároveň ověří vstup
-    $task = "$module|$level|$diff";
-    $st = $db->prepare('SELECT id, ex FROM review WHERE user_id = ? AND task = ? AND due <= ? ORDER BY due, id LIMIT 1');
-    $st->execute([$uid, $task, done_count($db, $uid)]);
+    // fronta chyb je po úlohách (bez ohledu na úroveň a obtížnost), mix bere ze všech;
+    // LIKE kvůli starším záznamům s klíčem "úloha|úroveň|obtížnost"
+    $task = $module;
+    if ($module === 'mix') {
+        $st = $db->prepare('SELECT id, ex FROM review WHERE user_id = ? AND due <= ? ORDER BY due, id LIMIT 1');
+        $st->execute([$uid, done_count($db, $uid)]);
+    } else {
+        $st = $db->prepare('SELECT id, ex FROM review WHERE user_id = ? AND (task = ? OR task LIKE ?) AND due <= ? ORDER BY due, id LIMIT 1');
+        $st->execute([$uid, $module, "$module|%", done_count($db, $uid)]);
+    }
     $row = $st->fetch();
     if ($row) {
         $db->prepare('DELETE FROM review WHERE id = ?')->execute([$row['id']]);
@@ -106,7 +142,7 @@ function queue_review(PDO $db, int $uid, array $cur): void
     $ex = $cur['ex'];
     unset($ex['hints']);
     $db->prepare('INSERT OR IGNORE INTO review (user_id, task, q, ex, due) VALUES (?, ?, ?, ?, ?)')
-        ->execute([$uid, $cur['task'], $ex['q'], json_encode($ex), done_count($db, $uid) + REVIEW_AFTER]);
+        ->execute([$uid, $ex['m'] ?? task_module($cur), $ex['q'], json_encode($ex), done_count($db, $uid) + REVIEW_AFTER]);   // pod skutečnou úlohu, i z mixu
 }
 
 function record_result(PDO $db, int $uid, array $cur, bool $solved, int $points, string $today): void
@@ -162,7 +198,8 @@ function handle_answer(PDO $db, array &$cur, int $uid, $given, string $today): a
     $bonus = $first ? streak_bonus($streak) : 0;
     record_result($db, $uid, $cur, true, $points + $bonus, $today);
     $cur['done'] = true;
-    return ['correct' => true, 'note' => $note, 'points' => $points, 'bonus' => $bonus, 'streak' => $streak];
+    return ['correct' => true, 'note' => $note, 'points' => $points, 'bonus' => $bonus, 'streak' => $streak,
+            'suggest' => suggest_difficulty($db, $uid, task_module($cur), $cur['diff'])];
 }
 
 function handle_reveal(PDO $db, array &$cur, int $uid, string $today): array
@@ -175,7 +212,8 @@ function handle_reveal(PDO $db, array &$cur, int $uid, string $today): array
         record_result($db, $uid, $cur, false, 0, $today);
         $cur['done'] = true;
     }
-    return ['answer' => answer_str($cur['ex']), 'steps' => explain($cur['ex'])];
+    return ['answer' => answer_str($cur['ex']), 'steps' => explain($cur['ex']),
+            'suggest' => suggest_difficulty($db, $uid, task_module($cur), $cur['diff'])];
 }
 
 function users_state(PDO $db, string $today): array

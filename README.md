@@ -51,7 +51,11 @@ Pravidla, která hlídá server:
 
 **Denní cíl.** 20 vyřešených příkladů za den (ukázaný výsledek se nepočítá), postup ukazuje proužek u dítěte v horním řádku. 🔥 u dítěte je série dní se splněným cílem. Den a týden (od pondělí) se počítají v českém čase.
 
-**Opakování chyb.** Příklad, který dítě napoprvé netrefí, se mu v téže úloze a obtížnosti vrátí po 5 dalších příkladech s odznakem „🔁 Tenhle ti minule nešel“.
+**Opakování chyb.** Příklad, který dítě napoprvé netrefí, se mu vrátí po 5 dalších příkladech v téže úloze (na jakékoli úrovni a obtížnosti) nebo v Náhodném mixu, s poznámkou „Tenhle ti minule nešel“. Body za něj se počítají podle jeho původní obtížnosti.
+
+**Návrh obtížnosti.** Po 10 příkladech v řadě napoprvé správně na jedné obtížnosti nabídne appka „Zkus těžší“. Když z posledních 10 příkladů bylo napoprvé správně méně než polovina, nabídne „Zkus lehčí“. Rozhoduje dítě, nic se nepřepne samo. Odmítnutý návrh se u úlohy do obnovení stránky neopakuje. V mixu se návrh nedává.
+
+**Vypršelý příklad.** Když příklad leží otevřený déle, než server drží session, appka po odeslání místo chyby načte nový příklad a napíše „Předchozí příklad vypršel, tady je nový.“
 
 **Výsledky.** Porovnání obou dětí (dnes, tento týden, celkem, dnes vyřešeno, série dní) a přehled pro rodiče: úspěšnost napoprvé podle tématu a obtížnosti a příklady, které se za posledních 30 dní nejčastěji nedařily. Tlačítko „Smazat body“ (s potvrzením) vynuluje body a sérii v řadě jednoho dítěte. Vyřešené příklady, denní cíl, série dní a přehled pro rodiče zůstanou. Vrátit to nejde.
 
