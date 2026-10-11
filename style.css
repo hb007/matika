@@ -230,6 +230,18 @@ body[data-diff] .top { border-bottom: 0; box-shadow: inset 0 -6px 0 var(--hl); p
 .key.ok:active { filter: brightness(.92); }
 .key.wide { grid-column: span 2; }
 .key.blank { visibility: hidden; }
+.key.pressed { border-color: var(--pen); background: #eef2fb; }
+/* bublina nad stisknutou klávesou: číslo je vidět, i když klávesu zakrývá prst */
+.key-bubble {
+  position: fixed; z-index: 1000; pointer-events: none;
+  transform: translate(-50%, calc(-100% - 6px));
+  display: flex; align-items: center; justify-content: center;
+  height: 68px; padding: 0 14px; box-sizing: border-box;
+  border: 2px solid var(--pen); border-radius: 10px; background: var(--sheet);
+  color: var(--pen); font-size: 42px; font-weight: 700; line-height: 1;
+  box-shadow: 0 6px 16px rgba(38, 42, 49, .22);
+}
+.key-bubble[hidden] { display: none; }
 
 /* papír na počítání */
 .paper-wrap { margin-top: 22px; }

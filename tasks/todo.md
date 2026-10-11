@@ -10,7 +10,12 @@
 * [x] `app.js`: přepnutí na zásobu při výpadku, lišta „Bez internetu“, odeslání po připojení, stav z minula při startu bez sítě
 * [x] dokumentace (README, rozhodnutí)
 * [x] zásoba pro všech 46 kombinací (30 na kombinaci, bez opakování, menší strop u malých úloh), po vyčerpání hláška místo náhrady
-* [ ] ověřit na skutečném Androidu: appka z plochy v režimu letadlo, po připojení se body započtou
+* [x] ověřit na skutečném Androidu: appka z plochy v režimu letadlo, po připojení se body započtou (ověřil uživatel)
+
+## Bublina nad stisknutou klávesou (2026-10-11)
+
+* [x] při stisku číslice nebo znaku je nad klávesou bublina s velkým znakem, rychlé ťuknutí ji ukáže aspoň 180 ms
+* [x] ověřeno v Playwright (Pixel 7 a tablet na šířku, dotyk přes CDP): bublina nad klávesou a na střed, po puštění zmizí, „smaž“ ji nemá
 
 ### Výsledek
 

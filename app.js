@@ -423,6 +423,43 @@
     if (!KEYPAD && activeInput && !state.lock) activeInput.focus({ preventScroll: true });
   });
 
+  // Bublina nad stisknutou klávesou (jako klávesnice v telefonu): po dobu
+  // stisku je nad klávesou velké číslo, které dítě zmáčklo. Prst klávesu
+  // zakryje, bublina ne. Rychlé ťuknutí ji ukáže aspoň na BUBBLE_MIN ms.
+  const BUBBLE_MIN = 180;
+  const bubble = document.createElement('div');
+  bubble.className = 'key-bubble';
+  bubble.setAttribute('aria-hidden', 'true');
+  bubble.hidden = true;
+  document.body.appendChild(bubble);
+  let bubbleAt = 0;
+  let bubbleTimer = null;
+  function showBubble(btn) {
+    if (!btn || !/^([0-9]|−|,|\/)$/.test(btn.dataset.key)) return;   // jen znaky, ne smaž, zb., Hotovo
+    clearTimeout(bubbleTimer);
+    document.querySelectorAll('.key.pressed').forEach((k) => k.classList.remove('pressed'));
+    const r = btn.getBoundingClientRect();
+    bubble.textContent = btn.dataset.key;
+    bubble.style.left = `${r.left + r.width / 2}px`;
+    bubble.style.top = `${r.top}px`;
+    bubble.style.minWidth = `${r.width}px`;
+    bubble.hidden = false;
+    btn.classList.add('pressed');
+    bubbleAt = performance.now();
+  }
+  function hideBubble() {
+    clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(() => {
+      bubble.hidden = true;
+      document.querySelectorAll('.key.pressed').forEach((k) => k.classList.remove('pressed'));
+    }, Math.max(0, BUBBLE_MIN - (performance.now() - bubbleAt)));
+  }
+  $('keypad').addEventListener('pointerdown', (e) => {
+    if (!state.lock) showBubble(e.target.closest('[data-key]'));
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => $('keypad').addEventListener(ev, hideBubble));
+  window.addEventListener('scroll', () => { bubble.hidden = true; }, { passive: true });
+
   // tablet s fyzickou klávesnicí: psaní funguje i do políček jen pro čtení
   document.addEventListener('keydown', (e) => {
     if (!KEYPAD || $('screen-round').hidden || state.lock || e.metaKey || e.ctrlKey) return;
@@ -431,6 +468,9 @@
     if (!k) return;
     e.preventDefault();
     pressKey(k);
+    // i při psaní z klávesnice bublina nad odpovídající klávesou
+    showBubble($('keypad').querySelector(`[data-key="${k}"]`));
+    hideBubble();
   });
 
   // Na dotykovém zařízení s otevřeným papírem políčko nezaměřujeme,
