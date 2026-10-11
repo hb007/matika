@@ -205,12 +205,11 @@ function gen_deleni(string $level): array
     ];
 }
 
-function generate_round(string $module, string $level, int $count): array
+function generate_exercise(string $module, string $level): array
 {
     if (!isset(MODULES[$module]) || !isset(MODULES[$module]['levels'][$level])) {
         throw new InvalidArgumentException('Neznámý modul nebo úroveň');
     }
-    $pool = [];
     if ($module === 'mix') {
         $pool = MIX_POOLS[$level];
         if ($pool === null) {
@@ -222,20 +221,9 @@ function generate_round(string $module, string $level, int $count): array
                 }
             }
         }
+        [$module, $level] = $pool[random_int(0, count($pool) - 1)];
     }
-    $out = [];
-    $seen = [];
-    $guard = 0;
-    while (count($out) < $count && $guard++ < 500) {
-        [$m, $l] = $pool ? $pool[random_int(0, count($pool) - 1)] : [$module, $level];
-        $ex = ('gen_' . $m)($l);
-        if (isset($seen[$ex['q']])) {
-            continue;   // žádné opakování v jednom kole
-        }
-        $seen[$ex['q']] = true;
-        $out[] = $ex;
-    }
-    return $out;
+    return ('gen_' . $module)($level);
 }
 
 // Které klávesy kromě číslic příklad potřebuje (pro klávesnici na mobilu).
@@ -248,7 +236,7 @@ function extra_keys(array $ex): array
     return $lvl === 'zaporna' ? ['−'] : ($lvl === 'desetinna' ? [','] : []);
 }
 
-// Správná odpověď jako text (do DB a do zpětné vazby).
+// Správná odpověď jako text (do zpětné vazby).
 function answer_str(array $ex): string
 {
     switch ($ex['kind']) {
@@ -328,12 +316,4 @@ function check_answer(array $ex, $given): array
             return [(int) $q === $ex['a'][0] && (int) $r === $ex['a'][1], ''];
     }
     return [false, ''];
-}
-
-function given_str(array $ex, $given): string
-{
-    if ($ex['kind'] === 'divrem') {
-        return trim((string) ($given['q'] ?? '')) . ' zb. ' . trim((string) ($given['r'] ?? ''));
-    }
-    return mb_substr(trim((string) $given), 0, 40);
 }

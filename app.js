@@ -1,8 +1,8 @@
 // Matika – klientská logika. Jedna stránka, obrazovky se přepínají, všechno
-// důležité (generování příkladů, kontrola, body) dělá server v api.php.
+// důležité (generování příkladů, kontrola) dělá server v api.php.
 (() => {
   const $ = (id) => document.getElementById(id);
-  const state = { user: null, modules: {}, module: null, level: null, round: null, i: 0, streak: 0, lock: false };
+  const state = { modules: {}, module: null, level: null, ex: null, lock: false, timer: null };
 
   async function api(action, data) {
     const res = await fetch('api.php?action=' + action, {
@@ -32,38 +32,6 @@
       .replace(/^(Zkrať:)/, '<span class="label">$1</span>');
   }
 
-  // ---------- přihlášení ----------
-  async function loadLogin() {
-    const { users } = await api('users');
-    $('names').innerHTML = users.map((u) => `<button type="button" data-name="${esc(u.name)}">${esc(u.name)}</button>`).join('');
-    $('names').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => login(b.dataset.name)));
-    show('login');
-    $('login-name').focus();
-  }
-
-  async function login(name) {
-    try {
-      const { user } = await api('login', { name });
-      state.user = user;
-      await loadMenu();
-    } catch (e) {
-      alert(e.message);
-    }
-  }
-
-  $('form-login').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const name = $('login-name').value.trim();
-    if (name) login(name);
-  });
-
-  $('btn-logout').addEventListener('click', async () => {
-    await api('logout');
-    state.user = null;
-    $('who').hidden = true;
-    loadLogin();
-  });
-
   // ---------- menu ----------
   const DESC = {
     mala: 'do 10 × 10',
@@ -74,15 +42,7 @@
     mix: 'všechno napřeskáčku',
   };
 
-  async function loadMenu() {
-    const stats = await api('stats');
-    state.user = stats.user;
-    $('who').hidden = false;
-    $('who-name').textContent = stats.user.name;
-    $('who-points').textContent = stats.points + ' b.';
-    $('today').textContent = stats.correct_today
-      ? `Dnes už máš ${stats.correct_today} správně. Jedeš dál?`
-      : 'Dnes ještě nic. Vyber si, co procvičíš.';
+  function renderMenu() {
     $('modules').innerHTML = Object.entries(state.modules)
       .map(([key, m]) => `<button class="module" data-module="${key}">${esc(m.title)}<small>${DESC[key] || ''}</small></button>`)
       .join('');
@@ -97,33 +57,33 @@
     $('levels').innerHTML = Object.entries(m.levels)
       .map(([lv, label]) => `<button type="button" data-level="${lv}">${esc(label)}</button>`)
       .join('');
-    $('levels').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => startRound(key, b.dataset.level)));
+    $('levels').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => startTask(key, b.dataset.level)));
     show('level');
   }
 
-  // ---------- kolo ----------
-  async function startRound(module, level) {
+  // ---------- příklady ----------
+  function startTask(module, level) {
+    const m = state.modules[module];
     state.module = module;
     state.level = level;
+    $('task').textContent = `${m.title} – ${m.levels[level]}`;
+    show('round');
+    next();
+  }
+
+  async function next() {
+    clearTimeout(state.timer);
     try {
-      state.round = await api('start', { module, level });
+      state.ex = await api('next', { module: state.module, level: state.level });
     } catch (e) {
       alert(e.message);
       return;
     }
-    state.i = 0;
-    state.streak = 0;
-    show('round');
     showQuestion();
   }
 
   function showQuestion() {
-    const qs = state.round.questions;
-    const q = qs[state.i];
-    $('bar').style.width = (state.i / qs.length) * 100 + '%';
-    $('counter').textContent = `Příklad ${state.i + 1} / ${qs.length}`;
-    $('streak').hidden = state.streak < 3;
-    $('streak').textContent = `🔥 ${state.streak} v řadě`;
+    const q = state.ex;
     $('question').innerHTML = renderQ(q.q) + (q.kind === 'divrem' || q.q.startsWith('Zkrať') ? '' : ' =');
     $('feedback').hidden = true;
     $('feedback').innerHTML = '';
@@ -232,8 +192,7 @@
   }
 
   function collectAnswer() {
-    const q = state.round.questions[state.i];
-    if (q.kind === 'divrem') {
+    if (state.ex.kind === 'divrem') {
       return { q: $('ans-q').value.trim(), r: $('ans-r').value.trim() };
     }
     return $('ans').value.trim();
@@ -249,10 +208,9 @@
     const answer = collectAnswer();
     if (answerEmpty(answer)) return;
     state.lock = true;
-    const q = state.round.questions[state.i];
     let r;
     try {
-      r = await api('answer', { round_id: state.round.round_id, i: q.i, answer });
+      r = await api('answer', { answer });
     } catch (err) {
       alert(err.message);
       state.lock = false;
@@ -266,13 +224,11 @@
     $('btn-hint').hidden = true;
     $('hint-info').textContent = '';
     if (r.correct) {
-      state.streak++;
       fb.className = 'feedback ok';
-      const extra = r.points < 10 ? ` <small>+${r.points} b. (s nápovědou)</small>` : ` <small>+${r.points} b.</small>`;
-      fb.innerHTML = pick(['Správně!', 'Přesně tak!', 'Jo!', 'Paráda!', 'Trefa!']) + extra + (r.note ? `<small>${esc(r.note)}</small>` : '');
-      setTimeout(next, r.note ? 2200 : 1000);
+      fb.innerHTML = pick(['Správně!', 'Přesně tak!', 'Paráda!', 'Trefa!', 'Výborně!', 'Super!']) + (r.note ? `<small>${esc(r.note)}</small>` : '');
+      confetti($('question'));
+      state.timer = setTimeout(next, r.note ? 2400 : 1500);
     } else {
-      state.streak = 0;
       fb.className = 'feedback bad';
       const steps = (r.steps || []).length ? `<ol class="steps">${r.steps.map((l) => `<li>${renderQ(l)}</li>`).join('')}</ol>` : '';
       fb.innerHTML = `Správně je <b>${renderQ(r.answer)}</b>`
@@ -289,11 +245,10 @@
 
   // Nápověda po krocích: každé kliknutí odkryje další krok.
   $('btn-hint').addEventListener('click', async () => {
-    if (!state.round || state.lock) return;
-    const q = state.round.questions[state.i];
+    if (!state.ex || state.lock) return;
     let r;
     try {
-      r = await api('hint', { round_id: state.round.round_id, i: q.i });
+      r = await api('hint');
     } catch (err) {
       alert(err.message);
       return;
@@ -303,7 +258,7 @@
     const more = r.steps.length < r.total;
     $('btn-hint').hidden = !more;
     $('btn-hint').textContent = 'Další krok';
-    $('hint-info').textContent = `Krok ${r.steps.length} z ${r.total}. Za správnou odpověď teď ${r.points} b.`;
+    $('hint-info').textContent = `Krok ${r.steps.length} z ${r.total}.`;
     autoFocus(document.getElementById('ans') || document.getElementById('ans-q'));
   });
 
@@ -345,106 +300,49 @@
     return arr[Math.floor(Math.random() * arr.length)];
   }
 
-  async function next() {
-    if (!state.round) return;
-    state.i++;
-    if (state.i < state.round.questions.length) {
-      showQuestion();
-      return;
+  // ---------- efekt ----------
+  // Konfety z místa příkladu; kdo má v systému omezené animace, uvidí jen pochvalu.
+  const CALM = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const COLORS = ['#3b6cf6', '#1f9d55', '#f5b400', '#e8590c', '#d6336c', '#7048e8'];
+
+  function confetti(from) {
+    if (CALM || !document.body.animate) return;
+    const r = from.getBoundingClientRect();
+    for (let n = 0; n < 60; n++) {
+      const c = document.createElement('i');
+      c.className = 'confetti';
+      c.style.background = pick(COLORS);
+      c.style.left = r.left + r.width / 2 + 'px';
+      c.style.top = r.top + r.height / 2 + 'px';
+      document.body.appendChild(c);
+      const a = Math.random() * Math.PI * 2;
+      const d = 60 + Math.random() * 160;
+      const x = Math.cos(a) * d;
+      const y = Math.sin(a) * d - 60;
+      const spin = (Math.random() - 0.5) * 1080;
+      c.animate([
+        { transform: 'translate(0, 0) rotate(0deg)', opacity: 1 },
+        { transform: `translate(${x}px, ${y}px) rotate(${spin / 2}deg)`, opacity: 1, offset: 0.3 },
+        { transform: `translate(${x * 1.3}px, ${y + 260}px) rotate(${spin}deg)`, opacity: 0 },
+      ], { duration: 1200 + Math.random() * 600, easing: 'ease-out' }).onfinish = () => c.remove();
     }
-    const res = await api('finish', { round_id: state.round.round_id });
-    const rid = state.round.round_id;
-    state.round = null;
-    showResult(res, rid);
-  }
-
-  // ---------- výsledek ----------
-  function showResult(res) {
-    const pct = res.correct / res.total;
-    $('stars').innerHTML = [1, 2, 3].map((n) => `<span class="${n <= res.stars ? 'on' : ''}">★</span>`).join('');
-    $('result-title').textContent =
-      pct === 1 ? 'Bez chyby!' : pct >= 0.8 ? 'Skoro bez chyby!' : pct >= 0.5 ? 'Dobrá práce.' : 'Příště to půjde líp.';
-    let text = `${res.correct} z ${res.total} správně, +${res.points} bodů.`;
-    if (res.best_before && res.correct > res.best_before) text += ' Tvůj nový rekord!';
-    else if (res.best_before) text += ` Tvůj rekord je ${res.best_before}.`;
-    $('result-text').textContent = text;
-    const wrong = res.answers.filter((a) => !Number(a.is_correct));
-    $('mistakes').innerHTML = wrong.length
-      ? `<h2>Kde to neklaplo</h2><p class="empty">Klepni na příklad a uvidíš postup.</p><div class="mistakes">${wrong
-          .map((a) => `<details><summary><span>${renderQ(a.question)}</span><span class="answers"><span class="wrong">${esc(a.given_answer)}</span> <span class="right">${renderQ(a.correct_answer)}</span></span></summary>`
-            + `<ol class="steps">${(a.steps || []).map((l) => `<li>${renderQ(l)}</li>`).join('')}</ol></details>`)
-          .join('')}</div>`
-      : '';
-    show('result');
-    $('btn-again').focus();
-  }
-
-  $('btn-again').addEventListener('click', () => startRound(state.module, state.level));
-
-  // ---------- statistiky ----------
-  async function loadStats() {
-    const s = await api('stats');
-    $('who-points').textContent = s.points + ' b.';
-    $('tiles').innerHTML = `
-      <div class="tile"><b>${s.points}</b><span>bodů celkem</span></div>
-      <div class="tile"><b>${s.rounds}</b><span>odehraných kol</span></div>
-      <div class="tile"><b>${s.correct_today}</b><span>správně dnes</span></div>`;
-    const rows = s.per_level.map((p) => {
-      const m = state.modules[p.module];
-      const label = m ? `${m.title} – ${m.levels[p.level] || p.level}` : p.module;
-      const pct = p.total ? Math.round((p.correct / p.total) * 100) : 0;
-      return `<tr><td>${esc(label)}</td><td class="num">${p.rounds}</td><td class="num">${pct} %</td><td class="num">${p.best}/10</td></tr>`;
-    });
-    $('per-level').innerHTML = rows.length
-      ? `<tr><th>Úkol</th><th>Kol</th><th>Úspěšnost</th><th>Rekord</th></tr>${rows.join('')}`
-      : '<tr><td class="empty">Zatím žádné dokončené kolo.</td></tr>';
-    $('hardest').innerHTML = s.hardest.length
-      ? `<div class="mistakes">${s.hardest.map((h) => `<div><span>${renderQ(h.question)}</span><span class="right">${renderQ(h.correct_answer)}</span></div>`).join('')}</div>`
-      : '<p class="empty">Žádné opakované chyby. Dobré znamení.</p>';
-    $('board').innerHTML = s.leaderboard.length
-      ? `<tr><th>#</th><th>Jméno</th><th>Body</th></tr>` + s.leaderboard
-          .map((b, i) => `<tr class="${b.name === s.user.name ? 'me' : ''}"><td>${i + 1}.</td><td>${esc(b.name)}</td><td class="num">${b.points}</td></tr>`)
-          .join('')
-      : '<tr><td class="empty">Tento týden ještě nikdo necvičil.</td></tr>';
-    show('stats');
   }
 
   // ---------- navigace ----------
   document.querySelectorAll('[data-go]').forEach((el) =>
     el.addEventListener('click', (e) => {
       e.preventDefault();
-      const to = el.dataset.go;
-      if (!state.user) return loadLogin();
-      state.round = null;
-      if (to === 'menu') loadMenu();
-      else if (to === 'stats') loadStats();
+      clearTimeout(state.timer);   // ať po odchodu nenaskočí další příklad
+      state.ex = null;
+      show('menu');
     })
   );
 
   // ---------- start ----------
-  $('form-access').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    try {
-      await api('access', { password: $('access-pass').value });
-      location.reload();
-    } catch (err) {
-      $('access-error').textContent = err.message;
-    }
-  });
-
   (async () => {
     try {
-      const res = await api('modules');
-      if (res.locked) {
-        show('access');
-        $('access-pass').focus();
-        return;
-      }
-      const { modules, user } = res;
-      state.modules = modules;
-      state.user = user;
-      if (user) await loadMenu();
-      else await loadLogin();
+      state.modules = (await api('modules')).modules;
+      renderMenu();
     } catch (e) {
       document.body.insertAdjacentHTML('afterbegin', `<p style="padding:16px;color:#d64545">${esc(e.message)}</p>`);
     }

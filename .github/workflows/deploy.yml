@@ -10,9 +10,9 @@
 #              FTP_PROTOCOL  ftps (výchozí) nebo ftp, když hosting FTPS neumí
 #
 # Nahrávají se jen změněné soubory (stav si akce drží na serveru v souboru
-# .ftp-deploy-sync-state.json). Data a nastavení na serveru se nikdy
-# nepřepisují ani nemažou: databáze v data/, config.local.php a install.php
-# jsou vyřazené. Instalátor se nahrává jen jednou ručně (viz README).
+# .ftp-deploy-sync-state.json). Appka nemá databázi ani nastavení; pozůstatky
+# starší verze na serveru (databáze v data/, config.local.php, install.php)
+# akce nikdy nepřepíše ani nesmaže, uklízí se ručně (viz README).
 
 name: Nasazení na FTP
 
@@ -56,6 +56,10 @@ jobs:
             **/.git*/**
             .github/**
             README.md
+            CLAUDE.md
+            docs/**
+            tasks/**
+            docker-compose*.yml
             data/*.sqlite*
             config.local.php
             install.php

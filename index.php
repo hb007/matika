@@ -17,38 +17,13 @@
 <body>
 <header class="top">
   <a href="#" class="brand" data-go="menu">Matika</a>
-  <div class="who" id="who" hidden>
-    <span id="who-name"></span>
-    <span class="chip" id="who-points" title="Body celkem">0 b.</span>
-    <button class="link" data-go="stats">Výsledky</button>
-  </div>
 </header>
 
 <main id="app">
 
-  <!-- přístupové heslo (jen když je nastavené) -->
-  <section id="screen-access" class="screen" hidden>
-    <h1>Zadej heslo</h1>
-    <form id="form-access" class="row">
-      <input id="access-pass" type="password" autocomplete="current-password" placeholder="Heslo">
-      <button type="submit" class="btn">Vstoupit</button>
-    </form>
-    <p class="empty" id="access-error"></p>
-  </section>
-
-  <!-- výběr jména -->
-  <section id="screen-login" class="screen">
-    <h1>Kdo dnes cvičí?</h1>
-    <div class="names" id="names"></div>
-    <form id="form-login" class="row">
-      <input id="login-name" type="text" maxlength="40" placeholder="Nové jméno" autocomplete="off">
-      <button type="submit" class="btn">Jdu na to</button>
-    </form>
-  </section>
-
   <!-- menu modulů -->
-  <section id="screen-menu" class="screen" hidden>
-    <p class="today" id="today"></p>
+  <section id="screen-menu" class="screen">
+    <h1>Co procvičíš?</h1>
     <div class="modules" id="modules"></div>
   </section>
 
@@ -59,13 +34,9 @@
     <button class="link" data-go="menu">← Zpět</button>
   </section>
 
-  <!-- kolo -->
+  <!-- příklad -->
   <section id="screen-round" class="screen" hidden>
-    <div class="progress"><div class="bar" id="bar"></div></div>
-    <div class="meta">
-      <span id="counter"></span>
-      <span id="streak" class="streak" hidden></span>
-    </div>
+    <div class="meta" id="task"></div>
     <div class="round-grid">
       <div class="round-main">
         <div class="question" id="question"></div>
@@ -94,37 +65,8 @@
         <div class="paper" id="paper" hidden><canvas id="paper-canvas"></canvas></div>
       </div>
     </div>
-    <button class="link small" data-go="menu">Ukončit kolo</button>
+    <button class="link small" data-go="menu">← Jiný úkol</button>
   </section>
-
-  <!-- výsledek kola -->
-  <section id="screen-result" class="screen" hidden>
-    <div class="stars" id="stars"></div>
-    <h1 id="result-title"></h1>
-    <p id="result-text"></p>
-    <div class="row center">
-      <button class="btn" id="btn-again">Ještě jednou</button>
-      <button class="btn ghost" data-go="menu">Jiný úkol</button>
-    </div>
-    <div id="mistakes"></div>
-  </section>
-
-  <!-- statistiky -->
-  <section id="screen-stats" class="screen" hidden>
-    <h1>Moje výsledky</h1>
-    <div class="tiles" id="tiles"></div>
-    <h2>Podle úkolů</h2>
-    <table class="table" id="per-level"></table>
-    <h2>Co mi dává zabrat</h2>
-    <div id="hardest"></div>
-    <h2>Tento týden</h2>
-    <table class="table" id="board"></table>
-    <div class="row spread">
-      <button class="link" data-go="menu">← Zpět</button>
-      <button class="link" id="btn-logout">Změnit jméno</button>
-    </div>
-  </section>
-
 </main>
 <script src="paper.js"></script>
 <script src="app.js"></script>
