@@ -583,11 +583,11 @@
       renderKids(r.users);
       celebrate($('question'), big);
       if (me.solved_today === state.goal) {   // právě splněný cíl: hra se odemkla
-        const bonus = pick(Object.keys(GAMES));   // náhodná hra jako odměna
+        // hry jsou odemčené: dítě si vybere v rozcestníku
         fb.insertAdjacentHTML('beforeend', `<div class="next suggest"><span>Hry jsou odemčené (${GAME_PLAYS} hry na dnes).</span>`
-          + `<button type="button" class="btn" data-game-now>Zahrát si: ${GAMES[bonus].title}</button>`
+          + '<button type="button" class="btn" data-game-now>Vybrat hru</button>'
           + '<button type="button" class="ghostbtn" id="btn-next">Další příklad</button></div>');
-        fb.querySelector('[data-game-now]').addEventListener('click', () => openGame(bonus));
+        fb.querySelector('[data-game-now]').addEventListener('click', openGames);
         $('btn-next').addEventListener('click', next);
         return;
       }
