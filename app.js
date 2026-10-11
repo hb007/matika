@@ -2,20 +2,24 @@
 // důležité (generování příkladů, kontrola) dělá server v api.php.
 (() => {
   const $ = (id) => document.getElementById(id);
-  const state = { modules: {}, module: null, level: null, levels: {}, ex: null, lock: false, timer: null };
+  const state = { modules: {}, diffs: {}, goal: 20, users: [], user: null, module: null, level: null, diff: 'stredni', ex: null, lock: false, timer: null };
+  const EMOJI = { holka: '👧', kluk: '👦' };
+  const DIFF_COLOR = { lehke: '#1f9d55', stredni: '#3b6cf6', tezke: '#d6452b' };
 
   async function api(action, data) {
     const res = await fetch('api.php?action=' + action, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data || {}),
+      body: JSON.stringify({ user: state.user, ...(data || {}) }),   // kdo cvičí, jde s každým požadavkem
     });
     const json = await res.json().catch(() => ({ error: 'Server neodpověděl.' }));
+    if (res.status === 401) { state.user = null; showWho(); }
     if (!res.ok) throw new Error(json.error || 'Chyba serveru');
     return json;
   }
 
   function show(name) {
+    if (name !== 'round') delete document.body.dataset.diff;
     document.querySelectorAll('.screen').forEach((s) => (s.hidden = true));
     $('screen-' + name).hidden = false;
     window.scrollTo(0, 0);
@@ -32,71 +36,106 @@
       .replace(/^(Zkrať:)/, '<span class="label">$1</span>');
   }
 
-  // ---------- menu ----------
-  const DESC = {
-    mala: 'do 10 × 10',
-    velka: '11–20 × 2–10',
-    scitani: 'do 100 až 10 000, záporná, desetinná',
-    zlomky: 'krácení, +, −, ·, :',
-    deleni: 'podíl a zbytek',
-    mix: 'všechno napřeskáčku',
-  };
+  // ---------- uživatelé ----------
+  function prefs() {
+    try { return JSON.parse(localStorage.getItem('matika_pref_' + state.user)) || {}; } catch (e) { return {}; }
+  }
+  function savePrefs(p) {
+    try { localStorage.setItem('matika_pref_' + state.user, JSON.stringify(p)); } catch (e) { /* bez úložiště */ }
+  }
+  function prefFor(module) {
+    const p = prefs()[module] || {};
+    const levels = Object.keys(state.modules[module].levels);
+    return { level: levels.includes(p.level) ? p.level : levels[0], diff: p.diff in state.diffs ? p.diff : 'stredni' };
+  }
 
-  function renderMenu() {
+  // Kdo cvičí, určuje adresa (/holka, /kluk). Aktivní dítě je v horním řádku
+  // velké a nad příkladem, druhé malé; klik na něj přejde na jeho adresu.
+  function renderKids(users) {
+    state.users = users;
+    const me = users.find((u) => u.id === state.user);
+    $('kids').innerHTML = users.map((u) => {
+      if (u.id !== state.user) {
+        return `<a class="kid other" href="${u.kind}" title="Přepnout na ${esc(u.name)}">${EMOJI[u.kind]} <span class="kid-name">${esc(u.name)}</span> <b>${u.today}</b></a>`;
+      }
+      const goal = `<span class="goal" title="Denní cíl ${u.solved_today}/${state.goal}"><span style="width:${Math.min(100, (u.solved_today / state.goal) * 100)}%"></span></span>`;
+      const days = u.days ? `<span class="days">🔥${u.days}</span>` : '';
+      return `<span class="kid" aria-current="true"><span class="kid-emoji">${EMOJI[u.kind]}</span> <span class="kid-name">${esc(u.name)}</span> <b>${u.today}</b>${days}${goal}</span>`;
+    }).join('');
+    if (me) {
+      $('me').innerHTML = `<span>${EMOJI[me.kind]}</span> ${esc(me.name)}`;
+      $('hello').textContent = `${EMOJI[me.kind]} ${me.name}, co procvičíš?`;
+      document.title = `${EMOJI[me.kind]} ${me.name} – Matika`;
+    }
+  }
+
+  function showWho() {
+    $('who-pick').innerHTML = state.users.map((u) =>
+      `<a class="who-btn" href="${u.kind}"><span>${EMOJI[u.kind]}</span>${esc(u.name)}</a>`).join('');
+    show('who');
+  }
+
+  // ---------- menu ----------
+  function showMenu() {
+    delete document.body.dataset.diff;
     $('modules').innerHTML = Object.entries(state.modules)
-      .map(([key, m]) => `<button class="module" data-module="${key}">${esc(m.title)}<small>${DESC[key] || ''}</small></button>`)
+      .map(([key, m]) => `<button class="module" data-module="${key}">${esc(m.title)}</button>`)
       .join('');
-    $('modules').querySelectorAll('.module').forEach((b) => b.addEventListener('click', () => pickModule(b.dataset.module)));
     show('menu');
   }
-
-  function pickModule(key) {
-    state.module = key;
-    const m = state.modules[key];
-    $('level-title').textContent = m.title;
-    $('levels').innerHTML = Object.entries(m.levels)
-      .map(([lv, label]) => `<button type="button" data-level="${lv}">${esc(label)}</button>`)
-      .join('');
-    $('levels').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => startTask(key, b.dataset.level)));
-    show('level');
-  }
+  $('modules').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-module]');
+    if (!b) return;
+    const p = prefFor(b.dataset.module);
+    startTask(b.dataset.module, p.level, p.diff);
+  });
 
   // ---------- příklady ----------
-  function startTask(module, level) {
-    state.module = module;
-    state.level = level;
-    state.levels[module] = level;   // záložka si pamatuje poslední úroveň
+  function startTask(module, level, diff) {
+    Object.assign(state, { module, level, diff });
+    const p = prefs();
+    p[module] = { level, diff };
+    savePrefs(p);
+    document.body.dataset.diff = diff;
+    const meta = document.querySelector('meta[name=theme-color]');
+    if (meta) meta.content = DIFF_COLOR[diff];
     renderTabs();
     show('round');
     $('tabs').querySelector('[aria-current]').scrollIntoView({ inline: 'center', block: 'nearest' });
     next();
   }
 
-  // Záložky s typy úloh a pod nimi úrovně: přepínání bez návratu do menu.
   function renderTabs() {
     const btn = (cls, attr, val, label, on) =>
       `<button type="button" class="${cls}" ${attr}="${val}"${on ? ' aria-current="true"' : ''}>${esc(label)}</button>`;
     $('tabs').innerHTML = Object.entries(state.modules)
       .map(([key, m]) => btn('tab', 'data-module', key, m.title, key === state.module)).join('');
-    $('chips').innerHTML = Object.entries(state.modules[state.module].levels)
-      .map(([lv, label]) => btn('chip', 'data-level', lv, label, lv === state.level)).join('');
+    const levels = Object.entries(state.modules[state.module].levels);
+    $('chips').hidden = levels.length < 2;
+    $('chips').innerHTML = levels.map(([lv, label]) => btn('chip', 'data-level', lv, label, lv === state.level)).join('');
+    $('diffs').innerHTML = Object.entries(state.diffs)
+      .map(([d, label]) => btn('diff', 'data-diff', d, label, d === state.diff)).join('');
   }
 
   $('tabs').addEventListener('click', (e) => {
     const b = e.target.closest('[data-module]');
     if (!b) return;
-    const key = b.dataset.module;
-    startTask(key, state.levels[key] || Object.keys(state.modules[key].levels)[0]);
+    const p = prefFor(b.dataset.module);
+    startTask(b.dataset.module, p.level, p.diff);
   });
   $('chips').addEventListener('click', (e) => {
     const b = e.target.closest('[data-level]');
-    if (b) startTask(state.module, b.dataset.level);
+    if (b) startTask(state.module, b.dataset.level, state.diff);
+  });
+  $('diffs').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-diff]');
+    if (b) startTask(state.module, state.level, b.dataset.diff);
   });
 
   async function next() {
     clearTimeout(state.timer);
     try {
-      state.ex = await api('next', { module: state.module, level: state.level });
+      state.ex = await api('next', { module: state.module, level: state.level, difficulty: state.diff });
     } catch (e) {
       alert(e.message);
       return;
@@ -106,6 +145,7 @@
 
   function showQuestion() {
     const q = state.ex;
+    $('review').hidden = !q.review;
     $('question').innerHTML = renderQ(q.q) + (q.kind === 'divrem' || q.q.startsWith('Zkrať') ? '' : ' =');
     $('feedback').hidden = true;
     $('feedback').innerHTML = '';
@@ -244,7 +284,12 @@
     if (r.correct) {
       endQuestion();
       fb.className = 'feedback ok';
-      fb.innerHTML = pick(['Správně!', 'Přesně tak!', 'Paráda!', 'Trefa!', 'Výborně!', 'Super!']) + (r.note ? `<small>${esc(r.note)}</small>` : '');
+      const me = r.users.find((u) => u.id === state.user);
+      const pts = `<small>+${r.points} b.${r.bonus ? ` a +${r.bonus} navíc za ${r.streak} v řadě` : ''}</small>`;
+      const fire = r.streak >= 3 ? `<small>🔥 ${r.streak} v řadě</small>` : '';
+      const goal = me.solved_today === state.goal ? '<small>🎯 Denní cíl splněný!</small>' : '';
+      fb.innerHTML = pick(['Správně!', 'Přesně tak!', 'Paráda!', 'Trefa!', 'Výborně!', 'Super!']) + pts + fire + goal + (r.note ? `<small>${esc(r.note)}</small>` : '');
+      renderKids(r.users);
       celebrate($('question'));
       state.timer = setTimeout(next, r.note ? 2400 : 1500);
       return;
@@ -285,6 +330,7 @@
       return;
     }
     endQuestion();
+    renderKids(r.users);
     const fb = $('feedback');
     fb.hidden = false;
     fb.className = 'feedback bad reveal';
@@ -432,17 +478,20 @@
   document.querySelectorAll('[data-go]').forEach((el) =>
     el.addEventListener('click', (e) => {
       e.preventDefault();
-      clearTimeout(state.timer);   // ať po odchodu nenaskočí další příklad
+      clearTimeout(state.timer);
       state.ex = null;
-      show('menu');
+      if (state.user) showMenu(); else showWho();
     })
   );
 
   // ---------- start ----------
   (async () => {
     try {
-      state.modules = (await api('modules')).modules;
-      renderMenu();
+      const s = await api('state');
+      const me = s.users.find((u) => u.kind === document.body.dataset.kid);
+      Object.assign(state, { modules: s.modules, diffs: s.difficulties, goal: s.goal, user: me ? me.id : null });
+      renderKids(s.users);
+      if (state.user) showMenu(); else showWho();
     } catch (e) {
       document.body.insertAdjacentHTML('afterbegin', `<p style="padding:16px;color:#d64545">${esc(e.message)}</p>`);
     }

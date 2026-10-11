@@ -1,2 +1,8 @@
 Options -Indexes
 DirectoryIndex index.php
+
+# /holka a /kluk: stránka s profilem dítěte (bez lomítka na konci, ať sedí relativní cesty)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(holka|kluk)$ index.php [L]
+</IfModule>

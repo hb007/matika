@@ -1,7 +1,9 @@
 <?php
 // JSON API. Volá se POST /api.php?action=... s JSON tělem.
-// Uživatel = cookie s id (holka 1, kluk 2), bez hesla. Rozpracovaný příklad
-// drží PHP session, správný výsledek klient dostane jen přes reveal.
+// Kdo cvičí, posílá stránka v každém požadavku (user: 1 holka, 2 kluk, bez
+// hesla), takže karty /holka a /kluk v jednom prohlížeči se nepletou.
+// Rozpracovaný příklad drží PHP session zvlášť pro každé dítě, správný
+// výsledek klient dostane jen přes reveal.
 declare(strict_types=1);
 
 require __DIR__ . '/lib/generators.php';
@@ -12,8 +14,6 @@ require __DIR__ . '/lib/game.php';
 date_default_timezone_set('Europe/Prague');
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
-
-const USER_COOKIE = 'matika_user';
 
 function out($data, int $code = 200): never
 {
@@ -39,29 +39,23 @@ function param(array $in, string $key): string
     return is_scalar($in[$key] ?? null) ? (string) $in[$key] : '';
 }
 
-function current_uid(): ?int
+function require_uid(array $in): int
 {
-    $uid = (int) ($_COOKIE[USER_COOKIE] ?? 0);
-    return user_exists(db(), $uid) ? $uid : null;
+    $uid = (int) param($in, 'user');
+    return user_exists(db(), $uid) ? $uid : fail('Nejdřív vyber, kdo cvičí.', 401);
 }
 
-function require_uid(): int
+// Rozpracovaný příklad dítěte; session ze starší verze (jiné klíče) neplatí.
+function require_ex(int $uid): void
 {
-    return current_uid() ?? fail('Nejdřív vyber, kdo cvičí.', 401);
-}
-
-// Rozpracovaný příklad; session ze starší verze (bez klíče ex) neplatí.
-function require_ex(): void
-{
-    if (!isset($_SESSION['ex']['ex'])) {
+    if (!isset($_SESSION['cur'][$uid]['ex'])) {
         fail('Příklad vypršel, načti další.', 404);
     }
 }
 
-function state(?int $uid, string $today): array
+function state(string $today): array
 {
-    return ['modules' => MODULES, 'difficulties' => DIFFICULTIES, 'goal' => GOAL,
-            'users' => users_state(db(), $today), 'user' => $uid];
+    return ['modules' => MODULES, 'difficulties' => DIFFICULTIES, 'goal' => GOAL, 'users' => users_state(db(), $today)];
 }
 
 $action = $_GET['action'] ?? '';
@@ -72,50 +66,39 @@ session_start(['cookie_httponly' => true, 'cookie_samesite' => 'Lax']);
 try {
     switch ($action) {
         case 'state':
-            out(state(current_uid(), $today));
-
-        case 'switch':
-            $uid = (int) param($in, 'user');
-            if (!user_exists(db(), $uid)) {
-                fail('Neznámý uživatel.');
-            }
-            setcookie(USER_COOKIE, (string) $uid, [
-                'expires' => time() + 365 * 86400, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax',
-            ]);
-            unset($_SESSION['ex']);   // rozpracovaný příklad nepatří novému uživateli
-            out(state($uid, $today));
+            out(state($today));
 
         case 'rename':
             try {
-                rename_user(db(), (int) param($in, 'user'), param($in, 'name'));
+                rename_user(db(), (int) param($in, 'target'), param($in, 'name'));
             } catch (InvalidArgumentException $e) {
                 fail($e->getMessage());
             }
-            out(state(current_uid(), $today));
+            out(state($today));
 
         case 'next':
-            $uid = require_uid();
+            $uid = require_uid($in);
             try {
-                $_SESSION['ex'] = next_exercise(db(), $uid, param($in, 'module'), param($in, 'level'), param($in, 'difficulty'));
+                $_SESSION['cur'][$uid] = next_exercise(db(), $uid, param($in, 'module'), param($in, 'level'), param($in, 'difficulty'));
             } catch (InvalidArgumentException $e) {
                 fail($e->getMessage());
             }
-            $ex = $_SESSION['ex']['ex'];
-            out(['q' => $ex['q'], 'kind' => $ex['kind'], 'keys' => extra_keys($ex), 'review' => $_SESSION['ex']['review']]);
+            $ex = $_SESSION['cur'][$uid]['ex'];
+            out(['q' => $ex['q'], 'kind' => $ex['kind'], 'keys' => extra_keys($ex), 'review' => $_SESSION['cur'][$uid]['review']]);
 
         case 'hint':
-            require_uid();
-            require_ex();
-            $steps = hint_steps($_SESSION['ex']['ex']);
-            $shown = min(count($steps), (int) ($_SESSION['ex']['ex']['hints'] ?? 0) + 1);
-            $_SESSION['ex']['ex']['hints'] = $shown;
+            $uid = require_uid($in);
+            require_ex($uid);
+            $steps = hint_steps($_SESSION['cur'][$uid]['ex']);
+            $shown = min(count($steps), (int) ($_SESSION['cur'][$uid]['ex']['hints'] ?? 0) + 1);
+            $_SESSION['cur'][$uid]['ex']['hints'] = $shown;
             out(['steps' => array_slice($steps, 0, $shown), 'total' => count($steps)]);
 
         case 'answer':
-            $uid = require_uid();
-            require_ex();
+            $uid = require_uid($in);
+            require_ex($uid);
             try {
-                $res = handle_answer(db(), $_SESSION['ex'], $uid, $in['answer'] ?? '', $today);
+                $res = handle_answer(db(), $_SESSION['cur'][$uid], $uid, $in['answer'] ?? '', $today);
             } catch (DomainException $e) {
                 fail($e->getMessage(), 409);
             }
@@ -125,9 +108,9 @@ try {
             out($res);
 
         case 'reveal':
-            $uid = require_uid();
-            require_ex();
-            $res = handle_reveal(db(), $_SESSION['ex'], $uid, $today);
+            $uid = require_uid($in);
+            require_ex($uid);
+            $res = handle_reveal(db(), $_SESSION['cur'][$uid], $uid, $today);
             out($res + ['users' => users_state(db(), $today)]);
 
         case 'stats':

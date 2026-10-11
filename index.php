@@ -3,6 +3,10 @@
 // z cache (staré app.js s novým HTML aplikaci rozbije).
 header('Cache-Control: no-cache');
 $v = fn(string $f): string => $f . '?v=' . filemtime(__DIR__ . '/' . $f);
+// /holka a /kluk otevřou rovnou profil dítěte (přepis v .htaccess; lokální
+// php -S sem pošle každou neexistující adresu).
+$kid = basename((string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH));
+$kid = in_array($kid, ['holka', 'kluk'], true) ? $kid : '';
 ?>
 <!doctype html>
 <html lang="cs">
@@ -12,40 +16,44 @@ $v = fn(string $f): string => $f . '?v=' . filemtime(__DIR__ . '/' . $f);
 <meta name="theme-color" content="#3b6cf6">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Matika">
+<meta name="apple-mobile-web-app-title" content="Matika<?= $kid ? ' ' . ($kid === 'holka' ? '👧' : '👦') : '' ?>">
 <meta name="format-detection" content="telephone=no">
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="manifest.php<?= $kid ? "?kdo=$kid" : '' ?>">
 <title>Matika</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="stylesheet" href="<?= $v('style.css') ?>">
 </head>
-<body>
+<body<?= $kid ? " data-kid=\"$kid\"" : '' ?>>
 <header class="top">
   <a href="#" class="brand" data-go="menu">Matika</a>
+  <div class="kids" id="kids"></div>
+  <button class="link" id="btn-stats">Výsledky</button>
 </header>
 
 <main id="app">
 
-  <!-- menu modulů -->
-  <section id="screen-menu" class="screen">
-    <h1>Co procvičíš?</h1>
-    <div class="modules" id="modules"></div>
+  <!-- kdo cvičí -->
+  <section id="screen-who" class="screen" hidden>
+    <h1>Kdo dnes cvičí?</h1>
+    <div class="who-pick" id="who-pick"></div>
   </section>
 
-  <!-- výběr úrovně -->
-  <section id="screen-level" class="screen" hidden>
-    <h1 id="level-title"></h1>
-    <div class="levels" id="levels"></div>
-    <button class="link" data-go="menu">← Zpět</button>
+  <!-- menu modulů -->
+  <section id="screen-menu" class="screen" hidden>
+    <h1 id="hello">Co procvičíš?</h1>
+    <div class="modules" id="modules"></div>
   </section>
 
   <!-- příklad -->
   <section id="screen-round" class="screen" hidden>
     <nav class="tabs" id="tabs" aria-label="Typ úlohy"></nav>
     <div class="chips" id="chips" aria-label="Úroveň"></div>
+    <div class="diffs" id="diffs" aria-label="Obtížnost"></div>
     <div class="round-grid">
       <div class="round-main">
+        <div class="me-badge" id="me"></div>
+        <div class="review-badge" id="review" hidden>🔁 Tenhle ti minule nešel</div>
         <div class="question" id="question"></div>
         <form id="form-answer" class="answer">
           <div id="inputs"></div>
