@@ -19,6 +19,7 @@ const MODULES = [
 ];
 
 const DIFFICULTIES = ['lehke' => 'Lehké', 'stredni' => 'Střední', 'tezke' => 'Těžké'];
+const DIFF_ALL = 'vse';   // jen v Náhodném mixu: každý příklad má náhodnou obtížnost
 
 // Rozsahy podle obtížnosti (viz tabulka v README).
 const MALA_RANGE = ['lehke' => [2, 5], 'stredni' => [2, 10], 'tezke' => [6, 9]];
@@ -151,8 +152,12 @@ function gen_deleni(string $level, string $diff): array
 
 function generate_exercise(string $module, string $level, string $diff): array
 {
-    if (!isset(MODULES[$module]['levels'][$level]) || !isset(DIFFICULTIES[$diff])) {
+    $all = $module === 'mix' && $diff === DIFF_ALL;
+    if (!isset(MODULES[$module]['levels'][$level]) || (!isset(DIFFICULTIES[$diff]) && !$all)) {
         throw new InvalidArgumentException('Neznámá úloha, úroveň nebo obtížnost');
+    }
+    if ($all) {
+        $diff = array_rand(DIFFICULTIES);
     }
     if ($module === 'mix') {
         $pool = [];
@@ -167,6 +172,7 @@ function generate_exercise(string $module, string $level, string $diff): array
     }
     $ex = ('gen_' . $module)($level, $diff);
     $ex['m'] = $module;   // skutečné téma (u mixu), pro statistiky
+    $ex['d'] = $diff;     // skutečná obtížnost (u mixu napříč obtížnostmi), pro body
     return $ex;
 }
 

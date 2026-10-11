@@ -46,7 +46,12 @@
   function prefFor(module) {
     const p = prefs()[module] || {};
     const levels = Object.keys(state.modules[module].levels);
-    return { level: levels.includes(p.level) ? p.level : levels[0], diff: p.diff in state.diffs ? p.diff : 'stredni' };
+    return { level: levels.includes(p.level) ? p.level : levels[0], diff: p.diff in diffsFor(module) ? p.diff : 'stredni' };
+  }
+
+  // Náhodný mix má navíc „Vše“: každý příklad s jinou obtížností.
+  function diffsFor(module) {
+    return module === 'mix' ? { ...state.diffs, vse: 'Vše' } : state.diffs;
   }
 
   // Kdo cvičí, určuje adresa (/holka, /kluk). Aktivní dítě je v horním řádku
@@ -96,13 +101,17 @@
     const p = prefs();
     p[module] = { level, diff };
     savePrefs(p);
-    document.body.dataset.diff = diff;
-    const meta = document.querySelector('meta[name=theme-color]');
-    if (meta) meta.content = DIFF_COLOR[diff];
+    if (diff !== 'vse') setDiffColor(diff);
     renderTabs();
     show('round');
     $('tabs').querySelector('[aria-current]').scrollIntoView({ inline: 'center', block: 'nearest' });
     next();
+  }
+
+  function setDiffColor(diff) {
+    document.body.dataset.diff = diff;
+    const meta = document.querySelector('meta[name=theme-color]');
+    if (meta) meta.content = DIFF_COLOR[diff];
   }
 
   function renderTabs() {
@@ -113,7 +122,7 @@
     const levels = Object.entries(state.modules[state.module].levels);
     $('chips').hidden = levels.length < 2;
     $('chips').innerHTML = levels.map(([lv, label]) => btn('chip', 'data-level', lv, label, lv === state.level)).join('');
-    $('diffs').innerHTML = Object.entries(state.diffs)
+    $('diffs').innerHTML = Object.entries(diffsFor(state.module))
       .map(([d, label]) => btn('diff', 'data-diff', d, label, d === state.diff)).join('');
   }
 
@@ -145,6 +154,7 @@
 
   function showQuestion() {
     const q = state.ex;
+    setDiffColor(q.diff);   // v mixu „vše“ barva podle obtížnosti tohoto příkladu
     $('review').hidden = !q.review;
     $('question').innerHTML = renderQ(q.q) + (q.kind === 'divrem' || q.q.startsWith('Zkrať') ? '' : ' =');
     $('feedback').hidden = true;

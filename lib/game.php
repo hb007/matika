@@ -97,7 +97,8 @@ function next_exercise(PDO $db, int $uid, string $module, string $level, string 
         $db->prepare('DELETE FROM review WHERE id = ?')->execute([$row['id']]);
         $ex = json_decode($row['ex'], true);
     }
-    return ['ex' => $ex, 'task' => $task, 'diff' => $diff, 'tries' => 0, 'done' => false, 'review' => (bool) $row];
+    // body podle skutečné obtížnosti příkladu (v mixu „vše“ je u každého jiná)
+    return ['ex' => $ex, 'task' => $task, 'diff' => $ex['d'] ?? $diff, 'tries' => 0, 'done' => false, 'review' => (bool) $row];
 }
 
 function queue_review(PDO $db, int $uid, array $cur): void

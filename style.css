@@ -244,6 +244,7 @@ body[data-diff] .top { background: var(--diff-bg); box-shadow: inset 0 -4px 0 va
 .diff[data-diff=lehke] { --c: #1f9d55; }
 .diff[data-diff=stredni] { --c: #3b6cf6; }
 .diff[data-diff=tezke] { --c: #d6452b; }
+.diff[data-diff=vse] { --c: #5d6470; }
 .diff[aria-current] { background: var(--c); color: #fff; }
 .review-badge { text-align: center; color: #7a5200; background: #fff8e1; border-radius: 999px; padding: 4px 12px; margin: 0 auto 10px; width: fit-content; font-weight: 700; font-size: 15px; }
 

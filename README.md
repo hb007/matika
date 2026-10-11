@@ -27,6 +27,7 @@ Cvičí dvě děti, 👧 holka a 👦 kluk, bez hesla. Každé má svou adresu (
 | Zlomky: násobení a dělení | jmenovatele 2–5 | 2–9 | 2–12 |
 | Dělení s ocáskem | 100–999 : 2–9 | 1 000–9 999 : 2–9 | 1 000–99 999 : 11–99 |
 | Náhodný mix | vše lehké | vše střední | vše těžké |
+| Náhodný mix, obtížnost „Vše“ | každý příklad má náhodnou úlohu, úroveň i obtížnost | | |
 
 Rozsahy jsou v `lib/generators.php` (konstanty `MALA_RANGE`, `VELKA_RANGE`, `CELA_MAX` …). Každý příklad se generuje náhodně.
 
@@ -44,7 +45,7 @@ Pravidla, která hlídá server:
 
 **Záložky a obtížnost.** Nad příkladem jsou záložky s typy úloh, pod nimi úrovně a obtížnost. Přepnutí hned načte nový příklad. Každé dítě má u každé úlohy zapamatovanou úroveň a obtížnost (v prohlížeči). Obtížnost obarví obrazovku: lehké zeleně, střední modře, těžké červenooranžově. Hlavní menu ukazuje jen úlohy.
 
-**Body.** Správně napoprvé: lehké 1, střední 2, těžké 3 body. Správně po chybném pokusu 1 bod, po „Ukázat výsledek“ 0. Nápověda body nebere. Nečitelná odpověď (písmena, chybí zbytek) se nepočítá jako pokus. Za každých 5 správně napoprvé v řadě je bod navíc (od 3 v řadě se ukazuje 🔥).
+**Body.** Správně napoprvé: lehké 1, střední 2, těžké 3 body (v mixu „Vše“ podle obtížnosti konkrétního příkladu, barva záhlaví se mění s ní). Správně po chybném pokusu 1 bod, po „Ukázat výsledek“ 0. Nápověda body nebere. Nečitelná odpověď (písmena, chybí zbytek) se nepočítá jako pokus. Za každých 5 správně napoprvé v řadě je bod navíc (od 3 v řadě se ukazuje 🔥).
 
 **Denní cíl.** 20 vyřešených příkladů za den (ukázaný výsledek se nepočítá), postup ukazuje proužek u dítěte v horním řádku. 🔥 u dítěte je série dní se splněným cílem. Den a týden (od pondělí) se počítají v českém čase.
 
