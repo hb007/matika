@@ -1,3 +1,9 @@
+<?php
+// Verze v adrese podle data změny: po nasazení prohlížeč nevezme starý JS/CSS
+// z cache (staré app.js s novým HTML aplikaci rozbije).
+header('Cache-Control: no-cache');
+$v = fn(string $f): string => $f . '?v=' . filemtime(__DIR__ . '/' . $f);
+?>
 <!doctype html>
 <html lang="cs">
 <head>
@@ -12,7 +18,7 @@
 <title>Matika</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="<?= $v('style.css') ?>">
 </head>
 <body>
 <header class="top">
@@ -70,7 +76,7 @@
     <button class="link small" data-go="menu">← Jiný úkol</button>
   </section>
 </main>
-<script src="paper.js"></script>
-<script src="app.js"></script>
+<script src="<?= $v('paper.js') ?>"></script>
+<script src="<?= $v('app.js') ?>"></script>
 </body>
 </html>
