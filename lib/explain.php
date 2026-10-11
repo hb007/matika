@@ -102,12 +102,15 @@ function explain_add(array $p): array
     ['op' => $op, 'a' => $a, 'b' => $b] = $p;
     $res = $op === '+' ? $a + $b : $a - $b;
     if ($p['lvl'] === 'desetinna') {
-        $ai = (int) round($a * 10);
-        $bi = (int) round($b * 10);
+        $dp = $p['dp'] ?? 1;
+        $f = 10 ** $dp;
+        $ai = (int) round($a * $f);
+        $bi = (int) round($b * $f);
         $ri = $op === '+' ? $ai + $bi : $ai - $bi;
-        return ['Obě čísla napíšu na jedno desetinné místo: ' . number_format($a, 1, ',', ' ') . ' a ' . number_format($b, 1, ',', ' ') . '.',
+        $mista = $dp === 1 ? 'jedno desetinné místo' : 'dvě desetinná místa';
+        return ["Obě čísla napíšu na $mista: " . number_format($a, $dp, ',', ' ') . ' a ' . number_format($b, $dp, ',', ' ') . '.',
                 'Počítám bez čárky: ' . fmt_num($ai) . ($op === '+' ? ' + ' : ' − ') . fmt_num($bi) . ' = ' . fmt_num($ri) . '.',
-                'Vrátím čárku (jedno místo): ' . fmt_num(round($res, 1)) . '.'];
+                "Vrátím čárku ($mista): " . fmt_num(round($res, $dp)) . '.'];
     }
     if ($p['lvl'] === 'zaporna') {
         $lines = [];
@@ -466,11 +469,13 @@ function steps_add(array $p): array
     $verb = $op === '+' ? 'přičítej' : 'odčítej';
 
     if ($p['lvl'] === 'desetinna') {
-        $ai = (int) round($a * 10);
-        $bi = (int) round($b * 10);
+        $dp = $p['dp'] ?? 1;
+        $f = 10 ** $dp;
+        $ai = (int) round($a * $f);
+        $bi = (int) round($b * $f);
         return ['Napiš čísla pod sebe tak, aby byla čárka pod čárkou.',
                 'Počítej, jako by tam čárka nebyla: ' . fmt_num($ai) . " $sym " . fmt_num($bi) . '.',
-                'Na konci vrať čárku: ve výsledku je jedno desetinné místo.'];
+                'Na konci vrať čárku: ve výsledku ' . ($dp === 1 ? 'je jedno desetinné místo.' : 'jsou dvě desetinná místa.')];
     }
 
     if ($p['lvl'] === 'zaporna') {
