@@ -391,7 +391,8 @@ body[data-diff] .top { border-bottom: 0; box-shadow: inset 0 -6px 0 var(--hl); p
 .game-score { font-size: 17px; color: var(--muted); }
 .game-score b { color: var(--ink); font-size: 20px; }
 .game-wrap { position: relative; width: 100%; max-width: 480px; aspect-ratio: 1; margin: 0 auto; border: 2px solid var(--line); border-radius: 8px; overflow: hidden; }
-#snake-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.game-stage { width: 100%; height: 100%; }
+.game-stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .game-overlay {
   position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
   padding: 20px; text-align: center; background: var(--overlay);
@@ -408,3 +409,30 @@ body[data-diff] .top { border-bottom: 0; box-shadow: inset 0 -6px 0 var(--hl); p
 .pad:active { border-color: var(--pen); background: var(--active-bg); }
 @media (min-width: 900px) and (pointer: fine) { .game-pad { display: none; } }
 .task-item:disabled { color: var(--muted); cursor: default; background: none; font-size: 15px; }
+
+/* rozcestník her */
+.games-info { color: var(--muted); font-size: 16px; font-weight: 700; margin: 0 0 12px; }
+#game-limit { text-align: center; margin: 8px 0 4px; }
+.games { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.game-card {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 8px 12px;
+  background: var(--sheet); border: 2px solid var(--kid); border-radius: 12px; color: var(--ink); cursor: pointer;
+  box-shadow: 0 3px 0 var(--kid);
+}
+.game-card:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--kid); }
+.game-card:disabled { border-color: var(--line); box-shadow: none; cursor: default; opacity: .55; }
+.game-icon { font-size: 44px; line-height: 1.1; }
+.game-card b { font-size: 18px; }
+.game-card small { color: var(--muted); font-size: 13px; }
+#btn-random-game:disabled { opacity: .5; cursor: default; }
+
+/* pexeso */
+.pexeso { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 6px; width: 100%; height: 100%; background: var(--canvas); }
+.pex-card {
+  border: 2px solid var(--line); border-radius: 8px; background: var(--kid); color: transparent; cursor: pointer;
+  font-size: clamp(14px, 4.6vw, 24px); font-weight: 700; padding: 0; transition: background .15s;
+}
+.pex-card span { visibility: hidden; }
+.pex-card.up, .pex-card.done { background: var(--sheet); color: var(--ink); }
+.pex-card.up span, .pex-card.done span { visibility: visible; }
+.pex-card.done { border-color: var(--kid); color: var(--kid); opacity: .75; }

@@ -94,7 +94,7 @@ try {
                 fail($e->getMessage());
             }
             $ex = $_SESSION['cur'][$uid]['ex'];
-            out(['q' => $ex['q'], 'kind' => $ex['kind'], 'keys' => extra_keys($ex), 'var' => question_var($ex), 'review' => $_SESSION['cur'][$uid]['review'],
+            out(['q' => $ex['q'], 'kind' => $ex['kind'], 'keys' => extra_keys($ex), 'var' => question_var($ex), 'unit' => question_unit($ex), 'review' => $_SESSION['cur'][$uid]['review'],
                  'diff' => $_SESSION['cur'][$uid]['diff']]);   // skutečná obtížnost (v mixu „vše“ se mění)
 
         case 'hint':

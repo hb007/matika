@@ -21,7 +21,7 @@ const SYNC_MAX_ANSWERS = 30;    // nejvíc pokusů u jednoho příkladu
 function pool_item(string $id, array $ex): array
 {
     return [
-        'id' => $id, 'q' => $ex['q'], 'kind' => $ex['kind'], 'keys' => extra_keys($ex), 'var' => question_var($ex),
+        'id' => $id, 'q' => $ex['q'], 'kind' => $ex['kind'], 'keys' => extra_keys($ex), 'var' => question_var($ex), 'unit' => question_unit($ex),
         'diff' => $ex['d'], 'a' => $ex['a'], 'strict' => !empty($ex['strict']),
         'answer' => answer_str($ex), 'hints' => hint_steps($ex), 'steps' => explain($ex),
     ];

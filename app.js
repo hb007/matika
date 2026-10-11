@@ -5,7 +5,7 @@
 (() => {
   const $ = (id) => document.getElementById(id);
   const Rewards = window.Rewards;
-  let snake = null;   // hra Had, vytvoří se při prvním otevření
+  let game = null;    // právě hraná hra (viz GAMES)
   const state = { modules: {}, diffs: {}, goal: 20, users: [], user: null, module: null, level: null, diff: 'stredni', ex: null, lock: false, timer: null, offline: false };
   const Offline = window.Offline;
   const DIFF_COLOR = { lehke: '#8fd970', stredni: '#ffd84d', tezke: '#ffa94d' };   // zvýrazňovače, i pro theme-color
@@ -17,6 +17,10 @@
     zlomky: { kraceni: 'zkrátit', scitani: '+ −', nasobeni: '· :', mix: 'vše' },
     zavorky: { poradi: '+ ·', zavorky: '( )', mix: 'vše' },
     rovnice: { jednoducha: 'x+3', dvoukrokova: '2x+3', obe: 'x=x' },
+    desetinna: { nasobeni: '·', deleni: ':', posun: '·10' },
+    procenta: { z_cisla: '% z', kolik: '?%', zaklad: '100%' },
+    delitelnost: { znaky: '□', nsd: 'D', nsn: 'n' },
+    statistika: { prumer: 'Ø', median: 'med', modus: 'mod' },
   };
   // Obtížnost jako ikony: pírko, kámen, činka; „vše“ (jen v mixu) jako zamíchání.
   const ICON = (d) => `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -47,7 +51,7 @@
 
   function show(name) {
     closeTaskMenu();
-    if (name !== 'game' && snake) snake.stop();
+    if (name !== 'game' && game) { game.stop(); clearInterval(gameTick); }
     if (name !== 'round') delete document.body.dataset.diff;
     document.querySelectorAll('.screen').forEach((s) => (s.hidden = true));
     $('screen-' + name).hidden = false;
@@ -341,7 +345,7 @@
     const q = state.ex;
     setDiffColor(q.diff);   // v mixu „vše“ barva podle obtížnosti tohoto příkladu
     $('review').hidden = !q.review;
-    $('question').innerHTML = renderQ(q.q) + (q.kind === 'divrem' || q.var || q.q.startsWith('Zkrať') ? '' : ' =');
+    $('question').innerHTML = renderQ(q.q) + (q.kind === 'divrem' || q.var || q.q.startsWith('Zkrať') || q.q.endsWith('?') ? '' : ' =');
     $('feedback').hidden = true;
     $('feedback').innerHTML = '';
     $('hints').hidden = true;
@@ -365,7 +369,8 @@
       const mode = q.kind === 'frac' ? 'text' : 'decimal';
       const ph = q.kind === 'frac' ? 'např. 3/4' : '';
       // rovnice: dítě píše hodnotu neznámé („x = …“)
-      inputs.innerHTML = (q.var ? `<span>${esc(q.var)} =</span>` : '') + `<input type="text" inputmode="${mode}" id="ans" autocomplete="off" placeholder="${ph}"${ro}>`;
+      inputs.innerHTML = (q.var ? `<span>${esc(q.var)} =</span>` : '') + `<input type="text" inputmode="${mode}" id="ans" autocomplete="off" placeholder="${ph}"${ro}>`
+        + (q.unit ? `<span>${esc(q.unit)}</span>` : '');   // jednotka za políčkem (… %)
     }
     // Klávesnice v appce je vidět všude (i počítač, tablet s klávesnicí); na
     // počítači jde psát i rovnou do políčka, na dotyku nahrazuje systémovou.
@@ -578,10 +583,11 @@
       renderKids(r.users);
       celebrate($('question'), big);
       if (me.solved_today === state.goal) {   // právě splněný cíl: hra se odemkla
-        fb.insertAdjacentHTML('beforeend', '<div class="next suggest"><span>Hra Had je odemčená.</span>'
-          + '<button type="button" class="btn" data-game-now>Zahrát si hada</button>'
+        const bonus = pick(Object.keys(GAMES));   // náhodná hra jako odměna
+        fb.insertAdjacentHTML('beforeend', `<div class="next suggest"><span>Hry jsou odemčené (${GAME_PLAYS} hry na dnes).</span>`
+          + `<button type="button" class="btn" data-game-now>Zahrát si: ${GAMES[bonus].title}</button>`
           + '<button type="button" class="ghostbtn" id="btn-next">Další příklad</button></div>');
-        fb.querySelector('[data-game-now]').addEventListener('click', openGame);
+        fb.querySelector('[data-game-now]').addEventListener('click', () => openGame(bonus));
         $('btn-next').addEventListener('click', next);
         return;
       }
@@ -716,89 +722,221 @@
   } catch (e) { /* bez úložiště */ }
   setPaper(paperOpen);
 
-  // ---------- hra Had ----------
-  // Odpočinek mezi příklady. Rekord má každé dítě v prohlížeči.
-  const bestKey = () => 'matika_snake_' + (state.user || 0);
-  function snakeBest() {
-    try { return Number(localStorage.getItem(bestKey())) || 0; } catch (e) { return 0; }
+  // ---------- hry ----------
+  // Hry jsou odměna. Odemknou se splněním denního cíle a mají denní limit:
+  // GAME_PLAYS her (každá hra = jedno kolo od startu do konce), za každých
+  // GAME_EXTRA_EVERY dalších vyřešených příkladů jedna hra navíc, a nejvýš
+  // GAME_MINUTES minut hraní za den; pak upozornění a hry jsou do zítřka
+  // zamčené. Počítá se v prohlížeči (pro každé dítě zvlášť), funguje i offline.
+  const GAME_PLAYS = 3;
+  const GAME_EXTRA_EVERY = 10;
+  const GAME_MINUTES = 10;
+  const GAMES = {
+    had: { title: 'Had', icon: '🐍', label: 'Jablka', how: 'Táhni prstem po ploše, ťukej na šipky, nebo hraj šipkami na klávesnici.',
+      pad: ['up', 'left', 'down', 'right'], make: (stage, cb) => { const c = document.createElement('canvas'); stage.appendChild(c); return window.Snake.create(c, cb); } },
+    pexeso: { title: 'Pexeso', icon: '🃏', label: 'Tahy', low: true, how: 'Najdi dvojice: příklad a jeho výsledek. Čím méně tahů, tím lépe.',
+      pad: [], make: (stage, cb) => window.Pexeso.create(stage, cb) },
+    g2048: { title: '2048', icon: '🔢', label: 'Body', how: 'Posouvej dlaždice tažením nebo šipkami. Stejná čísla se spojí.',
+      pad: ['up', 'left', 'down', 'right'], make: (stage, cb) => window.Game2048.create(stage, cb) },
+    cihly: { title: 'Cihly', icon: '🧱', label: 'Cihly', how: 'Táhni pálkou prstem nebo šipkami a ťuknutím vystřel míček. Máš 3 životy.',
+      pad: ['left', 'right'], hold: true, make: (stage, cb) => window.Breakout.create(stage, cb) },
+    ptacek: { title: 'Ptáček', icon: '🐤', label: 'Sloupy', how: 'Ťukej na plochu (nebo mezerník) a proleť mezerami mezi sloupy.',
+      pad: [], make: (stage, cb) => window.Flappy.create(stage, cb) },
+  };
+  let gameId = null;    // právě otevřená hra
+  let gameTick = null;  // počítání času hraní
+
+  const today = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const logKey = () => 'matika_games_' + (state.user || 0);
+  function gameLog() {
+    const log = Offline.load(logKey(), null);
+    return log && log.day === today() ? log : { day: today(), plays: 0, ms: 0 };
   }
-  function apples(n) {
-    return `${n} ${n === 1 ? 'jablko' : n >= 2 && n <= 4 ? 'jablka' : 'jablek'}`;
+  function saveLog(log) { Offline.save(logKey(), log); }
+  function me() { return state.users.find((u) => u.id === state.user); }
+  function playsAllowed() {
+    const m = me();
+    if (!m || m.solved_today < state.goal) return 0;
+    return GAME_PLAYS + Math.floor((m.solved_today - state.goal) / GAME_EXTRA_EVERY);
   }
-  function snakeOverlay(msg, btn) {
-    $('snake-msg').textContent = msg;
-    $('snake-start').textContent = btn;
-    $('snake-overlay').hidden = false;
-    if (!KEYPAD) $('snake-start').focus({ preventScroll: true });
+  // Proč se teď nedá hrát ('' = dá se)
+  function gameBlock() {
+    const m = me();
+    const log = gameLog();
+    if (!m || m.solved_today < state.goal) return `Hry se odemknou po splnění denního cíle (${m ? m.solved_today : 0} z ${state.goal}).`;
+    if (log.ms >= GAME_MINUTES * 60000) return `Dnes už jsi hrál${m.kind === 'holka' ? 'a' : ''} ${GAME_MINUTES} minut. Hry jsou zase zítra.`;
+    if (log.plays >= playsAllowed()) {
+      const need = GAME_EXTRA_EVERY - ((m.solved_today - state.goal) % GAME_EXTRA_EVERY);
+      return `Dnešní hry jsou vyčerpané. Další hru dostaneš za ${need} ${need === 1 ? 'vyřešený příklad' : need <= 4 ? 'vyřešené příklady' : 'vyřešených příkladů'}.`;
+    }
+    return '';
   }
-  // Hra je odměna: odemkne se splněním denního cíle (na celý den).
-  function gameUnlocked() {
-    const me = state.users.find((u) => u.id === state.user);
-    return !!me && me.solved_today >= state.goal;
+  function gameStatus() {
+    const log = gameLog();
+    const plays = Math.max(0, playsAllowed() - log.plays);
+    const min = Math.max(0, Math.ceil((GAME_MINUTES * 60000 - log.ms) / 60000));
+    return `Zbývá ${plays} ${plays === 1 ? 'hra' : plays >= 2 && plays <= 4 ? 'hry' : 'her'} a ${min} min hraní.`;
   }
   function renderGameButtons() {
-    const me = state.users.find((u) => u.id === state.user);
-    const open = gameUnlocked();
-    document.querySelectorAll('[data-game]').forEach((b) => {
-      b.disabled = !open;
-      b.textContent = open ? 'Hra: Had' : `Hra: Had (po denním cíli, ${me ? me.solved_today : 0} z ${state.goal})`;
+    const block = gameBlock();
+    const m = me();
+    document.querySelectorAll('[data-games]').forEach((b) => {
+      b.textContent = !m || m.solved_today < state.goal ? `Hry (po denním cíli, ${m ? m.solved_today : 0} z ${state.goal})`
+        : block ? 'Hry (na dnes konec)' : `Hry (${gameStatus().replace('Zbývá ', 'zbývá ').replace('.', '')})`;
     });
   }
-  function openGame() {
-    if (!gameUnlocked()) return;
+  const bestKey = (id) => (id === 'had' ? 'matika_snake_' : `matika_best_${id}_`) + (state.user || 0);
+  function bestOf(id) {
+    try { return Number(localStorage.getItem(bestKey(id))) || 0; } catch (e) { return 0; }
+  }
+
+  function openGames() {
     clearTimeout(state.timer);
     state.ex = null;
+    const block = gameBlock();
+    $('games-info').textContent = block || gameStatus();
+    $('games-list').innerHTML = Object.entries(GAMES).map(([id, g]) =>
+      `<button type="button" class="game-card" data-game-id="${id}"${block ? ' disabled' : ''}><span class="game-icon">${g.icon}</span>`
+      + `<b>${g.title}</b><small>rekord ${bestOf(id) || '–'}</small></button>`).join('');
+    $('btn-random-game').disabled = !!block;
+    show('games');
+  }
+  function gameOverlay(msg, btn) {
+    $('game-msg').textContent = msg;
+    $('game-start').textContent = btn;
+    $('game-start').hidden = !btn;
+    $('game-overlay').hidden = false;
+    if (btn && !KEYPAD) $('game-start').focus({ preventScroll: true });
+  }
+  function openGame(id) {
+    const g = GAMES[id];
+    if (!g || gameBlock()) { openGames(); return; }
+    clearTimeout(state.timer);
+    state.ex = null;
+    if (game) game.stop();
+    gameId = id;
+    $('game-stage').innerHTML = '';
+    $('game-stage').className = 'game-stage game-' + id;
+    $('game-title').textContent = g.title;
+    $('game-score-label').textContent = g.label;
+    $('game-score').textContent = '0';
+    $('game-best').textContent = bestOf(id) || '–';
+    $('game-pad').hidden = !g.pad.length;
+    $('game-pad').querySelectorAll('[data-dir]').forEach((b) => { b.hidden = !g.pad.includes(b.dataset.dir); });
+    $('game-limit').textContent = gameStatus();
     show('game');
-    if (!snake) {
-      snake = window.Snake.create($('snake-canvas'), {
-        onScore: (n) => { $('snake-score').textContent = n; },
-        onOver: (n) => {
-          const best = snakeBest();
-          const holka = document.body.dataset.kid === 'holka';
-          if (n > best) {
-            try { localStorage.setItem(bestKey(), String(n)); } catch (e) { /* bez úložiště */ }
-            $('snake-best').textContent = n;
-          }
-          snakeOverlay(n > best && n > 0 ? `Nový rekord: ${apples(n)}!` : `${holka ? 'Snědla' : 'Snědl'} jsi ${apples(n)}.`, 'Hrát znovu');
-        },
-      });
+    game = g.make($('game-stage'), {
+      onScore: (n) => { $('game-score').textContent = n; },
+      onOver: (n) => gameOver(id, n),
+    });
+    gameOverlay(g.how, 'Hrát');
+  }
+  function gameOver(id, n) {
+    stopTick();
+    const g = GAMES[id];
+    const best = bestOf(id);
+    const record = g.low ? n > 0 && (!best || n < best) : n > best;
+    if (record) {
+      try { localStorage.setItem(bestKey(id), String(n)); } catch (e) { /* bez úložiště */ }
+      $('game-best').textContent = n;
     }
-    snake.reset();
-    $('snake-best').textContent = snakeBest();
-    snakeOverlay('Táhni prstem po ploše, ťukej na šipky, nebo hraj šipkami na klávesnici.', 'Hrát');
+    renderGameButtons();
+    $('game-limit').textContent = gameBlock() || gameStatus();
+    const block = gameBlock();
+    gameOverlay((record ? 'Nový rekord! ' : '') + `${g.label}: ${n}.` + (block ? ' ' + block : ''), block ? '' : 'Hrát znovu');
   }
-  function snakeGo() {
-    $('snake-overlay').hidden = true;
-    if (snake.over) snake.reset();
-    snake.start();
+  // Start kola: spotřebuje jednu hru z denního limitu.
+  function gameGo() {
+    if (!game) return;
+    if (game.running) { $('game-overlay').hidden = true; return; }
+    const block = gameBlock();
+    if (block) { gameOverlay(block, ''); return; }
+    if (game.over || !game.paused) {
+      const log = gameLog();
+      log.plays++;
+      saveLog(log);
+      if (game.over) game.reset();
+    }
+    game.paused = false;
+    $('game-overlay').hidden = true;
+    game.start();
+    startTick();
+    renderGameButtons();
+    $('game-limit').textContent = gameStatus();
   }
-  document.querySelectorAll('[data-game]').forEach((b) => b.addEventListener('click', openGame));
-  $('snake-start').addEventListener('click', () => { if (snake) snakeGo(); });
-  document.querySelectorAll('.game-pad [data-dir]').forEach((b) => b.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    if (!snake || snake.over) return;
-    $('snake-overlay').hidden = true;
-    snake.turn(b.dataset.dir);
-  }));
-  $('snake-canvas').addEventListener('pointerdown', () => { if (snake && !snake.over && !$('snake-overlay').hidden) snakeGo(); });
+  // Čas hraní: každou sekundu, kdy hra běží a appka je vidět.
+  function startTick() {
+    stopTick();
+    gameTick = setInterval(() => {
+      if (!game || !game.running || document.hidden) return;
+      const log = gameLog();
+      log.ms += 1000;
+      saveLog(log);
+      if (log.ms >= GAME_MINUTES * 60000) {
+        game.stop();
+        stopTick();
+        renderGameButtons();
+        const holka = (me() || {}).kind === 'holka';
+        alert(`Dnes už jsi hrál${holka ? 'a' : ''} ${GAME_MINUTES} minut. Dej si pauzu, hry jsou zase zítra.`);
+        gameOverlay(gameBlock(), '');
+        $('game-limit').textContent = gameBlock();
+      } else if (log.ms % 60000 === 0) {
+        $('game-limit').textContent = gameStatus();   // zbývající minuty
+      }
+    }, 1000);
+  }
+  function stopTick() {
+    clearInterval(gameTick);
+    gameTick = null;
+  }
+
+  document.querySelectorAll('[data-games]').forEach((b) => b.addEventListener('click', openGames));
+  $('games-list').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-game-id]');
+    if (b) openGame(b.dataset.gameId);
+  });
+  $('btn-random-game').addEventListener('click', () => openGame(pick(Object.keys(GAMES))));
+  $('btn-games-back').addEventListener('click', () => { if (game) game.stop(); stopTick(); openGames(); });
+  $('game-start').addEventListener('click', gameGo);
+  // první ťuknutí na plochu hru spustí (u ptáčka a cihel je to zároveň první akce)
+  $('game-stage').addEventListener('pointerdown', () => { if (game && !game.running && !$('game-overlay').hidden && !game.over && $('game-start').hidden === false) gameGo(); }, true);
+  // šipky pod plochou; u cihel se pálka hýbe, dokud je tlačítko stisknuté
+  $('game-pad').querySelectorAll('[data-dir]').forEach((b) => {
+    b.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      if (!game || game.over) return;
+      if (!game.running) gameGo();
+      game.turn(b.dataset.dir);
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => b.addEventListener(ev, () => { if (game && game.release) game.release(); }));
+  });
   document.addEventListener('keydown', (e) => {
-    if ($('screen-game').hidden || !snake) return;
+    if ($('screen-game').hidden || !game) return;
     const dir = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right' }[e.key];
     if (dir) {
       e.preventDefault();
-      if (snake.over) return;
-      $('snake-overlay').hidden = true;
-      snake.turn(dir);
-    } else if ((e.key === ' ' || e.key === 'Enter') && !$('snake-overlay').hidden && document.activeElement !== $('snake-start')) {
+      if (game.over) return;
+      if (!game.running) gameGo();
+      game.turn(dir);
+    } else if (e.key === ' ' || e.key === 'Enter') {
+      if (document.activeElement === $('game-start')) return;
       e.preventDefault();
-      snakeGo();
+      if (!game.running && !$('game-overlay').hidden && !$('game-start').hidden) gameGo();
+      else if (game.action) game.action();
     }
   });
-  // Pauza, když dítě odejde z appky.
+  document.addEventListener('keyup', (e) => {
+    if (game && game.release && ['ArrowLeft', 'ArrowRight', 'a', 'd'].includes(e.key)) game.release();
+  });
+  // Pauza, když dítě odejde z appky (pokračování nespotřebuje další hru).
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden && snake && snake.running) {
-      snake.stop();
-      snakeOverlay('Pauza.', 'Pokračovat');
+    if (document.hidden && game && game.running) {
+      game.stop();
+      game.paused = true;
+      gameOverlay('Pauza.', 'Pokračovat');
     }
   });
 
@@ -834,7 +972,7 @@
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
     document.querySelectorAll('[data-theme-toggle]').forEach((b) => { b.textContent = THEME_LABEL[pref]; });
     paper.recolor();
-    if (snake) snake.recolor();
+    if (game) game.recolor();
     syncThemeColor();
   }
   document.querySelectorAll('[data-theme-toggle]').forEach((b) => b.addEventListener('click', () => {

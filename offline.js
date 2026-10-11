@@ -3,10 +3,10 @@
 // Kontrola odpovědi je přepis check_answer z lib/generators.php: server
 // výsledek po připojení stejně ověří znovu, tady jde jen o okamžitou odezvu.
 window.Offline = (() => {
-  // Zásoba: 30 příkladů pro každou kombinaci úlohy, úrovně a obtížnosti
-  // (46 kombinací, zhruba 550 kB na dítě). Malé úlohy mají různých příkladů
+  // Zásoba: 20 příkladů pro každou kombinaci úlohy, úrovně a obtížnosti
+  // (100 kombinací, zhruba 800 kB na dítě). Malé úlohy mají různých příkladů
   // méně (lehká malá násobilka jen 15), pak je strop menší (caps).
-  const POOL_TARGET = 30;
+  const POOL_TARGET = 20;
   const BATCH = 400;         // nejvíc příkladů v jednom požadavku (server víc nevydá)
   const DIFF_POINTS = { lehke: 1, stredni: 2, tezke: 3 };
   const STREAK_BONUS = 5;

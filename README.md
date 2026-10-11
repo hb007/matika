@@ -27,6 +27,10 @@ Cvičí dvě děti, 👧 holka a 👦 kluk, bez hesla. Každé má svou adresu (
 | Zlomky: násobení a dělení | jmenovatele 2–5 | 2–9 | 2–12 |
 | Dělení s ocáskem | 100–999 : 2–9 | 1 000–9 999 : 2–9 | 1 000–99 999 : 11–99 |
 | Závorky a pořadí: pořadí operací (`3 + 4 · 5`), se závorkami (`(3 + 4) · 5`), všechno (`2 · (8 − 3) + 4`) | sčítance do 20, činitele 2–5, výsledek do 100 | do 50, 2–10, do 500 | do 100, 2–12, do 2 000, víc operací |
+| Desetinná čísla · : (násobení, dělení, krát a děleno 10/100/1 000) | desetinné · celé, : celým | i desetinné · desetinné, : desetinným | větší čísla, 2 místa; výsledek vždy nejvýš 2 desetinná místa |
+| Procenta: kolik je 20 % ze 150, kolik % je 30 ze 150, celek (30 je 20 % z kolika) | 10, 20, 25, 50, 75, 100 %, kulatá čísla | 5–90 % | 1–150 %, do 2 000 |
+| Dělitelnost: znaky dělitelnosti (nejmenší číslice místo □), největší společný dělitel D(a, b), nejmenší společný násobek n(a, b) | 3místná, dělitel 2, 3, 5, 10; čísla do 30 | do 4 míst, i 4, 6, 9; do 60 | 4–5 míst; do 150 |
+| Průměr, medián, modus | 3–5 čísel do 10 (medián z lichého počtu) | 5–6 čísel do 30 | 6–8 čísel do 100 (medián může být ,5) |
 | Rovnice: jednoduché (`x + 7 = 15`, `3x = 12`, `x : 4 = 5`), na dva kroky (`3x + 4 = 19`), x na obou stranách a závorky (`5x + 3 = 2x + 18`, `3 · (x + 2) = 21`) | x 1–10 | x 1–20 | x −10 až 20 (může vyjít záporné) |
 | Náhodný mix | vše lehké | vše střední | vše těžké |
 | Náhodný mix, obtížnost „Vše“ | každý příklad má náhodnou úlohu, úroveň i obtížnost | | |
@@ -58,7 +62,7 @@ Když přijde víc odměn najednou, hraje animace té nejvzácnější a texty s
 
 **Album nálepek** je ve Výsledcích pro obě děti: získané nálepky v barvě dítěte s počtem, nezískané šedě s popisem, jak je dostat. „Smazat body“ nálepky nemaže.
 
-**Hra Had.** Hra je odměna: odemkne se splněním denního cíle a pak je odemčená do konce dne (i offline). Do té doby je v menu šedě „Hra: Had (po denním cíli, 12 z 20)“. Ve chvíli splnění cíle appka po ohňostroji nabídne „Zahrát si hada“ nebo „Další příklad“. V menu (pod štítkem se jménem i v seznamu úloh) je pak „Hra: Had“. Had sbírá jablka, s každým roste a zrychluje, naráží do zdi a do sebe. Ovládání: tažení prstem po ploše, šipky pod plochou (na počítači schované), šipky nebo WASD na klávesnici. Rekord má každé dítě v prohlížeči. Hra funguje i offline a při odchodu z appky se pozastaví (`snake.js`).
+**Hry.** Pět her jako odměna: Had, Pexeso (dvojice příklad a výsledek), 2048, Cihly (rozbíjení cihel pálkou) a Ptáček (proletět mezi sloupy). V menu je „Hry“, rozcestník s rekordy a „Náhodná hra“; při splnění denního cíle appka nabídne jednu hru náhodně. Hry jsou zamčené, dokud dítě nesplní denní cíl. Pak má na den 3 hry (hra = jedno kolo od startu do konce, „Hrát znovu“ je další hra) a za každých dalších 10 vyřešených příkladů jednu hru navíc. Hraní je navíc omezené na 10 minut denně: po nich vyskočí upozornění „Dej si pauzu“ a hry jsou do zítřka zamčené. Pauza při odchodu z appky hru nespotřebuje. Limity jsou v `app.js` (`GAME_PLAYS`, `GAME_EXTRA_EVERY`, `GAME_MINUTES`), počítají se v prohlížeči pro každé dítě zvlášť a fungují i offline. Ovládání: tažení prstem, šipky pod plochou (jen u her, které je potřebují), šipky nebo WASD a mezerník na klávesnici.
 
 **Efekty.** Náhodný efekt za každou správnou odpověď jde v menu vypnout („Efekty: zapnuté / vypnuté“, pamatuje se v prohlížeči). Odměny (jednorožec, ohňostroj …) se hrají dál.
 
@@ -145,7 +149,9 @@ Ve vývojovém Docker kontejneru (`docker-compose.yml`, image `vibecode` s PHP) 
 * `lib/explain.php` – nápověda po krocích, postup řešení a rozbor typických chyb.
 * `paper.js` – papír na počítání (canvas, pero, guma).
 * `lib/algebra.php` – závorky a rovnice: generátory, výpočet výrazu po krocích, nápověda, postup, rozbor chyb.
-* `rewards.js` – animace a texty odměn, popisy nálepek alba; `lib/rewards.php` – které odměny dítě dostalo a album (tabulka `stickers`). `snake.js` – hra Had (canvas).
+* `lib/more.php` – procenta, dělitelnost, statistika, desetinná čísla (násobení a dělení): generátory, nápověda, postup, rozbor chyb.
+* `snake.js`, `pexeso.js`, `g2048.js`, `breakout.js`, `flappy.js` – hry se stejným rozhraním (`create`, `start`, `stop`, `reset`, `turn`, `running`, `over`); rozcestník, limity a obrazovka hry jsou v `app.js` (`GAMES`).
+* `rewards.js` – animace a texty odměn, popisy nálepek alba; `lib/rewards.php` – které odměny dítě dostalo a album (tabulka `stickers`).
 * `offline.js` – zásoba příkladů, kontrola odpovědi v telefonu (přepis `check_answer` z PHP) a fronta výsledků; `sw.js` – service worker, díky kterému se stránka otevře bez internetu (stránky nejdřív ze sítě, skripty, styly a písma z cache). `lib/offline.php` – vydávání zásoby (`pool`, tabulka `issued`) a dodatečné započtení výsledků (`sync`). Shodu kontroly odpovědi v PHP a JS hlídá `php tests/parity_cases.php | node tests/parity.js` (běží i před nasazením).
 * `manifest.php` – manifest pro přidání na plochu, pro `/holka` a `/kluk` zvlášť (vlastní ikona, barva, název podle přezdívky a vlastní `scope`).
 * `fonts/` – písma Atkinson Hyperlegible a Patrick Hand (woff2, latin a latin-ext).

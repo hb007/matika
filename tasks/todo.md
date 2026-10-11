@@ -12,6 +12,14 @@
 * [x] zásoba pro všech 46 kombinací (30 na kombinaci, bez opakování, menší strop u malých úloh), po vyčerpání hláška místo náhrady
 * [x] ověřit na skutečném Androidu: appka z plochy v režimu letadlo, po připojení se body započtou (ověřil uživatel)
 
+## Procenta, dělitelnost, statistika, desetinná čísla; pět her s limitem (2026-10-11)
+
+* [x] `lib/more.php`: 4 nové úlohy po 3 úrovních, nápověda, postup, rozbor chyb; popisky políček (průměr =, □ =, … %), klávesa čárky; testy rozsahů a rozborů
+* [x] hry pexeso, 2048, cihly, ptáček + had pod společným rozcestníkem, náhodná hra po splnění cíle
+* [x] limit: po cíli 3 hry + 1 za každých 10 příkladů, 10 minut denně s upozorněním a zámkem
+* [x] zásoba offline 20 na kombinaci (100 kombinací)
+* [x] ověřeno: testy (všechny kombinace), shoda PHP a JS, Playwright (nové úlohy, zamčené a odemčené hry, každá hra se hraje, vyčerpání 3 her, upozornění po 10 minutách)
+
 ## Závorky, rovnice, efekty, hra jako odměna (2026-10-11)
 
 * [x] `lib/algebra.php`: závorky a pořadí operací (3 úrovně, šablony podle obtížnosti), rovnice (jednoduché, na dva kroky, x na obou stranách a závorky; na těžké záporné x a klávesa minus)

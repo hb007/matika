@@ -3,7 +3,17 @@
 Proč je projekt tak, jak je. Jedno rozhodnutí = jedna sekce: datum, kontext, rozhodnutí, důsledky.
 Nejnovější nahoře. Zrušené rozhodnutí nemaž, označ ho jako nahrazené a odkaž na nové.
 
+## 2026-10-11: Pět vlastních her s denním limitem
+
+**Kontext:** Víc her jako odměna, ale ne neomezeně. Otázka, jestli převzít hotové hry (2048 MIT, Hextris GPL, klony Pac-Mana s různými licencemi) nebo herní knihovnu (Phaser).
+
+**Rozhodnutí:** Vlastní malé hry (had, pexeso s příklady, 2048, cihly, ptáček), každá pár set řádků bez knihovny, se společným rozhraním, barvami motivu a dítěte, dotykem a offline. Limit: hry až po denním cíli, 3 hry denně + 1 za každých dalších 10 příkladů, nejvýš 10 minut denně (pak upozornění a zámek do zítřka). Počítá se v prohlížeči.
+
+**Důsledky:** Žádné cizí licence ani velké knihovny. Limity jdou obejít smazáním dat prohlížeče; pro rodinu stačí. Konstanty `GAME_PLAYS`, `GAME_EXTRA_EVERY`, `GAME_MINUTES` v `app.js`.
+
 ## 2026-10-11: Hra jako odměna za denní cíl, efekty jdou vypnout
+
+**Stav:** odemykání hry nahrazeno rozhodnutím „Pět vlastních her s denním limitem“ (už ne celý den neomezeně).
 
 **Kontext:** Hra má být bonus, ne volně dostupná. Běžné efekty po každé odpovědi někoho ruší.
 

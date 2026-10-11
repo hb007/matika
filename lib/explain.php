@@ -374,6 +374,9 @@ function explain(array $ex): array
     if ($p['op'] === 'expr') {
         return explain_expr($p);
     }
+    if (is_more($ex)) {
+        return explain_more($ex);
+    }
     if ($p['op'] === 'eq') {
         return explain_eq($p, (int) $ex['a']);
     }
@@ -402,6 +405,9 @@ function diagnose(array $ex, $given): string
     if ($p['op'] === 'expr') {
         return diagnose_expr($p, $g, $ex['a']);
     }
+    if (is_more($ex)) {
+        return diagnose_more($ex, $g);
+    }
     if ($p['op'] === 'eq') {
         return diagnose_eq($p, $g, (int) $ex['a']);
     }
@@ -426,6 +432,9 @@ function hint_steps(array $ex): array
     }
     if ($p['op'] === 'expr') {
         return steps_expr($p);
+    }
+    if (is_more($ex)) {
+        return hints_more($ex);
     }
     if ($p['op'] === 'eq') {
         return steps_eq($p, (int) $ex['a']);

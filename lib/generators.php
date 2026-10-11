@@ -10,14 +10,18 @@
 //   p    – operandy (pro nápovědu, vysvětlení a rozbor chyby, viz explain.php)
 
 const MODULES = [
-    'mala'    => ['title' => 'Malá násobilka',     'levels' => ['nasobeni' => 'Násobení', 'deleni' => 'Dělení', 'mix' => 'Obojí']],
-    'velka'   => ['title' => 'Velká násobilka',    'levels' => ['nasobeni' => 'Násobení', 'deleni' => 'Dělení', 'mix' => 'Obojí']],
-    'scitani' => ['title' => 'Sčítání a odčítání', 'levels' => ['cela' => 'Celá čísla', 'zaporna' => 'Záporná čísla', 'desetinna' => 'Desetinná čísla']],
-    'zlomky'  => ['title' => 'Zlomky',             'levels' => ['kraceni' => 'Krácení', 'scitani' => 'Sčítání a odčítání', 'nasobeni' => 'Násobení a dělení', 'mix' => 'Všechno']],
-    'deleni'  => ['title' => 'Dělení s ocáskem',   'levels' => ['zbytek' => 'Se zbytkem']],
-    'zavorky' => ['title' => 'Závorky a pořadí',   'levels' => ['poradi' => 'Pořadí operací', 'zavorky' => 'Se závorkami', 'mix' => 'Všechno']],
-    'rovnice' => ['title' => 'Rovnice',            'levels' => ['jednoducha' => 'Jednoduché', 'dvoukrokova' => 'Na dva kroky', 'obe' => 'x na obou stranách a závorky']],
-    'mix'     => ['title' => 'Náhodný mix',        'levels' => ['vse' => 'Všechno']],
+    'mala'        => ['title' => 'Malá násobilka',         'levels' => ['nasobeni' => 'Násobení', 'deleni' => 'Dělení', 'mix' => 'Obojí']],
+    'velka'       => ['title' => 'Velká násobilka',        'levels' => ['nasobeni' => 'Násobení', 'deleni' => 'Dělení', 'mix' => 'Obojí']],
+    'scitani'     => ['title' => 'Sčítání a odčítání',     'levels' => ['cela' => 'Celá čísla', 'zaporna' => 'Záporná čísla', 'desetinna' => 'Desetinná čísla']],
+    'desetinna'   => ['title' => 'Desetinná čísla · :',    'levels' => ['nasobeni' => 'Násobení', 'deleni' => 'Dělení', 'posun' => 'Krát a děleno 10, 100, 1 000']],
+    'zlomky'      => ['title' => 'Zlomky',                 'levels' => ['kraceni' => 'Krácení', 'scitani' => 'Sčítání a odčítání', 'nasobeni' => 'Násobení a dělení', 'mix' => 'Všechno']],
+    'deleni'      => ['title' => 'Dělení s ocáskem',       'levels' => ['zbytek' => 'Se zbytkem']],
+    'procenta'    => ['title' => 'Procenta',               'levels' => ['z_cisla' => 'Kolik je … %', 'kolik' => 'Kolik je to procent', 'zaklad' => 'Celek (100 %)']],
+    'delitelnost' => ['title' => 'Dělitelnost',            'levels' => ['znaky' => 'Znaky dělitelnosti', 'nsd' => 'Největší společný dělitel', 'nsn' => 'Nejmenší společný násobek']],
+    'zavorky'     => ['title' => 'Závorky a pořadí',       'levels' => ['poradi' => 'Pořadí operací', 'zavorky' => 'Se závorkami', 'mix' => 'Všechno']],
+    'rovnice'     => ['title' => 'Rovnice',                'levels' => ['jednoducha' => 'Jednoduché', 'dvoukrokova' => 'Na dva kroky', 'obe' => 'x na obou stranách a závorky']],
+    'statistika'  => ['title' => 'Průměr, medián, modus',  'levels' => ['prumer' => 'Průměr', 'median' => 'Medián', 'modus' => 'Modus']],
+    'mix'         => ['title' => 'Náhodný mix',            'levels' => ['vse' => 'Všechno']],
 ];
 
 const DIFFICULTIES = ['lehke' => 'Lehké', 'stredni' => 'Střední', 'tezke' => 'Těžké'];
@@ -258,6 +262,9 @@ function extra_keys(array $ex): array
     if (!empty($ex['p']['neg'])) {
         return ['−'];   // rovnice na těžké: x může vyjít záporné
     }
+    if (!empty($ex['p']['dec'])) {
+        return [','];   // desetinná čísla, medián sudého počtu
+    }
     $lvl = $ex['p']['lvl'] ?? '';
     return $lvl === 'zaporna' ? ['−'] : ($lvl === 'desetinna' ? [','] : []);
 }
@@ -345,3 +352,4 @@ function check_answer(array $ex, $given): array
 }
 
 require_once __DIR__ . '/algebra.php';   // závorky a rovnice
+require_once __DIR__ . '/more.php';      // procenta, dělitelnost, statistika, desetinná · :

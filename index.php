@@ -58,7 +58,7 @@ if ($kid) {
     <nav class="task-menu me-menu" id="me-menu" aria-label="Účet" hidden>
       <div id="me-other"></div>
       <button type="button" class="task-item link-ink" data-stats>Výsledky a body</button>
-      <button type="button" class="task-item link-ink" data-game>Hra: Had</button>
+      <button type="button" class="task-item link-ink" data-games>Hry</button>
       <button type="button" class="task-item link-ink" data-theme-toggle>Motiv: podle telefonu</button>
       <button type="button" class="task-item link-ink" data-fx-toggle>Efekty: zapnuté</button>
     </nav>
@@ -73,7 +73,7 @@ if ($kid) {
       <div class="task-sep" aria-hidden="true"></div>
       <div id="task-other"></div>
       <button type="button" class="task-item link-ink" data-stats>Výsledky a body</button>
-      <button type="button" class="task-item link-ink" data-game>Hra: Had</button>
+      <button type="button" class="task-item link-ink" data-games>Hry</button>
       <button type="button" class="task-item link-ink" data-theme-toggle>Motiv: podle telefonu</button>
       <button type="button" class="task-item link-ink" data-fx-toggle>Efekty: zapnuté</button>
     </nav>
@@ -130,26 +130,36 @@ if ($kid) {
     </div>
   </section>
 
-  <!-- hra Had (snake.js) -->
+  <!-- hry: rozcestník (odměna za denní cíl, s limitem her a času) -->
+  <section id="screen-games" class="screen" hidden>
+    <h1>Hry</h1>
+    <p class="games-info" id="games-info"></p>
+    <div class="games" id="games-list"></div>
+    <button type="button" class="btn" id="btn-random-game">Náhodná hra</button>
+    <p><button type="button" class="link" data-go="back">Zpět k příkladům</button></p>
+  </section>
+
+  <!-- jedna hra (snake.js, pexeso.js, g2048.js, breakout.js, flappy.js) -->
   <section id="screen-game" class="screen" hidden>
     <div class="game-head">
-      <h1>Had</h1>
-      <span class="game-score">Jablka <b id="snake-score">0</b> · rekord <b id="snake-best">0</b></span>
+      <h1 id="game-title"></h1>
+      <span class="game-score"><span id="game-score-label"></span> <b id="game-score">0</b> · rekord <b id="game-best">0</b></span>
     </div>
     <div class="game-wrap">
-      <canvas id="snake-canvas" aria-label="Herní plocha"></canvas>
-      <div class="game-overlay" id="snake-overlay">
-        <p id="snake-msg"></p>
-        <button type="button" class="btn" id="snake-start">Hrát</button>
+      <div class="game-stage" id="game-stage" aria-label="Herní plocha"></div>
+      <div class="game-overlay" id="game-overlay">
+        <p id="game-msg"></p>
+        <button type="button" class="btn" id="game-start">Hrát</button>
       </div>
     </div>
-    <div class="game-pad" aria-label="Ovládání">
+    <div class="game-pad" id="game-pad" aria-label="Ovládání">
       <button type="button" class="pad" data-dir="up" aria-label="Nahoru" style="grid-area: up">▲</button>
       <button type="button" class="pad" data-dir="left" aria-label="Doleva" style="grid-area: left">◀</button>
       <button type="button" class="pad" data-dir="down" aria-label="Dolů" style="grid-area: down">▼</button>
       <button type="button" class="pad" data-dir="right" aria-label="Doprava" style="grid-area: right">▶</button>
     </div>
-    <button type="button" class="link" data-go="back">Zpět k příkladům</button>
+    <p class="games-info" id="game-limit"></p>
+    <button type="button" class="link" id="btn-games-back">Zpět ke hrám</button>
   </section>
 
   <!-- výsledky -->
@@ -167,6 +177,10 @@ if ($kid) {
 <script src="<?= $v('offline.js') ?>"></script>
 <script src="<?= $v('rewards.js') ?>"></script>
 <script src="<?= $v('snake.js') ?>"></script>
+<script src="<?= $v('g2048.js') ?>"></script>
+<script src="<?= $v('pexeso.js') ?>"></script>
+<script src="<?= $v('breakout.js') ?>"></script>
+<script src="<?= $v('flappy.js') ?>"></script>
 <script src="<?= $v('app.js') ?>"></script>
 </body>
 </html>
