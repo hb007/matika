@@ -12,7 +12,9 @@
 # Nahrávají se jen změněné soubory (stav si akce drží na serveru v souboru
 # .ftp-deploy-sync-state.json). Pozor: složku, která z repa zmizí, akce na
 # serveru maže celou včetně vyřazených souborů, a když tam složka už není,
-# nasazení spadne (viz tasks/lessons.md).
+# nasazení spadne (viz tasks/lessons.md). Databáze v data/ se nikdy
+# nepřepisuje ani nemaže (vyřazená z nahrávání), složka data/ proto musí
+# zůstat v repu. Před nahráním běží testy (tests/run.php).
 
 name: Nasazení na FTP
 
@@ -38,6 +40,9 @@ jobs:
           php -v | head -1
           find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
 
+      - name: Testy
+        run: php tests/run.php
+
       - name: FTP není nastavené
         if: env.HAS_FTP != 'true'
         run: echo "::warning::Chybí secrets FTP_SERVER, FTP_USERNAME a FTP_PASSWORD (Settings → Secrets and variables → Actions). Nic se nenahrálo."
@@ -60,3 +65,5 @@ jobs:
             docs/**
             tasks/**
             docker-compose*.yml
+            tests/**
+            data/*.sqlite*

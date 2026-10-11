@@ -18,3 +18,17 @@
 * Ověřeno v Playwright (1280 px a 390 px): správná odpověď → konfety + pochvala → další příklad; nápověda; špatná odpověď s postupem; Enter; návrat do menu; dělení se zbytkem; zlomky.
 * API přes curl: `next`, `answer` (špatně i správně), `hint` bez session vrátí 404 s hláškou.
 * Neověřeno: skutečná dotyková klávesnice na zařízení, chování PHP session na produkčním hostingu.
+
+## Dvě děti, body a obtížnost (2026-10-11)
+
+Plán: `docs/superpowers/plans/2026-10-11-uzivatele-body-obtiznost.md`, větev `uzivatele-body`.
+
+* [x] obtížnost lehké / střední / těžké v generátorech + testy (`php tests/run.php`)
+* [x] databáze a pravidla: body, série, denní cíl, opakování chyb, ochrana proti dvojímu započtení
+* [x] API, dítě v každém požadavku, session zvlášť pro každé dítě
+* [x] `/holka` a `/kluk`, výrazné označení dítěte, barvy obtížnosti, menu rovnou na příklad
+* [x] výsledky a přehled pro rodiče
+* [x] nasazení s testy, `data/` v repu, dokumentace
+* [ ] vlastní ikona na plochu pro každé dítě
+* [ ] design bez generického vzhledu
+* [ ] po nasazení ověřit `/kluk` (mod_rewrite) a hlavičku `Cache-Control` u `index.php` na matika.brno.ai
