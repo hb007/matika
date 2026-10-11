@@ -371,6 +371,12 @@ function explain(array $ex): array
     if ($ex['kind'] === 'frac') {
         return explain_frac($p, $ex['a']);
     }
+    if ($p['op'] === 'expr') {
+        return explain_expr($p);
+    }
+    if ($p['op'] === 'eq') {
+        return explain_eq($p, (int) $ex['a']);
+    }
     return in_array($p['op'], ['x', 'd'], true) ? explain_mul($p) : explain_add($p);
 }
 
@@ -393,6 +399,12 @@ function diagnose(array $ex, $given): string
     if ($g === null) {
         return '';
     }
+    if ($p['op'] === 'expr') {
+        return diagnose_expr($p, $g, $ex['a']);
+    }
+    if ($p['op'] === 'eq') {
+        return diagnose_eq($p, $g, (int) $ex['a']);
+    }
     return in_array($p['op'], ['x', 'd'], true) ? diagnose_mul($p, $g) : diagnose_add($p, $g);
 }
 
@@ -411,6 +423,12 @@ function hint_steps(array $ex): array
     }
     if ($ex['kind'] === 'frac') {
         return steps_frac($p);
+    }
+    if ($p['op'] === 'expr') {
+        return steps_expr($p);
+    }
+    if ($p['op'] === 'eq') {
+        return steps_eq($p, (int) $ex['a']);
     }
     return in_array($p['op'], ['x', 'd'], true) ? steps_mul($p) : steps_add($p);
 }

@@ -15,6 +15,8 @@ const MODULES = [
     'scitani' => ['title' => 'Sčítání a odčítání', 'levels' => ['cela' => 'Celá čísla', 'zaporna' => 'Záporná čísla', 'desetinna' => 'Desetinná čísla']],
     'zlomky'  => ['title' => 'Zlomky',             'levels' => ['kraceni' => 'Krácení', 'scitani' => 'Sčítání a odčítání', 'nasobeni' => 'Násobení a dělení', 'mix' => 'Všechno']],
     'deleni'  => ['title' => 'Dělení s ocáskem',   'levels' => ['zbytek' => 'Se zbytkem']],
+    'zavorky' => ['title' => 'Závorky a pořadí',   'levels' => ['poradi' => 'Pořadí operací', 'zavorky' => 'Se závorkami', 'mix' => 'Všechno']],
+    'rovnice' => ['title' => 'Rovnice',            'levels' => ['jednoducha' => 'Jednoduché', 'dvoukrokova' => 'Na dva kroky', 'obe' => 'x na obou stranách a závorky']],
     'mix'     => ['title' => 'Náhodný mix',        'levels' => ['vse' => 'Všechno']],
 ];
 
@@ -253,6 +255,9 @@ function extra_keys(array $ex): array
     if ($ex['kind'] === 'frac') {
         return ['/'];
     }
+    if (!empty($ex['p']['neg'])) {
+        return ['−'];   // rovnice na těžké: x může vyjít záporné
+    }
     $lvl = $ex['p']['lvl'] ?? '';
     return $lvl === 'zaporna' ? ['−'] : ($lvl === 'desetinna' ? [','] : []);
 }
@@ -338,3 +343,5 @@ function check_answer(array $ex, $given): array
     }
     return [false, ''];
 }
+
+require_once __DIR__ . '/algebra.php';   // závorky a rovnice

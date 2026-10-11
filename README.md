@@ -26,10 +26,12 @@ Cvičí dvě děti, 👧 holka a 👦 kluk, bez hesla. Každé má svou adresu (
 | Zlomky: sčítání a odčítání | stejné jmenovatele 2–6 | 2–10, polovina stejné | 2–12, vždy různé |
 | Zlomky: násobení a dělení | jmenovatele 2–5 | 2–9 | 2–12 |
 | Dělení s ocáskem | 100–999 : 2–9 | 1 000–9 999 : 2–9 | 1 000–99 999 : 11–99 |
+| Závorky a pořadí: pořadí operací (`3 + 4 · 5`), se závorkami (`(3 + 4) · 5`), všechno (`2 · (8 − 3) + 4`) | sčítance do 20, činitele 2–5, výsledek do 100 | do 50, 2–10, do 500 | do 100, 2–12, do 2 000, víc operací |
+| Rovnice: jednoduché (`x + 7 = 15`, `3x = 12`, `x : 4 = 5`), na dva kroky (`3x + 4 = 19`), x na obou stranách a závorky (`5x + 3 = 2x + 18`, `3 · (x + 2) = 21`) | x 1–10 | x 1–20 | x −10 až 20 (může vyjít záporné) |
 | Náhodný mix | vše lehké | vše střední | vše těžké |
 | Náhodný mix, obtížnost „Vše“ | každý příklad má náhodnou úlohu, úroveň i obtížnost | | |
 
-Rozsahy jsou v `lib/generators.php` (konstanty `MALA_RANGE`, `VELKA_RANGE`, `CELA_MAX` …). Každý příklad se generuje náhodně.
+Rozsahy jsou v `lib/generators.php` (konstanty `MALA_RANGE`, `VELKA_RANGE`, `CELA_MAX` …), u závorek a rovnic v `lib/algebra.php` (`ZAVORKY`, `ZAVORKY_TPL`, `ROVNICE`, `ROVNICE_FORMS`). Výrazy se závorkami vycházejí vždy v celých nezáporných číslech (dělení beze zbytku). Nápověda a postup jdou krok po kroku (nejdřív závorka, pak násobení a dělení, pak zleva); rozbor chyby pozná počítání jen zleva. U rovnic se odpověď píše do políčka „x =“, postup končí zkouškou a rozbor chyby pozná opačnou operaci (přičtení místo odečtení …), jinak ukáže zkoušku s dítětem zadaným x. Každý příklad se generuje náhodně.
 
 Pravidla, která hlídá server:
 
@@ -56,7 +58,9 @@ Když přijde víc odměn najednou, hraje animace té nejvzácnější a texty s
 
 **Album nálepek** je ve Výsledcích pro obě děti: získané nálepky v barvě dítěte s počtem, nezískané šedě s popisem, jak je dostat. „Smazat body“ nálepky nemaže.
 
-**Hra Had.** V menu (pod štítkem se jménem i v seznamu úloh) je „Hra: Had“. Had sbírá jablka, s každým roste a zrychluje, naráží do zdi a do sebe. Ovládání: tažení prstem po ploše, šipky pod plochou (na počítači schované), šipky nebo WASD na klávesnici. Rekord má každé dítě v prohlížeči. Hra funguje i offline a při odchodu z appky se pozastaví (`snake.js`).
+**Hra Had.** Hra je odměna: odemkne se splněním denního cíle a pak je odemčená do konce dne (i offline). Do té doby je v menu šedě „Hra: Had (po denním cíli, 12 z 20)“. Ve chvíli splnění cíle appka po ohňostroji nabídne „Zahrát si hada“ nebo „Další příklad“. V menu (pod štítkem se jménem i v seznamu úloh) je pak „Hra: Had“. Had sbírá jablka, s každým roste a zrychluje, naráží do zdi a do sebe. Ovládání: tažení prstem po ploše, šipky pod plochou (na počítači schované), šipky nebo WASD na klávesnici. Rekord má každé dítě v prohlížeči. Hra funguje i offline a při odchodu z appky se pozastaví (`snake.js`).
+
+**Efekty.** Náhodný efekt za každou správnou odpověď jde v menu vypnout („Efekty: zapnuté / vypnuté“, pamatuje se v prohlížeči). Odměny (jednorožec, ohňostroj …) se hrají dál.
 
 **Tmavý motiv.** Appka se řídí nastavením telefonu (tmavý režim). V menu pod štítkem se jménem i v seznamu úloh je přepínač „Motiv: podle telefonu / tmavý / světlý“, volba se pamatuje v prohlížeči. Motiv se nastaví už v hlavičce stránky, takže světlá verze neprobliká. Barvy jsou v `style.css` jako proměnné v `:root`, tmavé hodnoty v bloku `:root[data-theme=dark]`; nová barva = nová proměnná v obou blocích, ne barva napevno v pravidle. Pero na papíře bere barvu z `--canvas-ink`.
 
@@ -140,6 +144,7 @@ Ve vývojovém Docker kontejneru (`docker-compose.yml`, image `vibecode` s PHP) 
 * `lib/generators.php` – generátory příkladů podle obtížnosti a kontrola odpovědí.
 * `lib/explain.php` – nápověda po krocích, postup řešení a rozbor typických chyb.
 * `paper.js` – papír na počítání (canvas, pero, guma).
+* `lib/algebra.php` – závorky a rovnice: generátory, výpočet výrazu po krocích, nápověda, postup, rozbor chyb.
 * `rewards.js` – animace a texty odměn, popisy nálepek alba; `lib/rewards.php` – které odměny dítě dostalo a album (tabulka `stickers`). `snake.js` – hra Had (canvas).
 * `offline.js` – zásoba příkladů, kontrola odpovědi v telefonu (přepis `check_answer` z PHP) a fronta výsledků; `sw.js` – service worker, díky kterému se stránka otevře bez internetu (stránky nejdřív ze sítě, skripty, styly a písma z cache). `lib/offline.php` – vydávání zásoby (`pool`, tabulka `issued`) a dodatečné započtení výsledků (`sync`). Shodu kontroly odpovědi v PHP a JS hlídá `php tests/parity_cases.php | node tests/parity.js` (běží i před nasazením).
 * `manifest.php` – manifest pro přidání na plochu, pro `/holka` a `/kluk` zvlášť (vlastní ikona, barva, název podle přezdívky a vlastní `scope`).

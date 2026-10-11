@@ -3,7 +3,17 @@
 Proč je projekt tak, jak je. Jedno rozhodnutí = jedna sekce: datum, kontext, rozhodnutí, důsledky.
 Nejnovější nahoře. Zrušené rozhodnutí nemaž, označ ho jako nahrazené a odkaž na nové.
 
+## 2026-10-11: Hra jako odměna za denní cíl, efekty jdou vypnout
+
+**Kontext:** Hra má být bonus, ne volně dostupná. Běžné efekty po každé odpovědi někoho ruší.
+
+**Rozhodnutí:** Had se odemkne splněním denního cíle a zůstane odemčený do konce dne (kontrola v prohlížeči podle `solved_today`, server hru nehlídá). Běžné náhodné efekty jdou v menu vypnout, odměny zůstávají.
+
+**Důsledky:** Zámek hry jde obejít úpravou stránky; pro rodinnou appku to stačí. Nahrazuje část rozhodnutí níž („hra volně dostupná z menu“).
+
 ## 2026-10-11: Odměny počítá server, hra bez vazby na příklady
+
+**Stav:** část o volně dostupné hře nahrazena rozhodnutím „Hra jako odměna za denní cíl“.
 
 **Kontext:** Kromě jednorožce další odměny (ohňostroj, sova, drak, raketa, poklad) a album nálepek; k tomu jednoduchá hra.
 

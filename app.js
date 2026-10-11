@@ -15,6 +15,8 @@
     velka: { nasobeni: '·', deleni: ':', mix: '· :' },
     scitani: { cela: '123', zaporna: '−5', desetinna: '2,5' },
     zlomky: { kraceni: 'zkrátit', scitani: '+ −', nasobeni: '· :', mix: 'vše' },
+    zavorky: { poradi: '+ ·', zavorky: '( )', mix: 'vše' },
+    rovnice: { jednoducha: 'x+3', dvoukrokova: '2x+3', obe: 'x=x' },
   };
   // Obtížnost jako ikony: pírko, kámen, činka; „vše“ (jen v mixu) jako zamíchání.
   const ICON = (d) => `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -98,6 +100,7 @@
       + (me.days ? ` <span class="me-days" title="Dní v řadě se splněným cílem">${me.days}× cíl</span>` : '')
       + `<span class="me-goal" title="Denní cíl ${me.solved_today} z ${state.goal}"><span style="width:${pct}%"></span></span>`;
     $('goal-text').textContent = `Dnes ${me.solved_today} z ${state.goal}`;
+    renderGameButtons();
     document.title = `${me.name} – Matika`;
     // přepnutí dítěte je v seznamu úloh i pod štítkem se jménem
     const other = users.filter((u) => u.id !== state.user).map((u) =>
@@ -338,7 +341,7 @@
     const q = state.ex;
     setDiffColor(q.diff);   // v mixu „vše“ barva podle obtížnosti tohoto příkladu
     $('review').hidden = !q.review;
-    $('question').innerHTML = renderQ(q.q) + (q.kind === 'divrem' || q.q.startsWith('Zkrať') ? '' : ' =');
+    $('question').innerHTML = renderQ(q.q) + (q.kind === 'divrem' || q.var || q.q.startsWith('Zkrať') ? '' : ' =');
     $('feedback').hidden = true;
     $('feedback').innerHTML = '';
     $('hints').hidden = true;
@@ -361,7 +364,8 @@
     } else {
       const mode = q.kind === 'frac' ? 'text' : 'decimal';
       const ph = q.kind === 'frac' ? 'např. 3/4' : '';
-      inputs.innerHTML = `<input type="text" inputmode="${mode}" id="ans" autocomplete="off" placeholder="${ph}"${ro}>`;
+      // rovnice: dítě píše hodnotu neznámé („x = …“)
+      inputs.innerHTML = (q.var ? `<span>${esc(q.var)} =</span>` : '') + `<input type="text" inputmode="${mode}" id="ans" autocomplete="off" placeholder="${ph}"${ro}>`;
     }
     // Klávesnice v appce je vidět všude (i počítač, tablet s klávesnicí); na
     // počítači jde psát i rovnou do políčka, na dotyku nahrazuje systémovou.
@@ -573,6 +577,14 @@
         + extra.map((t) => `<small>${t}</small>`).join('');
       renderKids(r.users);
       celebrate($('question'), big);
+      if (me.solved_today === state.goal) {   // právě splněný cíl: hra se odemkla
+        fb.insertAdjacentHTML('beforeend', '<div class="next suggest"><span>Hra Had je odemčená.</span>'
+          + '<button type="button" class="btn" data-game-now>Zahrát si hada</button>'
+          + '<button type="button" class="ghostbtn" id="btn-next">Další příklad</button></div>');
+        fb.querySelector('[data-game-now]').addEventListener('click', openGame);
+        $('btn-next').addEventListener('click', next);
+        return;
+      }
       if (offerSuggestion(fb, r.suggest)) return;   // s návrhem čeká na dítě, jinak sám další příklad
       state.timer = setTimeout(next, big ? 3400 : r.note ? 2400 : 1500);   // velká odměna doběhne
       return;
@@ -719,7 +731,21 @@
     $('snake-overlay').hidden = false;
     if (!KEYPAD) $('snake-start').focus({ preventScroll: true });
   }
+  // Hra je odměna: odemkne se splněním denního cíle (na celý den).
+  function gameUnlocked() {
+    const me = state.users.find((u) => u.id === state.user);
+    return !!me && me.solved_today >= state.goal;
+  }
+  function renderGameButtons() {
+    const me = state.users.find((u) => u.id === state.user);
+    const open = gameUnlocked();
+    document.querySelectorAll('[data-game]').forEach((b) => {
+      b.disabled = !open;
+      b.textContent = open ? 'Hra: Had' : `Hra: Had (po denním cíli, ${me ? me.solved_today : 0} z ${state.goal})`;
+    });
+  }
   function openGame() {
+    if (!gameUnlocked()) return;
     clearTimeout(state.timer);
     state.ex = null;
     show('game');
@@ -775,6 +801,23 @@
       snakeOverlay('Pauza.', 'Pokračovat');
     }
   });
+
+  // ---------- běžné efekty ----------
+  // Náhodný efekt za každou správnou odpověď jde vypnout; odměny (jednorožec,
+  // ohňostroj …) se hrají dál. Volba je v prohlížeči.
+  function effectsOn() {
+    try { return localStorage.getItem('matika_fx') !== 'off'; } catch (e) { return true; }
+  }
+  function renderFxToggle() {
+    document.querySelectorAll('[data-fx-toggle]').forEach((b) => { b.textContent = effectsOn() ? 'Efekty: zapnuté' : 'Efekty: vypnuté'; });
+  }
+  document.querySelectorAll('[data-fx-toggle]').forEach((b) => b.addEventListener('click', () => {
+    try {
+      if (effectsOn()) localStorage.setItem('matika_fx', 'off'); else localStorage.removeItem('matika_fx');
+    } catch (e) { /* bez úložiště */ }
+    renderFxToggle();
+  }));
+  renderFxToggle();
 
   // ---------- motiv ----------
   // Volba v menu: podle telefonu → tmavý → světlý. Výchozí stav nastaví už
@@ -883,10 +926,11 @@
     },
   };
 
-  // Odměna (rewards.js) má vlastní animaci, jinak náhodný efekt.
+  // Odměna (rewards.js) má vlastní animaci, jinak náhodný efekt (jde vypnout v menu).
   function celebrate(from, reward) {
     if (CALM || !document.body.animate) return;
     if (reward) { Rewards.play(reward); return; }
+    if (!effectsOn()) return;
     const name = pick(Object.keys(EFFECTS).filter((k) => k !== lastEffect));
     lastEffect = name;
     EFFECTS[name](from.getBoundingClientRect());

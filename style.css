@@ -168,6 +168,7 @@ body[data-diff] .top { border-bottom: 0; box-shadow: inset 0 -6px 0 var(--hl); p
   min-width: 44px; height: 40px; padding: 0 8px; border: 2px solid transparent; border-radius: 4px;
   background: none; color: var(--muted); font-size: 19px; font-weight: 700; cursor: pointer;
 }
+.chip { white-space: nowrap; }
 .chip[aria-current] { border-color: var(--ink); background: var(--sheet); color: var(--ink); }
 .diffs { margin-left: auto; display: flex; gap: 2px; }
 .diff {
@@ -406,3 +407,4 @@ body[data-diff] .top { border-bottom: 0; box-shadow: inset 0 -6px 0 var(--hl); p
 }
 .pad:active { border-color: var(--pen); background: var(--active-bg); }
 @media (min-width: 900px) and (pointer: fine) { .game-pad { display: none; } }
+.task-item:disabled { color: var(--muted); cursor: default; background: none; font-size: 15px; }

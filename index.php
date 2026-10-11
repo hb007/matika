@@ -60,6 +60,7 @@ if ($kid) {
       <button type="button" class="task-item link-ink" data-stats>Výsledky a body</button>
       <button type="button" class="task-item link-ink" data-game>Hra: Had</button>
       <button type="button" class="task-item link-ink" data-theme-toggle>Motiv: podle telefonu</button>
+      <button type="button" class="task-item link-ink" data-fx-toggle>Efekty: zapnuté</button>
     </nav>
   </div>
   <div class="task">
@@ -74,6 +75,7 @@ if ($kid) {
       <button type="button" class="task-item link-ink" data-stats>Výsledky a body</button>
       <button type="button" class="task-item link-ink" data-game>Hra: Had</button>
       <button type="button" class="task-item link-ink" data-theme-toggle>Motiv: podle telefonu</button>
+      <button type="button" class="task-item link-ink" data-fx-toggle>Efekty: zapnuté</button>
     </nav>
   </div>
 </header>

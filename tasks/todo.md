@@ -12,6 +12,14 @@
 * [x] zásoba pro všech 46 kombinací (30 na kombinaci, bez opakování, menší strop u malých úloh), po vyčerpání hláška místo náhrady
 * [x] ověřit na skutečném Androidu: appka z plochy v režimu letadlo, po připojení se body započtou (ověřil uživatel)
 
+## Závorky, rovnice, efekty, hra jako odměna (2026-10-11)
+
+* [x] `lib/algebra.php`: závorky a pořadí operací (3 úrovně, šablony podle obtížnosti), rovnice (jednoduché, na dva kroky, x na obou stranách a závorky; na těžké záporné x a klávesa minus)
+* [x] nápověda, postup se zkouškou, rozbor chyb (počítání zleva, opačná operace, zkouška s x dítěte); offline zásoba i mix je berou automaticky
+* [x] přepínač „Efekty: zapnuté/vypnuté“ (odměny zůstávají)
+* [x] had se odemkne denním cílem, při splnění nabídka „Zahrát si hada“
+* [x] ověřeno: testy generátorů pro všechny kombinace, shoda PHP a JS (22 730 případů), Playwright (rovnice s x =, minus, nápověda, rozbor, postup; závorky; vypnuté efekty; odemčení hry)
+
 ## Odměny, album nálepek a hra Had (2026-10-11)
 
 * [x] server: `lib/rewards.php`, tabulka `stickers`, odměny v odpovědi `answer`, album ve `stats`; testy `tests/test_rewards.php` (všechny odměny, hranice, offline sync)
