@@ -35,6 +35,7 @@
   --notice-bg: #fff4d1; --notice-ink: #6b4800;
   --shadow: rgba(38, 42, 49, .5); --shadow-soft: rgba(38, 42, 49, .22);
   --c-lehke: #23702c; --c-stredni: #7a5a00;
+  --overlay: rgba(251, 252, 250, .9);
   color-scheme: light;
 }
 [data-kind=holka], body[data-kid=holka] { --kid: #d6336c; --kid-bg: #d6336c; }
@@ -59,6 +60,7 @@ body[data-diff=tezke] { --hl: #ffa94d; --hl-bg: #ffead2; }
   --notice-bg: #3d3216; --notice-ink: #ffdf91;
   --shadow: rgba(0, 0, 0, .7); --shadow-soft: rgba(0, 0, 0, .5);
   --c-lehke: #8fd970; --c-stredni: #ffd84d;
+  --overlay: rgba(21, 24, 29, .88);
   color-scheme: dark;
 }
 [data-theme=dark] [data-kind=holka], [data-theme=dark] body[data-kid=holka] { --kid: #ff86b0; --kid-bg: #c22d62; }
@@ -359,3 +361,48 @@ body[data-diff] .top { border-bottom: 0; box-shadow: inset 0 -6px 0 var(--hl); p
 .offline-bar { margin: 0 0 12px; padding: 8px 12px; border-radius: 10px; background: var(--notice-bg); color: var(--notice-ink); font-size: 15px; line-height: 1.35; }
 .offline-bar[hidden] { display: none; }
 .pool-empty { display: block; font-size: 20px; font-weight: 600; line-height: 1.4; max-width: 420px; margin: 0 auto; }
+
+/* odměny: duha přes obrazovku (rewards.js) */
+.rainbow {
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  background: radial-gradient(ellipse 50% 100% at 50% 100%, transparent 58%, #8f5bff 58%, #8f5bff 63%, #4dabf7 63%, #4dabf7 68%,
+    #51cf66 68%, #51cf66 73%, #ffd43b 73%, #ffd43b 78%, #ff922b 78%, #ff922b 83%, #ff4d6d 83%, #ff4d6d 88%, transparent 88%);
+}
+
+/* album nálepek */
+.album-count { font-size: 15px; font-weight: 700; color: var(--muted); }
+.album { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; margin: 10px 0 18px; }
+.sticker {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 6px 8px; text-align: center;
+  background: var(--sheet); border: 2px solid var(--line); border-radius: 10px;
+}
+.sticker-e { font-size: 44px; line-height: 1.1; }
+.sticker b { font-size: 14px; line-height: 1.2; }
+.sticker small { font-size: 12px; color: var(--muted); line-height: 1.25; }
+.sticker:not(.locked) { border-color: var(--kid); box-shadow: 0 2px 0 var(--kid); }
+.sticker:not(.locked) small { color: var(--kid); font-weight: 700; font-size: 14px; }
+.sticker.locked .sticker-e { filter: grayscale(1); opacity: .3; }
+.sticker.locked b { color: var(--muted); }
+
+/* hra Had */
+.game-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.game-head h1 { margin-bottom: 10px; }
+.game-score { font-size: 17px; color: var(--muted); }
+.game-score b { color: var(--ink); font-size: 20px; }
+.game-wrap { position: relative; width: 100%; max-width: 480px; aspect-ratio: 1; margin: 0 auto; border: 2px solid var(--line); border-radius: 8px; overflow: hidden; }
+#snake-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.game-overlay {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  padding: 20px; text-align: center; background: var(--overlay);
+}
+.game-overlay p { margin: 0; font-size: 20px; font-weight: 700; max-width: 320px; }
+.game-pad {
+  display: grid; grid-template-columns: repeat(3, 72px); grid-template-rows: 64px 64px; gap: 8px;
+  grid-template-areas: ". up ." "left down right"; justify-content: center; margin: 16px 0 10px;
+}
+.pad {
+  border: 2px solid var(--line); border-radius: 12px; background: var(--sheet); color: var(--ink);
+  font-size: 26px; cursor: pointer; touch-action: none;
+}
+.pad:active { border-color: var(--pen); background: var(--active-bg); }
+@media (min-width: 900px) and (pointer: fine) { .game-pad { display: none; } }

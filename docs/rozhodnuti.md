@@ -3,6 +3,14 @@
 Proč je projekt tak, jak je. Jedno rozhodnutí = jedna sekce: datum, kontext, rozhodnutí, důsledky.
 Nejnovější nahoře. Zrušené rozhodnutí nemaž, označ ho jako nahrazené a odkaž na nové.
 
+## 2026-10-11: Odměny počítá server, hra bez vazby na příklady
+
+**Kontext:** Kromě jednorožce další odměny (ohňostroj, sova, drak, raketa, poklad) a album nálepek; k tomu jednoduchá hra.
+
+**Rozhodnutí:** Odměny a nálepky počítá server v `handle_answer` (`lib/rewards.php`), takže platí i pro offline výsledky přehrané přes sync. Odměny jen za skutečný úspěch (série, opravená chyba, denní cíl, série dní, těžké napoprvé, body), žádné náhodné „vzácné“ odměny, zvuky ani odměny za rychlost. Hra Had je volně dostupná z menu a s příklady nesouvisí (odpočinek); rekord jen v prohlížeči.
+
+**Důsledky:** Offline appka ukáže jen odměny, které pozná sama; sova a raketa offline přijdou jen jako nálepka po připojení. Hra není nijak omezená, rodič ji případně ohlídá sám.
+
 ## 2026-10-11: Tmavý motiv přes data-theme
 
 **Kontext:** Tmavý motiv má jít podle telefonu i ručně přepnout.

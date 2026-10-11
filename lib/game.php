@@ -196,9 +196,11 @@ function handle_answer(PDO $db, array &$cur, int $uid, $given, string $today): a
     set_streak($db, $uid, $streak);
     $points = base_points($cur['diff'], $cur['tries']);
     $bonus = $first ? streak_bonus($streak) : 0;
+    $before = total_points($db, $uid);
     record_result($db, $uid, $cur, true, $points + $bonus, $today);
     $cur['done'] = true;
     return ['correct' => true, 'note' => $note, 'points' => $points, 'bonus' => $bonus, 'streak' => $streak,
+            'rewards' => rewards_after_correct($db, $uid, $cur, $streak, $before, $today),
             'suggest' => suggest_difficulty($db, $uid, task_module($cur), $cur['diff'])];
 }
 
@@ -246,5 +248,5 @@ function user_stats(PDO $db, int $uid, string $today): array
         WHERE user_id = ? AND NOT (tries = 1 AND solved = 1) AND day >= ?
         GROUP BY question, answer ORDER BY n DESC, question LIMIT 8');
     $st->execute([$uid, date('Y-m-d', strtotime("$today -30 days"))]);
-    return ['per_task' => $per, 'hardest' => $st->fetchAll()];
+    return ['per_task' => $per, 'hardest' => $st->fetchAll(), 'stickers' => user_stickers($db, $uid)];
 }

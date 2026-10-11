@@ -58,6 +58,7 @@ if ($kid) {
     <nav class="task-menu me-menu" id="me-menu" aria-label="Účet" hidden>
       <div id="me-other"></div>
       <button type="button" class="task-item link-ink" data-stats>Výsledky a body</button>
+      <button type="button" class="task-item link-ink" data-game>Hra: Had</button>
       <button type="button" class="task-item link-ink" data-theme-toggle>Motiv: podle telefonu</button>
     </nav>
   </div>
@@ -71,6 +72,7 @@ if ($kid) {
       <div class="task-sep" aria-hidden="true"></div>
       <div id="task-other"></div>
       <button type="button" class="task-item link-ink" data-stats>Výsledky a body</button>
+      <button type="button" class="task-item link-ink" data-game>Hra: Had</button>
       <button type="button" class="task-item link-ink" data-theme-toggle>Motiv: podle telefonu</button>
     </nav>
   </div>
@@ -126,10 +128,34 @@ if ($kid) {
     </div>
   </section>
 
+  <!-- hra Had (snake.js) -->
+  <section id="screen-game" class="screen" hidden>
+    <div class="game-head">
+      <h1>Had</h1>
+      <span class="game-score">Jablka <b id="snake-score">0</b> · rekord <b id="snake-best">0</b></span>
+    </div>
+    <div class="game-wrap">
+      <canvas id="snake-canvas" aria-label="Herní plocha"></canvas>
+      <div class="game-overlay" id="snake-overlay">
+        <p id="snake-msg"></p>
+        <button type="button" class="btn" id="snake-start">Hrát</button>
+      </div>
+    </div>
+    <div class="game-pad" aria-label="Ovládání">
+      <button type="button" class="pad" data-dir="up" aria-label="Nahoru" style="grid-area: up">▲</button>
+      <button type="button" class="pad" data-dir="left" aria-label="Doleva" style="grid-area: left">◀</button>
+      <button type="button" class="pad" data-dir="down" aria-label="Dolů" style="grid-area: down">▼</button>
+      <button type="button" class="pad" data-dir="right" aria-label="Doprava" style="grid-area: right">▶</button>
+    </div>
+    <button type="button" class="link" data-go="back">Zpět k příkladům</button>
+  </section>
+
   <!-- výsledky -->
   <section id="screen-stats" class="screen" hidden>
     <h1>Výsledky</h1>
     <table class="table" id="compare"></table>
+    <h2>Album nálepek</h2>
+    <div id="album"></div>
     <h2>Přehled pro rodiče</h2>
     <div id="parent"></div>
     <button type="button" class="link" data-go="back">Zpět k příkladům</button>
@@ -137,6 +163,8 @@ if ($kid) {
 </main>
 <script src="<?= $v('paper.js') ?>"></script>
 <script src="<?= $v('offline.js') ?>"></script>
+<script src="<?= $v('rewards.js') ?>"></script>
+<script src="<?= $v('snake.js') ?>"></script>
 <script src="<?= $v('app.js') ?>"></script>
 </body>
 </html>

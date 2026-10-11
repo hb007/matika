@@ -4,6 +4,8 @@
 // pošle po připojení.
 (() => {
   const $ = (id) => document.getElementById(id);
+  const Rewards = window.Rewards;
+  let snake = null;   // hra Had, vytvoří se při prvním otevření
   const state = { modules: {}, diffs: {}, goal: 20, users: [], user: null, module: null, level: null, diff: 'stredni', ex: null, lock: false, timer: null, offline: false };
   const Offline = window.Offline;
   const DIFF_COLOR = { lehke: '#8fd970', stredni: '#ffd84d', tezke: '#ffa94d' };   // zvýrazňovače, i pro theme-color
@@ -43,6 +45,7 @@
 
   function show(name) {
     closeTaskMenu();
+    if (name !== 'game' && snake) snake.stop();
     if (name !== 'round') delete document.body.dataset.diff;
     document.querySelectorAll('.screen').forEach((s) => (s.hidden = true));
     $('screen-' + name).hidden = false;
@@ -531,13 +534,16 @@
     }
     const streak = ex.tries === 1 && me ? me.streak + 1 : 0;
     const p = Offline.points(ex.diff, ex.tries, streak);
+    let rewards = [];
     if (me) {
       const add = p.points + p.bonus;
+      const totalBefore = me.total;
       Object.assign(me, { streak, today: me.today + add, week: me.week + add, total: me.total + add, solved_today: me.solved_today + 1 });
+      rewards = Rewards.local({ streak, first: ex.tries === 1, solvedToday: me.solved_today, goal: state.goal, totalBefore, totalAfter: me.total });
     }
     Offline.record(state.user, ex, false);
     trySync();
-    return { correct: true, note: c.note, points: p.points, bonus: p.bonus, streak, suggest: null, users: state.users, offline: true };
+    return { correct: true, note: c.note, points: p.points, bonus: p.bonus, streak, rewards, suggest: null, users: state.users, offline: true };
   }
 
   function showAnswer(r) {
@@ -549,19 +555,26 @@
       const me = r.users.find((u) => u.id === state.user);
       const tick = '<svg class="tick" width="46" height="40" viewBox="0 0 46 40" aria-hidden="true"><path d="M4 22 C 10 26, 14 31, 17 36 C 22 24, 31 12, 43 4" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       const extra = [];
-      const unicornTime = r.streak > 0 && r.streak % UNICORN_EVERY === 0;   // 10, 20, 30 … v řadě
-      if (unicornTime) extra.push(`${r.streak} správně v řadě! Přiběhl jednorožec${r.bonus ? ', bod navíc' : ''}.`);
-      else if (r.bonus) extra.push(`${r.streak} správně v řadě, bod navíc`);
-      else if (r.streak >= 3) extra.push(`${r.streak} správně v řadě`);
-      if (me.solved_today === state.goal) extra.push('Denní cíl splněný!');
+      // odměny za úspěch (lib/rewards.php, offline rewards.js): text ke každé, animace té nejvzácnější
+      const rewards = r.rewards || [];
+      const kinds = rewards.map((x) => x.kind);
+      const big = Rewards.primary(rewards);
+      const kid = document.body.dataset.kid || (state.users.find((u) => u.id === state.user) || {}).kind;
+      rewards.forEach((x) => extra.push(esc(Rewards.text(x, kid))));
+      const streakShown = kinds.some((k) => ['jednorozec', 'duha', 'zlaty_jednorozec'].includes(k));
+      if (r.bonus) extra.push(streakShown ? 'Bod navíc za sérii.' : `${r.streak} správně v řadě, bod navíc`);
+      else if (r.streak >= 3 && !streakShown) extra.push(`${r.streak} správně v řadě`);
+      if (me.solved_today === state.goal && !kinds.includes('ohnostroj')) extra.push('Denní cíl splněný!');
+      const fresh = rewards.filter((x) => x.new).map((x) => Rewards.STICKER[x.kind].name);
+      if (fresh.length) extra.push(`Nová nálepka do alba: ${esc(fresh.join(', '))}.`);
       if (r.note) extra.push(esc(r.note));
       fb.innerHTML = `<div class="praise">${tick}<span class="hand">${pick(['Výborně!', 'Správně!', 'Přesně tak!', 'Paráda!', 'Trefa!', 'Super!'])}</span>`
         + `<span class="stamp">+${r.points + (r.bonus || 0)}</span></div>`
         + extra.map((t) => `<small>${t}</small>`).join('');
       renderKids(r.users);
-      celebrate($('question'), unicornTime ? 'unicorn' : null);
+      celebrate($('question'), big);
       if (offerSuggestion(fb, r.suggest)) return;   // s návrhem čeká na dítě, jinak sám další příklad
-      state.timer = setTimeout(next, unicornTime ? 3000 : r.note ? 2400 : 1500);   // jednorožec doběhne
+      state.timer = setTimeout(next, big ? 3400 : r.note ? 2400 : 1500);   // velká odměna doběhne
       return;
     }
     // špatně: výsledek neprozradíme, jen co je špatně, a dítě to zkusí znovu
@@ -691,6 +704,78 @@
   } catch (e) { /* bez úložiště */ }
   setPaper(paperOpen);
 
+  // ---------- hra Had ----------
+  // Odpočinek mezi příklady. Rekord má každé dítě v prohlížeči.
+  const bestKey = () => 'matika_snake_' + (state.user || 0);
+  function snakeBest() {
+    try { return Number(localStorage.getItem(bestKey())) || 0; } catch (e) { return 0; }
+  }
+  function apples(n) {
+    return `${n} ${n === 1 ? 'jablko' : n >= 2 && n <= 4 ? 'jablka' : 'jablek'}`;
+  }
+  function snakeOverlay(msg, btn) {
+    $('snake-msg').textContent = msg;
+    $('snake-start').textContent = btn;
+    $('snake-overlay').hidden = false;
+    if (!KEYPAD) $('snake-start').focus({ preventScroll: true });
+  }
+  function openGame() {
+    clearTimeout(state.timer);
+    state.ex = null;
+    show('game');
+    if (!snake) {
+      snake = window.Snake.create($('snake-canvas'), {
+        onScore: (n) => { $('snake-score').textContent = n; },
+        onOver: (n) => {
+          const best = snakeBest();
+          const holka = document.body.dataset.kid === 'holka';
+          if (n > best) {
+            try { localStorage.setItem(bestKey(), String(n)); } catch (e) { /* bez úložiště */ }
+            $('snake-best').textContent = n;
+          }
+          snakeOverlay(n > best && n > 0 ? `Nový rekord: ${apples(n)}!` : `${holka ? 'Snědla' : 'Snědl'} jsi ${apples(n)}.`, 'Hrát znovu');
+        },
+      });
+    }
+    snake.reset();
+    $('snake-best').textContent = snakeBest();
+    snakeOverlay('Táhni prstem po ploše, ťukej na šipky, nebo hraj šipkami na klávesnici.', 'Hrát');
+  }
+  function snakeGo() {
+    $('snake-overlay').hidden = true;
+    if (snake.over) snake.reset();
+    snake.start();
+  }
+  document.querySelectorAll('[data-game]').forEach((b) => b.addEventListener('click', openGame));
+  $('snake-start').addEventListener('click', () => { if (snake) snakeGo(); });
+  document.querySelectorAll('.game-pad [data-dir]').forEach((b) => b.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (!snake || snake.over) return;
+    $('snake-overlay').hidden = true;
+    snake.turn(b.dataset.dir);
+  }));
+  $('snake-canvas').addEventListener('pointerdown', () => { if (snake && !snake.over && !$('snake-overlay').hidden) snakeGo(); });
+  document.addEventListener('keydown', (e) => {
+    if ($('screen-game').hidden || !snake) return;
+    const dir = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right' }[e.key];
+    if (dir) {
+      e.preventDefault();
+      if (snake.over) return;
+      $('snake-overlay').hidden = true;
+      snake.turn(dir);
+    } else if ((e.key === ' ' || e.key === 'Enter') && !$('snake-overlay').hidden && document.activeElement !== $('snake-start')) {
+      e.preventDefault();
+      snakeGo();
+    }
+  });
+  // Pauza, když dítě odejde z appky.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && snake && snake.running) {
+      snake.stop();
+      snakeOverlay('Pauza.', 'Pokračovat');
+    }
+  });
+
   // ---------- motiv ----------
   // Volba v menu: podle telefonu → tmavý → světlý. Výchozí stav nastaví už
   // skript v <head> (bez probliknutí), tady jen přepínání a změna v systému.
@@ -706,6 +791,7 @@
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
     document.querySelectorAll('[data-theme-toggle]').forEach((b) => { b.textContent = THEME_LABEL[pref]; });
     paper.recolor();
+    if (snake) snake.recolor();
     syncThemeColor();
   }
   document.querySelectorAll('[data-theme-toggle]').forEach((b) => b.addEventListener('click', () => {
@@ -735,7 +821,6 @@
   // Za správnou odpověď náhodný efekt, nikdy dvakrát po sobě stejný.
   // Kdo má v systému omezené animace, uvidí jen pochvalu.
   const CALM = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const UNICORN_EVERY = 10;   // jednorožec za každých 10 správně napoprvé v řadě
   const COLORS = ['#3b6cf6', '#1f9d55', '#f5b400', '#e8590c', '#d6336c', '#7048e8'];
   let lastEffect = null;
 
@@ -798,33 +883,10 @@
     },
   };
 
-  // Jednorožec za každých 10 správně v řadě: přeběhne přes obrazovku
-  // (zprava doleva, emoji 🦄 kouká doleva) a za sebou nechává duhu a třpytky.
-  function unicorn() {
-    const dur = 2800;
-    const y = Math.round(innerHeight * 0.4);
-    const x0 = innerWidth + 90;
-    const dist = innerWidth + 260;
-    const frames = [];
-    for (let i = 0; i <= 12; i++) {   // cval: nahoru a dolů
-      frames.push({ transform: `translate(${-dist * i / 12}px, ${i % 2 ? -34 : 0}px) rotate(${i % 2 ? -8 : 4}deg)`, offset: i / 12 });
-    }
-    particle(x0, y, frames, dur, '🦄', 0, 'linear').style.fontSize = '104px';
-    const t0 = performance.now();
-    const trail = setInterval(() => {
-      const t = (performance.now() - t0) / dur;
-      if (t >= 1) { clearInterval(trail); return; }
-      const x = x0 - dist * t + 50;
-      particle(x, y + 10 + Math.random() * 40, [
-        { transform: 'translate(0, 0) scale(.6)', opacity: 1 },
-        { transform: `translate(${20 + Math.random() * 40}px, ${40 + Math.random() * 90}px) scale(1.1)`, opacity: 0 },
-      ], 900 + Math.random() * 500, pick(['🌈', '✨', '⭐', '💖', '✨']));
-    }, 60);
-  }
-
-  function celebrate(from, force) {
+  // Odměna (rewards.js) má vlastní animaci, jinak náhodný efekt.
+  function celebrate(from, reward) {
     if (CALM || !document.body.animate) return;
-    if (force === 'unicorn') { unicorn(); return; }
+    if (reward) { Rewards.play(reward); return; }
     const name = pick(Object.keys(EFFECTS).filter((k) => k !== lastEffect));
     lastEffect = name;
     EFFECTS[name](from.getBoundingClientRect());
@@ -852,6 +914,19 @@
       + row('Dnes vyřešeno', (u) => `${u.solved_today} / ${state.goal}`)
       + row('Dní v řadě se splněným cílem', (u) => u.days || '–')
       + row('', (u) => `<button type="button" class="link reset" data-user="${u.id}">Smazat body</button>`);
+    // album: získané nálepky (kolikrát), nezískané šedě s tím, jak je dostat
+    const all = Object.entries(Rewards.STICKER);
+    $('album').innerHTML = s.users.map((u) => {
+      const have = s.stats[u.id].stickers || {};
+      const got = all.filter(([k]) => have[k]).length;
+      return `<details open data-kind="${u.kind}"><summary><span class="kid-name" data-kind="${u.kind}">${esc(u.name)}</span> <span class="album-count">${got} z ${all.length}</span></summary>`
+        + `<div class="album">${all.map(([k, st]) => {
+          const n = have[k] || 0;
+          const style = st.gold ? ' style="filter:sepia(1) saturate(6) hue-rotate(-12deg) brightness(1.15)"' : st.hue ? ` style="filter:hue-rotate(${st.hue}deg)"` : '';
+          return `<div class="sticker${n ? '' : ' locked'}" title="${esc(st.how)}"><span class="sticker-e"${n ? style : ''}>${st.e}</span>`
+            + `<b>${esc(st.name)}</b><small>${n ? (n > 1 ? `${n}×` : 'mám') : esc(st.how)}</small></div>`;
+        }).join('')}</div></details>`;
+    }).join('');
     $('parent').innerHTML = s.users.map((u) => {
       const st = s.stats[u.id];
       const per = st.per_task.length
@@ -871,7 +946,7 @@
     const r = e.target.closest('.reset');
     if (r) {
       const u = state.users.find((x) => x.id === Number(r.dataset.user));
-      if (!confirm(`Smazat všechny body (${u.total}) dítěte ${u.name}? Vrátit to nejde. Vyřešené příklady v přehledu zůstanou.`)) return;
+      if (!confirm(`Smazat všechny body (${u.total}) dítěte ${u.name}? Vrátit to nejde. Vyřešené příklady v přehledu a nálepky v albu zůstanou.`)) return;
       try {
         await api('reset', { target: u.id });
         loadStats();

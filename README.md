@@ -39,7 +39,24 @@ Pravidla, která hlídá server:
 
 **Správná odpověď.** Ukáže se pochvala s náhodným efektem (konfety, hvězdičky, balónky, padající déšť emoji nebo velká medaile či palec, nikdy dvakrát po sobě stejný) a po chvilce naskočí další příklad. Kdo má v systému zapnuté omezení animací, uvidí jen pochvalu.
 
-**Jednorožec.** Za každých 10 správně napoprvé v řadě (10, 20, 30 …) přiběhne místo běžného efektu přes obrazovku jednorožec, za sebou nechává duhu a třpytky, a pod pochvalou je „10 správně v řadě! Přiběhl jednorožec“. Další příklad pak naskočí až po jeho doběhnutí. Při omezených animacích zůstane jen text.
+**Odměny za úspěch.** Místo běžného efektu přijde zvláštní animace a pod pochvalou text. Každá odměna je zároveň nálepka do alba. Počítá je server (`lib/rewards.php`), takže přibudou i za příklady vyřešené offline.
+
+| Odměna | Za co | Animace |
+|---|---|---|
+| Jednorožec | 10, 20, 30 … správně napoprvé v řadě | jednorožec přeběhne s duhou a třpytkami |
+| Duha | 25, 75 … v řadě | duha přes celou obrazovku |
+| Zlatý jednorožec | 50, 100 … v řadě | zlatý jednorožec |
+| Raketa | 5 těžkých napoprvé v řadě | raketa vystřelí nahoru |
+| Sova | správně vyřešený příklad „Tenhle ti minule nešel“ | sova přiletí, „Naučil(a) ses to!“ |
+| Ohňostroj | splněný denní cíl | ohňostroj |
+| Dráček, Drak, Velký drak, Dračí král | 3, 7, 14, 30 dní v řadě splněný cíl | drak přeletí (čím delší série, tím větší), k tomu ohňostroj |
+| Mince, Měšec, Diamant, Koruna, Pohár | 100, 500, 1 000, 2 000, 5 000 bodů celkem | poklad a fontána mincí |
+
+Když přijde víc odměn najednou, hraje animace té nejvzácnější a texty se ukážou všechny. Další příklad pak naskočí až po doběhnutí. Offline appka pozná jen sérii, denní cíl a body. Nálepky za offline příklady (i sovu a raketu) doplní server po připojení. Při omezených animacích zůstane jen text.
+
+**Album nálepek** je ve Výsledcích pro obě děti: získané nálepky v barvě dítěte s počtem, nezískané šedě s popisem, jak je dostat. „Smazat body“ nálepky nemaže.
+
+**Hra Had.** V menu (pod štítkem se jménem i v seznamu úloh) je „Hra: Had“. Had sbírá jablka, s každým roste a zrychluje, naráží do zdi a do sebe. Ovládání: tažení prstem po ploše, šipky pod plochou (na počítači schované), šipky nebo WASD na klávesnici. Rekord má každé dítě v prohlížeči. Hra funguje i offline a při odchodu z appky se pozastaví (`snake.js`).
 
 **Tmavý motiv.** Appka se řídí nastavením telefonu (tmavý režim). V menu pod štítkem se jménem i v seznamu úloh je přepínač „Motiv: podle telefonu / tmavý / světlý“, volba se pamatuje v prohlížeči. Motiv se nastaví už v hlavičce stránky, takže světlá verze neprobliká. Barvy jsou v `style.css` jako proměnné v `:root`, tmavé hodnoty v bloku `:root[data-theme=dark]`; nová barva = nová proměnná v obou blocích, ne barva napevno v pravidle. Pero na papíře bere barvu z `--canvas-ink`.
 
@@ -119,10 +136,11 @@ Ve vývojovém Docker kontejneru (`docker-compose.yml`, image `vibecode` s PHP) 
 
 * `index.php` + `app.js` + `paper.js` + `style.css` – jedna stránka, obrazovky se přepínají v JS. `index.php` pozná dítě z adresy (`/holka`, `/kluk`). Efekty za správnou odpověď jsou v `app.js` (objekt `EFFECTS`, Web Animations API, bez knihovny); nový efekt = nová položka v `EFFECTS`.
 * `api.php` – JSON API (`state`, `next`, `hint`, `answer`, `reveal`, `stats`, `rename`, `reset`, pro offline `pool` a `sync`). Každý požadavek nese `user` (1 holka, 2 kluk). Příklady generuje a kontroluje server, rozpracovaný příklad drží v PHP session zvlášť pro každé dítě. `answer` vrací jen správně/špatně a rozbor chyby, správný výsledek s postupem dá až `reveal`. Opakované odeslání hotového příkladu vrátí 409, body se nepřičtou dvakrát.
-* `lib/game.php` – body, série, denní cíl, opakování chyb, statistiky. `lib/db.php` – SQLite (tabulky `users`, `results`, `review`, `issued` se založí samy).
+* `lib/game.php` – body, série, denní cíl, opakování chyb, statistiky. `lib/db.php` – SQLite (tabulky `users`, `results`, `review`, `issued`, `stickers` se založí samy).
 * `lib/generators.php` – generátory příkladů podle obtížnosti a kontrola odpovědí.
 * `lib/explain.php` – nápověda po krocích, postup řešení a rozbor typických chyb.
 * `paper.js` – papír na počítání (canvas, pero, guma).
+* `rewards.js` – animace a texty odměn, popisy nálepek alba; `lib/rewards.php` – které odměny dítě dostalo a album (tabulka `stickers`). `snake.js` – hra Had (canvas).
 * `offline.js` – zásoba příkladů, kontrola odpovědi v telefonu (přepis `check_answer` z PHP) a fronta výsledků; `sw.js` – service worker, díky kterému se stránka otevře bez internetu (stránky nejdřív ze sítě, skripty, styly a písma z cache). `lib/offline.php` – vydávání zásoby (`pool`, tabulka `issued`) a dodatečné započtení výsledků (`sync`). Shodu kontroly odpovědi v PHP a JS hlídá `php tests/parity_cases.php | node tests/parity.js` (běží i před nasazením).
 * `manifest.php` – manifest pro přidání na plochu, pro `/holka` a `/kluk` zvlášť (vlastní ikona, barva, název podle přezdívky a vlastní `scope`).
 * `fonts/` – písma Atkinson Hyperlegible a Patrick Hand (woff2, latin a latin-ext).

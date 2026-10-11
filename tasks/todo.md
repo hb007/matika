@@ -12,6 +12,13 @@
 * [x] zásoba pro všech 46 kombinací (30 na kombinaci, bez opakování, menší strop u malých úloh), po vyčerpání hláška místo náhrady
 * [x] ověřit na skutečném Androidu: appka z plochy v režimu letadlo, po připojení se body započtou (ověřil uživatel)
 
+## Odměny, album nálepek a hra Had (2026-10-11)
+
+* [x] server: `lib/rewards.php`, tabulka `stickers`, odměny v odpovědi `answer`, album ve `stats`; testy `tests/test_rewards.php` (všechny odměny, hranice, offline sync)
+* [x] `rewards.js`: animace (ohňostroj, sova, drak podle délky série, raketa, duha, zlatý jednorožec, poklad), texty, offline odměny; album ve Výsledcích
+* [x] `snake.js`: hra Had, ovládání tažením, šipkami a klávesnicí, rekord, pauza, motiv
+* [x] ověřeno v Playwright: každá odměna s textem a animací, album obou dětí, had sní jablko a uloží rekord, náraz do zdi, tažení prstem, klávesnice, tmavý motiv
+
 ## Tmavý motiv a jednorožec (2026-10-11)
 
 * [x] barvy napevno → proměnné, tmavá sada pod `[data-theme=dark]`, skript v `<head>` bez probliknutí, přepínač v obou menu, barva lišty prohlížeče podle záhlaví

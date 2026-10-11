@@ -10,6 +10,7 @@ require __DIR__ . '/lib/generators.php';
 require __DIR__ . '/lib/explain.php';
 require __DIR__ . '/lib/db.php';
 require __DIR__ . '/lib/game.php';
+require __DIR__ . '/lib/rewards.php';
 require __DIR__ . '/lib/offline.php';
 
 date_default_timezone_set('Europe/Prague');
@@ -56,7 +57,7 @@ function require_ex(int $uid): void
 
 function state(string $today): array
 {
-    return ['modules' => MODULES, 'difficulties' => DIFFICULTIES, 'goal' => GOAL, 'users' => users_state(db(), $today)];
+    return ['modules' => MODULES, 'difficulties' => DIFFICULTIES, 'goal' => GOAL, 'stickers' => STICKERS, 'users' => users_state(db(), $today)];
 }
 
 $action = $_GET['action'] ?? '';

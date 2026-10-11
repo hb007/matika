@@ -27,6 +27,10 @@ function db_open(string $dsn): PDO
         id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id),
         task TEXT NOT NULL, q TEXT NOT NULL, ex TEXT NOT NULL, due INTEGER NOT NULL,
         UNIQUE (user_id, task, q))');
+    // album nálepek (lib/rewards.php)
+    $pdo->exec('CREATE TABLE IF NOT EXISTS stickers (
+        user_id INTEGER NOT NULL REFERENCES users(id), kind TEXT NOT NULL,
+        n INTEGER NOT NULL DEFAULT 1, first_day TEXT NOT NULL, PRIMARY KEY (user_id, kind))');
     // příklady vydané do zásoby pro offline (id je náhodné, klient ho vrací se sync)
     $pdo->exec('CREATE TABLE IF NOT EXISTS issued (
         id TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id),
