@@ -88,6 +88,28 @@ a data v `data/`. Na Apache je chrání `.htaccess`, SQLite soubor navíc
 dostane náhodný název. Přihlášení dětí je jen jménem; pokud je web
 veřejný, nastav v instalátoru přístupové heslo.
 
+## Automatické nahrávání na FTP (GitHub Actions)
+
+Po každém pushi do `main` GitHub zkontroluje syntaxi PHP a nahraje změněné
+soubory na hosting (`.github/workflows/deploy.yml`). Databázi, nastavení
+z instalátoru ani samotný instalátor nikdy nepřepíše.
+
+Nastavení jednou: v repu na GitHubu **Settings → Secrets and variables →
+Actions**.
+
+| Kde | Název | Hodnota |
+|---|---|---|
+| Secrets | `FTP_SERVER` | FTP server hostingu, např. `ftp.tvuj-web.cz` |
+| Secrets | `FTP_USERNAME` | FTP uživatel |
+| Secrets | `FTP_PASSWORD` | FTP heslo |
+| Variables (nepovinné) | `FTP_DIR` | složka na serveru s lomítkem na konci, např. `www/matika/`; výchozí je kořen FTP účtu |
+| Variables (nepovinné) | `FTP_PROTOCOL` | `ftps` (výchozí) nebo `ftp`, když hosting šifrované FTP neumí |
+
+Pak v záložce **Actions** spusť „Nasazení na FTP“ ručně (Run workflow),
+nebo stačí další push. Pro první instalaci nahraj přes FTP ručně ještě
+soubor `install.php` a otevři ho v prohlížeči. Automatické nahrávání ho
+záměrně vynechává, aby se po instalaci na server nevracel.
+
 ## Lokální spuštění
 
 ```sh
