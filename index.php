@@ -8,6 +8,17 @@ $v = fn(string $f): string => $f . '?v=' . filemtime(__DIR__ . '/' . $f);
 $kid = basename((string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH));
 $kid = in_array($kid, ['holka', 'kluk'], true) ? $kid : '';
 $icon = $kid ? "icon-$kid" : 'icon';
+// název ikony na ploše (iOS ho bere odsud) podle přezdívky dítěte
+$nick = '';
+if ($kid) {
+    require __DIR__ . '/lib/db.php';
+    try {
+        $nick = kid_name(db(), $kid);
+    } catch (PDOException $e) {
+        // bez databáze aspoň výchozí jméno
+    }
+    $nick = $nick !== '' ? $nick : ucfirst($kid);
+}
 ?>
 <!doctype html>
 <html lang="cs">
@@ -17,7 +28,7 @@ $icon = $kid ? "icon-$kid" : 'icon';
 <meta name="theme-color" content="#fbfcfa">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Matika<?= $kid ? ' ' . ($kid === 'holka' ? 'Holka' : 'Kluk') : '' ?>">
+<meta name="apple-mobile-web-app-title" content="<?= $nick !== '' ? htmlspecialchars($nick, ENT_QUOTES) : 'Matika' ?>">
 <meta name="format-detection" content="telephone=no">
 <link rel="manifest" href="manifest.php<?= $kid ? "?kdo=$kid" : '' ?>">
 <title>Matika</title>

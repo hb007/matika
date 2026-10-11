@@ -1,14 +1,26 @@
 <?php
-// Manifest pro přidání na plochu: ikona z /holka nebo /kluk otevře rovnou to dítě.
+// Manifest pro přidání na plochu: ikona z /holka nebo /kluk otevře rovnou to dítě
+// a jmenuje se podle jeho přezdívky v okamžiku instalace.
+require __DIR__ . '/lib/db.php';
+
 $kid = in_array($_GET['kdo'] ?? '', ['holka', 'kluk'], true) ? $_GET['kdo'] : '';
-$name = 'Matika' . ($kid ? ' ' . ($kid === 'holka' ? 'Holka' : 'Kluk') : '');
+$nick = '';
+if ($kid) {
+    try {
+        $nick = kid_name(db(), $kid);
+    } catch (PDOException $e) {
+        // bez databáze aspoň výchozí jméno
+    }
+    $nick = $nick !== '' ? $nick : ucfirst($kid);
+}
 $icon = $kid ? "icon-$kid" : 'icon';
 $color = ['holka' => '#d6336c', 'kluk' => '#0c7c8c', '' => '#1f45b5'][$kid];
 header('Content-Type: application/manifest+json; charset=utf-8');
+header('Cache-Control: no-cache');   // po přejmenování hned nový název
 echo json_encode([
     'id' => './' . $kid,
-    'name' => $name,
-    'short_name' => $name,
+    'name' => 'Matika' . ($nick !== '' ? " $nick" : ''),
+    'short_name' => $nick !== '' ? $nick : 'Matika',   // pod ikonou se vejde ~12 znaků
     'start_url' => './' . $kid,
     'display' => 'standalone',
     'background_color' => '#fbfcfa',

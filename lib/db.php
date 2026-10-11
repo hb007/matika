@@ -29,3 +29,11 @@ function db_open(string $dsn): PDO
         UNIQUE (user_id, task, q))');
     return $pdo;
 }
+
+// Přezdívka dítěte (holka, kluk) pro název aplikace na ploše; neznámé dítě = ''.
+function kid_name(PDO $db, string $kind): string
+{
+    $st = $db->prepare('SELECT name FROM users WHERE kind = ?');
+    $st->execute([$kind]);
+    return (string) $st->fetchColumn();
+}
