@@ -3,8 +3,22 @@
 (() => {
   const $ = (id) => document.getElementById(id);
   const state = { modules: {}, diffs: {}, goal: 20, users: [], user: null, module: null, level: null, diff: 'stredni', ex: null, lock: false, timer: null };
-  const EMOJI = { holka: '👧', kluk: '👦' };
-  const DIFF_COLOR = { lehke: '#1f9d55', stredni: '#3b6cf6', tezke: '#d6452b' };
+  const DIFF_COLOR = { lehke: '#8fd970', stredni: '#ffd84d', tezke: '#ffa94d' };   // zvýrazňovače, i pro theme-color
+  // Úrovně na telefonu krátce (symboly), celý název je v aria-label.
+  const LEVEL_SHORT = {
+    mala: { nasobeni: '·', deleni: ':', mix: '· :' },
+    velka: { nasobeni: '·', deleni: ':', mix: '· :' },
+    scitani: { cela: '123', zaporna: '−5', desetinna: '2,5' },
+    zlomky: { kraceni: 'zkrátit', scitani: '+ −', nasobeni: '· :', mix: 'vše' },
+  };
+  // Obtížnost jako ikony: pírko, kámen, činka; „vše“ (jen v mixu) jako zamíchání.
+  const ICON = (d) => `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const DIFF_ICON = {
+    lehke: ICON('<path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><path d="M16 8 2 22"/><path d="M17.5 15H9"/>'),
+    stredni: ICON('<path d="M3.5 15.5c0-4.2 3.6-8 8.6-8 4.7 0 8.4 3 8.4 6.6 0 3.3-3.4 4.9-8.4 4.9S3.5 18.4 3.5 15.5z"/><path d="M8 12.5c1-1.3 2.4-2 4-2.2"/>'),
+    tezke: ICON('<path d="M6.5 6.5v11"/><path d="M3.5 9v6"/><path d="M17.5 6.5v11"/><path d="M20.5 9v6"/><path d="M6.5 12h11"/>'),
+    vse: ICON('<path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"/><path d="m18 2 4 4-4 4"/><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"/><path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"/><path d="m18 14 4 4-4 4"/>'),
+  };
 
   async function api(action, data) {
     const res = await fetch('api.php?action=' + action, {
@@ -19,6 +33,7 @@
   }
 
   function show(name) {
+    closeTaskMenu();
     if (name !== 'round') delete document.body.dataset.diff;
     document.querySelectorAll('.screen').forEach((s) => (s.hidden = true));
     $('screen-' + name).hidden = false;
@@ -54,57 +69,82 @@
     return module === 'mix' ? { ...state.diffs, vse: 'Vše' } : state.diffs;
   }
 
-  // Kdo cvičí, určuje adresa (/holka, /kluk). Aktivní dítě je v horním řádku
-  // velké a nad příkladem, druhé malé; klik na něj přejde na jeho adresu.
+  // Kdo cvičí, určuje adresa (/holka, /kluk). V záhlaví je štítek aktivního
+  // dítěte (jméno, body dnes, proužek denního cíle), druhé dítě je v seznamu úloh.
   function renderKids(users) {
     state.users = users;
     const me = users.find((u) => u.id === state.user);
-    $('kids').innerHTML = users.map((u) => {
-      if (u.id !== state.user) {
-        return `<a class="kid other" href="${u.kind}" title="Přepnout na ${esc(u.name)}">${EMOJI[u.kind]} <span class="kid-name">${esc(u.name)}</span> <b>${u.today}</b></a>`;
-      }
-      const goal = `<span class="goal" title="Denní cíl ${u.solved_today}/${state.goal}"><span style="width:${Math.min(100, (u.solved_today / state.goal) * 100)}%"></span></span>`;
-      const days = u.days ? `<span class="days">🔥${u.days}</span>` : '';
-      return `<span class="kid" aria-current="true"><span class="kid-emoji">${EMOJI[u.kind]}</span> <span class="kid-name">${esc(u.name)}</span> <b>${u.today}</b>${days}${goal}</span>`;
-    }).join('');
-    if (me) {
-      $('me').innerHTML = `<span>${EMOJI[me.kind]}</span> ${esc(me.name)}`;
-      $('hello').textContent = `${EMOJI[me.kind]} ${me.name}, co procvičíš?`;
-      document.title = `${EMOJI[me.kind]} ${me.name} – Matika`;
-    }
+    $('me').hidden = !me;
+    $('brand').hidden = !!me;
+    $('btn-task').hidden = !me;
+    if (!me) return;
+    const pct = Math.min(100, (me.solved_today / state.goal) * 100);
+    $('me').innerHTML = `<span class="me-name">${esc(me.name)}</span> <b>${me.today} b.</b>`
+      + (me.days ? ` <span class="me-days" title="Dní v řadě se splněným cílem">${me.days}× cíl</span>` : '')
+      + `<span class="me-goal" title="Denní cíl ${me.solved_today} z ${state.goal}"><span style="width:${pct}%"></span></span>`;
+    $('goal-text').textContent = `Dnes ${me.solved_today} z ${state.goal}`;
+    document.title = `${me.name} – Matika`;
+    $('task-other').innerHTML = users.filter((u) => u.id !== state.user).map((u) =>
+      `<a class="task-item" href="${u.kind}" data-kind="${u.kind}">Přepnout na <span class="kid-name">${esc(u.name)}</span><b>${u.today} b.</b></a>`).join('');
   }
 
   function showWho() {
     $('who-pick').innerHTML = state.users.map((u) =>
-      `<a class="who-btn" href="${u.kind}"><span>${EMOJI[u.kind]}</span>${esc(u.name)}</a>`).join('');
+      `<a class="cover" href="${u.kind}" data-kind="${u.kind}"><span class="cover-label"><small>Jméno</small>`
+      + `<span class="kid-name">${esc(u.name)}</span><small>Předmět: matika</small></span>`
+      + `<span class="cover-note">Dnes ${u.today} bodů</span></a>`).join('');
     show('who');
   }
 
-  // ---------- menu ----------
-  function showMenu() {
-    delete document.body.dataset.diff;
-    $('modules').innerHTML = Object.entries(state.modules)
-      .map(([key, m]) => `<button class="module" data-module="${key}">${esc(m.title)}</button>`)
-      .join('');
-    show('menu');
+  // ---------- seznam úloh v záhlaví ----------
+  function renderTaskMenu() {
+    $('task-name').textContent = state.modules[state.module].title;
+    $('task-list').innerHTML = Object.entries(state.modules).map(([key, m]) =>
+      `<button type="button" class="task-item" data-module="${key}"${key === state.module ? ' aria-current="true"' : ''}>${esc(m.title)}</button>`).join('');
   }
-  $('modules').addEventListener('click', (e) => {
+  function openTaskMenu() {
+    $('task-menu').hidden = false;
+    $('btn-task').setAttribute('aria-expanded', 'true');
+    const cur = $('task-list').querySelector('[aria-current]');
+    if (cur) cur.focus();
+  }
+  function closeTaskMenu() {
+    $('task-menu').hidden = true;
+    $('btn-task').setAttribute('aria-expanded', 'false');
+  }
+  $('btn-task').addEventListener('click', () => ($('task-menu').hidden ? openTaskMenu() : closeTaskMenu()));
+  $('task-list').addEventListener('click', (e) => {
     const b = e.target.closest('[data-module]');
     if (!b) return;
     const p = prefFor(b.dataset.module);
     startTask(b.dataset.module, p.level, p.diff);
   });
+  document.addEventListener('click', (e) => {
+    if (!$('task-menu').hidden && !e.target.closest('.task')) closeTaskMenu();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !$('task-menu').hidden) { closeTaskMenu(); $('btn-task').focus(); }
+  });
+
+  // Appka otevře poslední úlohu dítěte (s jeho úrovní a obtížností).
+  function openLast() {
+    const last = prefs()._last;
+    const module = last in state.modules ? last : Object.keys(state.modules)[0];
+    const p = prefFor(module);
+    startTask(module, p.level, p.diff);
+  }
 
   // ---------- příklady ----------
   function startTask(module, level, diff) {
     Object.assign(state, { module, level, diff });
     const p = prefs();
     p[module] = { level, diff };
+    p._last = module;
     savePrefs(p);
     if (diff !== 'vse') setDiffColor(diff);
-    renderTabs();
+    renderTaskMenu();
+    renderControls();
     show('round');
-    $('tabs').querySelector('[aria-current]').scrollIntoView({ inline: 'center', block: 'nearest' });
     next();
   }
 
@@ -114,24 +154,19 @@
     if (meta) meta.content = DIFF_COLOR[diff];
   }
 
-  function renderTabs() {
-    const btn = (cls, attr, val, label, on) =>
-      `<button type="button" class="${cls}" ${attr}="${val}"${on ? ' aria-current="true"' : ''}>${esc(label)}</button>`;
-    $('tabs').innerHTML = Object.entries(state.modules)
-      .map(([key, m]) => btn('tab', 'data-module', key, m.title, key === state.module)).join('');
+  // Jeden řádek: úrovně (symboly) vlevo, obtížnost (ikony) vpravo.
+  function renderControls() {
     const levels = Object.entries(state.modules[state.module].levels);
+    const short = LEVEL_SHORT[state.module] || {};
     $('chips').hidden = levels.length < 2;
-    $('chips').innerHTML = levels.map(([lv, label]) => btn('chip', 'data-level', lv, label, lv === state.level)).join('');
-    $('diffs').innerHTML = Object.entries(diffsFor(state.module))
-      .map(([d, label]) => btn('diff', 'data-diff', d, label, d === state.diff)).join('');
+    $('chips').innerHTML = levels.map(([lv, label]) =>
+      `<button type="button" class="chip" data-level="${lv}" aria-label="${esc(label)}" title="${esc(label)}"${lv === state.level ? ' aria-current="true"' : ''}>${esc(short[lv] || label)}</button>`).join('');
+    $('diffs').innerHTML = Object.entries(diffsFor(state.module)).map(([d, label]) =>
+      `<button type="button" class="diff" data-diff="${d}" aria-label="${esc(label)}" title="${esc(label)}"${d === state.diff ? ' aria-current="true"' : ''}>${DIFF_ICON[d]}<span class="lbl">${esc(label)}</span></button>`).join('');
+    // hodně úrovní (zlomky): u obtížnosti na úzkém displeji jen ikony
+    $('controls').classList.toggle('crowded', levels.length > 3);
   }
 
-  $('tabs').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-module]');
-    if (!b) return;
-    const p = prefFor(b.dataset.module);
-    startTask(b.dataset.module, p.level, p.diff);
-  });
   $('chips').addEventListener('click', (e) => {
     const b = e.target.closest('[data-level]');
     if (b) startTask(state.module, b.dataset.level, state.diff);
@@ -208,7 +243,7 @@
       ? `<button type="button" class="key ${cls}" data-key="${esc(label)}">${esc(label)}</button>`
       : '<button type="button" class="key blank" tabindex="-1" aria-hidden="true"></button>';
     $('keypad').innerHTML =
-      key('7') + key('8') + key('9') + `<button type="button" class="key fn" data-key="del" aria-label="Smazat">⌫</button>` +
+      key('7') + key('8') + key('9') + `<button type="button" class="key fn" data-key="del" aria-label="Smazat">smaž</button>` +
       key('4') + key('5') + key('6') + key(k1, 'fn') +
       key('1') + key('2') + key('3') + key(k2, 'fn') +
       key('0', 'wide') + `<button type="button" class="key ok wide" data-key="ok">Hotovo</button>`;
@@ -295,10 +330,15 @@
       endQuestion();
       fb.className = 'feedback ok';
       const me = r.users.find((u) => u.id === state.user);
-      const pts = `<small>+${r.points} b.${r.bonus ? ` a +${r.bonus} navíc za ${r.streak} v řadě` : ''}</small>`;
-      const fire = r.streak >= 3 ? `<small>🔥 ${r.streak} v řadě</small>` : '';
-      const goal = me.solved_today === state.goal ? '<small>🎯 Denní cíl splněný!</small>' : '';
-      fb.innerHTML = pick(['Správně!', 'Přesně tak!', 'Paráda!', 'Trefa!', 'Výborně!', 'Super!']) + pts + fire + goal + (r.note ? `<small>${esc(r.note)}</small>` : '');
+      const tick = '<svg class="tick" width="46" height="40" viewBox="0 0 46 40" aria-hidden="true"><path d="M4 22 C 10 26, 14 31, 17 36 C 22 24, 31 12, 43 4" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      const extra = [];
+      if (r.bonus) extra.push(`${r.streak} správně v řadě, bod navíc`);
+      else if (r.streak >= 3) extra.push(`${r.streak} správně v řadě`);
+      if (me.solved_today === state.goal) extra.push('Denní cíl splněný!');
+      if (r.note) extra.push(esc(r.note));
+      fb.innerHTML = `<div class="praise">${tick}<span class="hand">${pick(['Výborně!', 'Správně!', 'Přesně tak!', 'Paráda!', 'Trefa!', 'Super!'])}</span>`
+        + `<span class="stamp">+${r.points + (r.bonus || 0)}</span></div>`
+        + extra.map((t) => `<small>${t}</small>`).join('');
       renderKids(r.users);
       celebrate($('question'));
       state.timer = setTimeout(next, r.note ? 2400 : 1500);
@@ -308,7 +348,7 @@
     fb.className = 'feedback';
     void fb.offsetWidth;   // restart animace, i když je hláška stejná jako minule
     fb.className = 'feedback bad';
-    fb.innerHTML = 'Ještě ne, zkus to znovu.'
+    fb.innerHTML = '<span class="hand">Ještě ne, zkus to znovu.</span>'
       + (r.note ? `<small>${esc(r.note)}</small>` : '')
       + (r.why ? `<span class="why">${esc(r.why)}</span>` : '');
     $('btn-reveal').hidden = false;
@@ -378,7 +418,7 @@
   function setPaper(open) {
     $('paper').hidden = !open;
     $('paper-tools').hidden = !open;
-    $('btn-paper').textContent = open ? '✏️ Schovat papír' : '✏️ Papír na počítání';
+    $('btn-paper').textContent = open ? 'Schovat papír' : 'Papír na počítání';
     if (open) paper.resize();
     try { localStorage.setItem('matika_paper', open ? '1' : '0'); } catch (e) { /* bez úložiště */ }
   }
@@ -492,12 +532,12 @@
     renderKids(s.users);
     const row = (label, f) => `<tr><th>${label}</th>${s.users.map((u) => `<td class="num">${f(u)}</td>`).join('')}</tr>`;
     $('compare').innerHTML =
-      `<tr><th></th>${s.users.map((u) => `<th class="num">${EMOJI[u.kind]} ${esc(u.name)} <button type="button" class="link rename" data-user="${u.id}" aria-label="Přejmenovat">✏️</button></th>`).join('')}</tr>`
+      `<tr><th></th>${s.users.map((u) => `<th class="num"><span class="kid-name" data-kind="${u.kind}">${esc(u.name)}</span> <button type="button" class="link rename" data-user="${u.id}">přejmenovat</button></th>`).join('')}</tr>`
       + row('Dnes', (u) => u.today + ' b.')
       + row('Tento týden', (u) => u.week + ' b.')
       + row('Celkem', (u) => u.total + ' b.')
       + row('Dnes vyřešeno', (u) => `${u.solved_today} / ${state.goal}`)
-      + row('Série dní', (u) => (u.days ? '🔥 ' + u.days : '–'))
+      + row('Dní v řadě se splněným cílem', (u) => u.days || '–')
       + row('', (u) => `<button type="button" class="link reset" data-user="${u.id}">Smazat body</button>`);
     $('parent').innerHTML = s.users.map((u) => {
       const st = s.stats[u.id];
@@ -507,12 +547,12 @@
       const hard = st.hardest.length
         ? `<div class="mistakes">${st.hardest.map((h) => `<div><span>${renderQ(h.question)}</span><span class="right">${renderQ(h.answer)}</span></div>`).join('')}</div>`
         : '<p class="empty">Žádné opakované chyby.</p>';
-      return `<details open><summary>${EMOJI[u.kind]} ${esc(u.name)}</summary>${per}<h3>Co nejde (30 dní)</h3>${hard}</details>`;
+      return `<details open><summary><span class="kid-name" data-kind="${u.kind}">${esc(u.name)}</span></summary>${per}<h3>Co nejde (30 dní)</h3>${hard}</details>`;
     }).join('');
     show('stats');
   }
 
-  $('btn-stats').addEventListener('click', () => { clearTimeout(state.timer); loadStats(); });
+  $('btn-stats').addEventListener('click', () => { clearTimeout(state.timer); state.ex = null; loadStats(); });
   $('compare').addEventListener('click', async (e) => {
     const r = e.target.closest('.reset');
     if (r) {
@@ -545,7 +585,7 @@
       e.preventDefault();
       clearTimeout(state.timer);
       state.ex = null;
-      if (state.user) showMenu(); else showWho();
+      if (state.user) openLast(); else showWho();
     })
   );
 
@@ -556,7 +596,7 @@
       const me = s.users.find((u) => u.kind === document.body.dataset.kid);
       Object.assign(state, { modules: s.modules, diffs: s.difficulties, goal: s.goal, user: me ? me.id : null });
       renderKids(s.users);
-      if (state.user) showMenu(); else showWho();
+      if (state.user) openLast(); else showWho();
     } catch (e) {
       document.body.insertAdjacentHTML('afterbegin', `<p style="padding:16px;color:#d64545">${esc(e.message)}</p>`);
     }

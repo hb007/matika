@@ -41,9 +41,11 @@ Pravidla, která hlídá server:
 
 **Špatná odpověď.** Appka výsledek neprozradí. Napíše „Ještě ne, zkus to znovu“, a pokud to pozná, tak i **co konkrétně bylo špatně** („sečetl jsi místo odečtení“, „jmenovatele se nesčítají“, „zbytek je větší než dělitel“, „podíl má mít 4 číslice“ …). Odpověď zůstane v políčku k opravě a pokusů je neomezeně. Tlačítko „Ukázat výsledek“ ukáže správný výsledek a **postup řešení po krocích** (rozklad na desítky, společný jmenovatel, dělení pod sebou číslici po číslici). Další příklad pak přijde po kliknutí na „Další“ nebo Enter.
 
-**Kdo cvičí.** Adresa `/holka` nebo `/kluk` otevře rovnou profil dítěte, na `/` se appka zeptá „Kdo dnes cvičí?“. Aktivní dítě je velké v horním řádku, nad příkladem i v titulku karty. Druhé dítě je v horním řádku malé a klik na něj přepne profil (přejde na jeho adresu). Dítě se posílá s každým požadavkem, takže se nespletou ani dvě karty v jednom prohlížeči. Ikona přidaná na plochu z `/kluk` otevře rovnou kluka. Přezdívky jdou změnit ve „Výsledcích“ (✏️). Web je veřejný, proto přezdívky, ne skutečná jména.
+**Vzhled.** Čtverečkovaný sešit: papír s mřížkou, tuha a modrý inkoust, písma Atkinson Hyperlegible (čitelnost, nesplete 1/l a 0/O) a Patrick Hand (ručně psané jméno a pochvala). Písma jsou ve složce `fonts/`, nenačítají se z Google Fonts. Holka má růžovou, kluk petrolejovou: barva nese štítek se jménem, pochvalu a ikonu na plochu. Obtížnost je zvýrazňovač v záhlaví: lehké zelený, střední žlutý, těžké oranžový. V rozhraní nejsou emoji (zůstávají jen v efektech za správnou odpověď).
 
-**Záložky a obtížnost.** Nad příkladem jsou záložky s typy úloh, pod nimi úrovně a obtížnost. Přepnutí hned načte nový příklad. Každé dítě má u každé úlohy zapamatovanou úroveň a obtížnost (v prohlížeči). Obtížnost obarví obrazovku: lehké zeleně, střední modře, těžké červenooranžově. Hlavní menu ukazuje jen úlohy.
+**Kdo cvičí.** Adresa `/holka` nebo `/kluk` otevře rovnou profil dítěte, na `/` se appka zeptá „Kdo dnes cvičí?“ (dvoje desky sešitu se štítkem). V záhlaví je štítek aktivního dítěte s body dnes a proužkem denního cíle. Přepnutí na druhé dítě je v seznamu úloh (přejde na jeho adresu). Dítě se posílá s každým požadavkem, takže se nespletou ani dvě karty v jednom prohlížeči. Ikona přidaná na plochu z `/kluk` otevře rovnou kluka a má jeho barvu (`icon-kluk-*.png`, `icon-holka-*.png`). Přezdívky jdou změnit ve „Výsledcích“ (✏️). Web je veřejný, proto přezdívky, ne skutečná jména.
+
+**Úloha, úroveň a obtížnost.** Appka otevře poslední úlohu dítěte. Tlačítko s názvem úlohy v záhlaví otevře seznam úloh (a přepnutí dítěte a výsledky). Pod záhlavím je jeden řádek: vlevo úrovně jako symboly (`·`, `:`, `· :`, `123`, `−5`, `2,5`, „zkrátit“, `+ −`, „vše“), vpravo obtížnost jako ikony pírko, kámen, činka (v Náhodném mixu navíc „Vše“). Přepnutí hned načte nový příklad. Každé dítě má u každé úlohy zapamatovanou úroveň a obtížnost (v prohlížeči).
 
 **Body.** Správně napoprvé: lehké 1, střední 2, těžké 3 body (v mixu „Vše“ podle obtížnosti konkrétního příkladu, barva záhlaví se mění s ní). Správně po chybném pokusu 1 bod, po „Ukázat výsledek“ 0. Nápověda body nebere. Nečitelná odpověď (písmena, chybí zbytek) se nepočítá jako pokus. Za každých 5 správně napoprvé v řadě je bod navíc (od 3 v řadě se ukazuje 🔥).
 
@@ -111,7 +113,8 @@ Ve vývojovém Docker kontejneru (`docker-compose.yml`, image `vibecode` s PHP) 
 * `lib/generators.php` – generátory příkladů podle obtížnosti a kontrola odpovědí.
 * `lib/explain.php` – nápověda po krocích, postup řešení a rozbor typických chyb.
 * `paper.js` – papír na počítání (canvas, pero, guma).
-* `manifest.php` – manifest pro přidání na plochu, pro `/holka` a `/kluk` zvlášť.
+* `manifest.php` – manifest pro přidání na plochu, pro `/holka` a `/kluk` zvlášť (vlastní ikona a barva).
+* `fonts/` – písma Atkinson Hyperlegible a Patrick Hand (woff2, latin a latin-ext).
 * `data/` – databáze (z nahrávání vyřazená, chrání ji `.htaccess` a `index.html`).
 * `tests/` – testy bez frameworku, `php tests/run.php`.
 

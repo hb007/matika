@@ -1,6 +1,6 @@
 # Úkoly: Matika
 
-* [ ] ověřit nasazení na hosting (GitHub Actions → FTP)
+* [x] ověřit nasazení na hosting (GitHub Actions → FTP)
 
 ## Samostatné příklady bez jmen a bodů (2026-10-11)
 
@@ -29,6 +29,19 @@ Plán: `docs/superpowers/plans/2026-10-11-uzivatele-body-obtiznost.md`, větev `
 * [x] `/holka` a `/kluk`, výrazné označení dítěte, barvy obtížnosti, menu rovnou na příklad
 * [x] výsledky a přehled pro rodiče
 * [x] nasazení s testy, `data/` v repu, dokumentace
-* [ ] vlastní ikona na plochu pro každé dítě
-* [ ] design bez generického vzhledu
-* [ ] po nasazení ověřit `/kluk` (mod_rewrite) a hlavičku `Cache-Control` u `index.php` na matika.brno.ai
+* [x] vlastní ikona na plochu pro každé dítě
+* [x] design bez generického vzhledu
+* [x] po nasazení ověřit `/kluk` (mod_rewrite) a hlavičku `Cache-Control` u `index.php` na matika.brno.ai
+
+## Vzhled „tichý sešit“ (varianta A, 2026-10-11)
+
+Mockup: https://claude.ai/artifact/EJYCt6BWvmkK7QZrNjRbp9
+
+* [x] písma Atkinson Hyperlegible a Patrick Hand v `fonts/` (bez Google Fonts)
+* [x] záhlaví: štítek dítěte + tlačítko úlohy se seznamem (úlohy, přepnout dítě, výsledky), bez záložek a bez menu obrazovky
+* [x] otevřít poslední úlohu dítěte
+* [x] jeden řádek: úrovně jako symboly + obtížnost jako ikony (pírko, kámen, činka, v mixu i „vše“)
+* [x] barvy: zvýrazňovače obtížnosti, holka růžová, kluk petrolejová, pochvala v barvě dítěte, bez emoji v rozhraní
+* [x] „Kdo dnes cvičí“ jako desky sešitů
+* [x] ikony na plochu pro holku a kluka
+* [x] ověřit v prohlížeči (telefon, tablet), README
