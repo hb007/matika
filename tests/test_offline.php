@@ -27,8 +27,21 @@ check(preg_match('/^[0-9a-f]{24}$/', $it['id']) === 1 && $it['diff'] === 'stredn
 foreach ($pool['mix|vse|vse'] as $m) {
     check(isset(DIFFICULTIES[$m['diff']]), 'mix vse: skutecna obtiznost u prikladu');
 }
-$big = issue_pool($db, 1, [['module' => 'mala', 'level' => 'mix', 'difficulty' => 'lehke', 'n' => 999]], $now);
-check(count($big['mala|mix|lehke']) === POOL_MAX_PER_TASK, 'zasoba: strop na ulohu');
+$big = issue_pool($db, 1, [['module' => 'velka', 'level' => 'mix', 'difficulty' => 'tezke', 'n' => 999]], $now);
+check(count($big['velka|mix|tezke']) === POOL_MAX_PER_TASK, 'zasoba: strop na ulohu');
+
+// bez opakování: v jedné dávce žádné zadání dvakrát, nic z toho, co klient má
+$qs = fn(array $items) => array_column($items, 'q');
+$small = issue_pool($db, 1, [['module' => 'mala', 'level' => 'nasobeni', 'difficulty' => 'lehke', 'n' => 40]], $now)['mala|nasobeni|lehke'];
+check(count($small) === count(array_unique($qs($small))), 'zasoba: zadani se neopakuji');
+check(count($small) <= 16 && count($small) >= 12, 'zasoba: mala ulohu vrati jen ruzne priklady (' . count($small) . ')');
+$have = array_slice($qs($small), 0, 10);
+$more = issue_pool($db, 1, [['module' => 'mala', 'level' => 'nasobeni', 'difficulty' => 'lehke', 'n' => 40, 'have' => $have]], $now)['mala|nasobeni|lehke'] ?? [];
+check(!array_intersect($have, $qs($more)), 'zasoba: nevyda, co klient uz ma');
+check(count($more) <= 16 - 10, 'zasoba: zbytek ruznych prikladu');
+$big = issue_pool($db, 1, [['module' => 'mix', 'level' => 'vse', 'difficulty' => 'vse', 'n' => 30],
+    ['module' => 'scitani', 'level' => 'cela', 'difficulty' => 'tezke', 'n' => 30]], $now);
+check(count($big['mix|vse|vse']) === 30 && count($big['scitani|cela|tezke']) === 30, 'zasoba: velke ulohy dostanou vse');
 
 // správně napoprvé = stejné body jako online, podruhé se nezapočte
 $db = db_open('sqlite::memory:');

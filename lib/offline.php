@@ -9,9 +9,10 @@
 // takže výsledek ověří sám a podvržený příklad nebo odpověď nic nepřinese.
 
 const POOL_MAX_PER_TASK = 40;   // nejvíc příkladů na jednu kombinaci úlohy, úrovně a obtížnosti
-const POOL_MAX_TOTAL = 300;     // nejvíc příkladů v jednom požadavku
+const POOL_MAX_TOTAL = 400;     // nejvíc příkladů v jednom požadavku (klient žádá po dávkách)
+const POOL_TRIES = 12;          // pokusů o unikátní příklad na jeden požadovaný
 const ISSUED_KEEP_DAYS = 90;    // nevyřešené vydané příklady se po 90 dnech zapomenou
-const ISSUED_MAX = 1500;        // a na dítě jich server drží nejvýš 1500 (nejstarší pryč)
+const ISSUED_MAX = 4000;        // a na dítě jich server drží nejvýš 4000 (nejstarší pryč)
 const SYNC_MAX = 500;           // nejvíc výsledků v jednom sync
 const SYNC_MAX_ANSWERS = 30;    // nejvíc pokusů u jednoho příkladu
 
@@ -26,8 +27,11 @@ function pool_item(string $id, array $ex): array
     ];
 }
 
-// $want: [['module' => …, 'level' => …, 'difficulty' => …, 'n' => …], …]
+// $want: [['module' => …, 'level' => …, 'difficulty' => …, 'n' => …, 'have' => [zadání…]], …]
 // Vrací ['module|level|difficulty' => [příklady…]]. Neplatné kombinace přeskočí.
+// Příklady v zásobě se neopakují: žádné zadání dvakrát a nic z toho, co už
+// klient má (have). Malé úlohy (třeba lehká malá násobilka) mají různých
+// příkladů jen pár desítek, vrátí se jich pak méně, než klient chtěl.
 function issue_pool(PDO $db, int $uid, array $want, int $now): array
 {
     $db->prepare('DELETE FROM issued WHERE user_id = ? AND created < ?')
@@ -45,12 +49,24 @@ function issue_pool(PDO $db, int $uid, array $want, int $now): array
         $diff = (string) ($w['difficulty'] ?? '');
         $n = max(0, min(POOL_MAX_PER_TASK, (int) ($w['n'] ?? 0), POOL_MAX_TOTAL - $total));
         $key = "$module|$level|$diff";
-        for ($i = 0; $i < $n; $i++) {
+        $seen = [];
+        foreach (is_array($w['have'] ?? null) ? $w['have'] : [] as $q) {
+            if (is_string($q)) {
+                $seen[$q] = true;
+            }
+        }
+        $got = 0;
+        for ($i = 0; $got < $n && $i < $n * POOL_TRIES; $i++) {
             try {
                 $ex = generate_exercise($module, $level, $diff);
             } catch (InvalidArgumentException $e) {
                 break;
             }
+            if (isset($seen[$ex['q']])) {
+                continue;
+            }
+            $seen[$ex['q']] = true;
+            $got++;
             $id = bin2hex(random_bytes(12));
             $ins->execute([$id, $uid, $module, json_encode($ex), $now]);
             $out[$key][] = pool_item($id, $ex);

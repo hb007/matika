@@ -230,7 +230,8 @@
     if (!ex) { showEmptyPool(); return; }
     state.ex = ex;
     showQuestion();
-    if (ex.other) $('hint-info').textContent = 'Tahle úloha v zásobě došla, tady je příklad odjinud.';
+    const left = Offline.left(state.user, state.module, state.level, state.diff);
+    if (left < 3) $('hint-info').textContent = ['Tohle je v téhle úloze poslední příklad ze zásoby.', 'V téhle úloze zbývá v zásobě 1 příklad.', 'V téhle úloze zbývají v zásobě 2 příklady.'][left];
     updateBar();
   }
 
@@ -255,7 +256,9 @@
     state.ex = null;
     state.lock = true;
     $('review').hidden = true;
-    $('question').innerHTML = '<span class="pool-empty">Zásoba příkladů došla. Připoj se k internetu a můžeš pokračovat.</span>';
+    const any = state.user && Offline.poolSize(state.user) > 0;
+    $('question').innerHTML = '<span class="pool-empty">Příklady na tuhle úlohu a obtížnost už nejsou. Další přibudou, až budeš online.'
+      + (any ? ' Zatím můžeš zkusit jinou úlohu nebo obtížnost.' : '') + '</span>';
     $('inputs').innerHTML = '';
     $('feedback').hidden = true;
     $('hints').hidden = true;
@@ -265,23 +268,27 @@
     $('hint-info').textContent = '';
   }
 
-  // Doplní zásobu příkladů (aktuální úloha a úlohy, které dítě používá).
+  // Doplní zásobu příkladů pro všechny úlohy, úrovně a obtížnosti (aktuální první).
   let refilling = false;
   async function refill() {
     if (state.offline || refilling || !state.user || !state.module) return;
-    const others = Object.entries(prefs()).filter(([m, v]) => m in state.modules && v && v.level)
-      .map(([module, v]) => ({ module, level: v.level, diff: v.diff }));
-    const want = Offline.wanted(state.user, { module: state.module, level: state.level, diff: state.diff }, others);
-    if (!want.length) return;
+    const combos = [{ module: state.module, level: state.level, diff: state.diff }];
+    Object.keys(state.modules).forEach((module) => Object.keys(state.modules[module].levels).forEach((level) =>
+      Object.keys(diffsFor(module)).forEach((diff) => combos.push({ module, level, diff }))));
+    const batches = Offline.wanted(state.user, combos);
+    if (!batches.length) return;
     refilling = true;
     const uid = state.user;
     try {
-      const r = await api('pool', { want });
-      Offline.addToPool(uid, r.pool);
+      for (const want of batches) {
+        const r = await api('pool', { want });
+        Offline.addToPool(uid, r.pool, want);
+      }
     } catch (e) {
       if (e.network) setOffline(true);
     } finally {
       refilling = false;
+      updateBar();
     }
   }
 

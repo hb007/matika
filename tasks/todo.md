@@ -9,12 +9,14 @@
 * [x] `sw.js`: stránka, skripty, styly, písma a ikony offline
 * [x] `app.js`: přepnutí na zásobu při výpadku, lišta „Bez internetu“, odeslání po připojení, stav z minula při startu bez sítě
 * [x] dokumentace (README, rozhodnutí)
+* [x] zásoba pro všech 46 kombinací (30 na kombinaci, bez opakování, menší strop u malých úloh), po vyčerpání hláška místo náhrady
 * [ ] ověřit na skutečném Androidu: appka z plochy v režimu letadlo, po připojení se body započtou
 
 ### Výsledek
 
 * Playwright (Pixel 7, Chromium): online otevření → zásoba 30 + mix 20, stránka a skripty v cache → offline reload otevře appku s lištou → správně (+2), špatně a správně (+1), nápověda ve 2 krocích a ukázat výsledek (0) → online: fronta prázdná, na serveru +3 body a 2 vyřešené, lišta zmizí. Bez JS chyb.
 * Shoda kontroly odpovědi PHP a JS na 15 938 případech.
+* Plná zásoba: 46 kombinací, 1 324 příkladů, 496 kB, za 0,8 s, bez duplicit. Offline lehká malá násobilka: 16 příkladů, všechny různé, pak hláška „už nejsou“, střední jde dál; po připojení se fronta odeslala a zásoba doplnila.
 * Neověřeno: skutečný Android, chování service workeru na produkčním HTTPS, plné localStorage.
 
 ## Samostatné příklady bez jmen a bodů (2026-10-11)

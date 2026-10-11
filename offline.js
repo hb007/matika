@@ -3,9 +3,11 @@
 // Kontrola odpovědi je přepis check_answer z lib/generators.php: server
 // výsledek po připojení stejně ověří znovu, tady jde jen o okamžitou odezvu.
 window.Offline = (() => {
-  const POOL_TARGET = 30;    // aktuální úloha
-  const POOL_OTHER = 15;     // ostatní úlohy, které dítě používá
-  const POOL_MIX = 20;       // náhodný mix jako záloha, když dojde vybraná úloha
+  // Zásoba: 30 příkladů pro každou kombinaci úlohy, úrovně a obtížnosti
+  // (46 kombinací, zhruba 550 kB na dítě). Malé úlohy mají různých příkladů
+  // méně (lehká malá násobilka jen 15), pak je strop menší (caps).
+  const POOL_TARGET = 30;
+  const BATCH = 400;         // nejvíc příkladů v jednom požadavku (server víc nevydá)
   const DIFF_POINTS = { lehke: 1, stredni: 2, tezke: 3 };
   const STREAK_BONUS = 5;
 
@@ -27,6 +29,7 @@ window.Offline = (() => {
     }
   }
   const poolKey = (uid) => 'matika_pool_' + uid;
+  const capKey = (uid) => 'matika_poolcap_' + uid;
   const queueKey = (uid) => 'matika_queue_' + uid;
 
   // ---------- kontrola odpovědi (přepis z PHP) ----------
@@ -87,45 +90,72 @@ window.Offline = (() => {
   // ---------- zásoba ----------
   const combo = (module, level, diff) => `${module}|${level}|${diff}`;
 
-  // Co si dotáhnout: [{module, level, difficulty, n}] podle toho, co v zásobě chybí.
-  // Dotahuje se, až klesne pod polovinu, ať se nežádá po každém příkladu.
-  function wanted(uid, current, others) {
+  // Co si dotáhnout: dávky [{module, level, difficulty, n, have}] pro všechny
+  // kombinace (aktuální první). Dotahuje se, až zásoba klesne pod polovinu
+  // stropu, ať se nežádá po každém příkladu. have = zadání, která už v zásobě
+  // jsou: server je nevydá znovu, takže se v zásobě nic neopakuje.
+  function wanted(uid, combos) {
     const pool = load(poolKey(uid), {});
+    const caps = load(capKey(uid), {});
     const want = [];
-    const add = (c, target) => {
+    const seen = new Set();
+    combos.forEach((c) => {
       const key = combo(c.module, c.level, c.diff);
-      if (want.some((w) => combo(w.module, w.level, w.difficulty) === key)) return;
-      const have = (pool[key] || []).length;
-      if (have < target / 2) want.push({ module: c.module, level: c.level, difficulty: c.diff, n: target - have });
-    };
-    if (current) add(current, POOL_TARGET);
-    others.forEach((c) => add(c, POOL_OTHER));
-    add({ module: 'mix', level: 'vse', diff: 'vse' }, POOL_MIX);
-    return want;
+      if (seen.has(key)) return;
+      seen.add(key);
+      const items = pool[key] || [];
+      const cap = Math.max(1, Math.min(POOL_TARGET, caps[key] || POOL_TARGET));
+      if (items.length < Math.ceil(cap / 2)) {
+        want.push({ module: c.module, level: c.level, difficulty: c.diff, n: POOL_TARGET - items.length, have: items.map((it) => it.q) });
+      }
+    });
+    // po dávkách, ať jeden požadavek nepřesáhne, co server vydá
+    const batches = [];
+    let cur = [];
+    let sum = 0;
+    want.forEach((w) => {
+      if (sum + w.n > BATCH && cur.length) { batches.push(cur); cur = []; sum = 0; }
+      cur.push(w);
+      sum += w.n;
+    });
+    if (cur.length) batches.push(cur);
+    return batches;
   }
 
-  function addToPool(uid, fresh) {
+  // Přidá do zásoby, co server vydal (bez opakování zadání). Když vydal méně,
+  // než se chtělo, víc různých příkladů ta úloha nemá: zapamatuje se strop.
+  function addToPool(uid, fresh, asked) {
     const pool = load(poolKey(uid), {});
-    Object.entries(fresh || {}).forEach(([key, items]) => { pool[key] = (pool[key] || []).concat(items); });
+    const caps = load(capKey(uid), {});
+    (asked || []).forEach((w) => {
+      const key = combo(w.module, w.level, w.difficulty);
+      const items = pool[key] || [];
+      const qs = new Set(items.map((it) => it.q));
+      const got = ((fresh || {})[key] || []).filter((it) => !qs.has(it.q) && qs.add(it.q));
+      pool[key] = items.concat(got);
+      if (got.length < w.n) caps[key] = pool[key].length;
+      else delete caps[key];
+    });
+    save(capKey(uid), caps);
     if (!save(poolKey(uid), pool)) {
-      // plné úložiště: necháme jen aktuální přírůstek
+      // plné úložiště: necháme jen právě stažené
       save(poolKey(uid), fresh || {});
     }
   }
 
-  // Další příklad ze zásoby: vybraná úloha, jinak jiná úroveň téže úlohy, jinak mix.
+  // Další příklad ze zásoby, jen z vybrané úlohy, úrovně a obtížnosti.
+  // Použitý příklad ze zásoby zmizí, takže se neopakuje. Když dojdou, null.
   function take(uid, module, level, diff) {
     const pool = load(poolKey(uid), {});
-    const keys = Object.keys(pool).filter((k) => pool[k].length);
-    const pickKey = [combo(module, level, diff)].concat(
-      keys.filter((k) => k.startsWith(module + '|')),
-      keys.filter((k) => k.startsWith('mix|')),
-      keys,
-    ).find((k) => pool[k] && pool[k].length);
-    if (!pickKey) return null;
-    const item = pool[pickKey].shift();
+    const key = combo(module, level, diff);
+    if (!pool[key] || !pool[key].length) return null;
+    const item = pool[key].shift();
     save(poolKey(uid), pool);
-    return { ...item, local: true, other: pickKey !== combo(module, level, diff), tries: 0, answers: [], shownHints: 0 };
+    return { ...item, local: true, tries: 0, answers: [], shownHints: 0 };
+  }
+
+  function left(uid, module, level, diff) {
+    return (load(poolKey(uid), {})[combo(module, level, diff)] || []).length;
   }
 
   function poolSize(uid) {
@@ -153,5 +183,5 @@ window.Offline = (() => {
     return { points: base, bonus };
   }
 
-  return { load, save, check, wanted, addToPool, take, poolSize, queue, record, forget, points, combo };
+  return { load, save, check, wanted, addToPool, take, left, poolSize, queue, record, forget, points, combo };
 })();
