@@ -39,6 +39,10 @@ Pravidla, která hlídá server:
 
 **Správná odpověď.** Ukáže se pochvala s náhodným efektem (konfety, hvězdičky, balónky, padající déšť emoji nebo velká medaile či palec, nikdy dvakrát po sobě stejný) a po chvilce naskočí další příklad. Kdo má v systému zapnuté omezení animací, uvidí jen pochvalu.
 
+**Jednorožec.** Za každých 10 správně napoprvé v řadě (10, 20, 30 …) přiběhne místo běžného efektu přes obrazovku jednorožec, za sebou nechává duhu a třpytky, a pod pochvalou je „10 správně v řadě! Přiběhl jednorožec“. Další příklad pak naskočí až po jeho doběhnutí. Při omezených animacích zůstane jen text.
+
+**Tmavý motiv.** Appka se řídí nastavením telefonu (tmavý režim). V menu pod štítkem se jménem i v seznamu úloh je přepínač „Motiv: podle telefonu / tmavý / světlý“, volba se pamatuje v prohlížeči. Motiv se nastaví už v hlavičce stránky, takže světlá verze neprobliká. Barvy jsou v `style.css` jako proměnné v `:root`, tmavé hodnoty v bloku `:root[data-theme=dark]`; nová barva = nová proměnná v obou blocích, ne barva napevno v pravidle. Pero na papíře bere barvu z `--canvas-ink`.
+
 **Špatná odpověď.** Appka výsledek neprozradí. Napíše „Ještě ne, zkus to znovu“, a pokud to pozná, tak i **co konkrétně bylo špatně** („sečetl jsi místo odečtení“, „jmenovatele se nesčítají“, „zbytek je větší než dělitel“, „podíl má mít 4 číslice“ …). Odpověď zůstane v políčku k opravě a pokusů je neomezeně. Tlačítko „Ukázat výsledek“ ukáže správný výsledek a **postup řešení po krocích** (rozklad na desítky, společný jmenovatel, dělení pod sebou číslici po číslici). Další příklad pak přijde po kliknutí na „Další“ nebo Enter.
 
 **Vzhled.** Čtverečkovaný sešit: papír s mřížkou, tuha a modrý inkoust, písma Atkinson Hyperlegible (čitelnost, nesplete 1/l a 0/O) a Patrick Hand (ručně psané jméno a pochvala). Písma jsou ve složce `fonts/`, nenačítají se z Google Fonts. Holka má růžovou, kluk petrolejovou: barva nese štítek se jménem, pochvalu a ikonu na plochu. Obtížnost je zvýrazňovač v záhlaví: lehké zelený, střední žlutý, těžké oranžový. V rozhraní nejsou emoji (zůstávají jen v efektech za správnou odpověď).

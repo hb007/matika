@@ -26,6 +26,18 @@ if ($kid) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#fbfcfa">
+<meta name="color-scheme" content="light dark">
+<script>
+// Motiv hned při načtení, ať neprobliká světlá verze: volba z menu
+// (matika_theme: dark / light), jinak podle nastavení telefonu.
+(function () {
+  var t = null;
+  try { t = localStorage.getItem('matika_theme'); } catch (e) {}
+  var dark = t === 'dark' || (t !== 'light' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  if (dark) document.querySelector('meta[name=theme-color]').setAttribute('content', '#15181d');
+})();
+</script>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Matika<?= $nick !== '' ? ' ' . htmlspecialchars($nick, ENT_QUOTES) : '' ?>">
@@ -46,6 +58,7 @@ if ($kid) {
     <nav class="task-menu me-menu" id="me-menu" aria-label="Účet" hidden>
       <div id="me-other"></div>
       <button type="button" class="task-item link-ink" data-stats>Výsledky a body</button>
+      <button type="button" class="task-item link-ink" data-theme-toggle>Motiv: podle telefonu</button>
     </nav>
   </div>
   <div class="task">
@@ -58,6 +71,7 @@ if ($kid) {
       <div class="task-sep" aria-hidden="true"></div>
       <div id="task-other"></div>
       <button type="button" class="task-item link-ink" data-stats>Výsledky a body</button>
+      <button type="button" class="task-item link-ink" data-theme-toggle>Motiv: podle telefonu</button>
     </nav>
   </div>
 </header>

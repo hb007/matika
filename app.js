@@ -173,8 +173,16 @@
 
   function setDiffColor(diff) {
     document.body.dataset.diff = diff;
+    syncThemeColor();
+  }
+
+  // Barva lišty prohlížeče = pozadí záhlaví (v tmavém motivu tmavá).
+  function syncThemeColor() {
     const meta = document.querySelector('meta[name=theme-color]');
-    if (meta) meta.content = DIFF_COLOR[diff];
+    if (!meta) return;
+    const css = getComputedStyle(document.body);
+    const diff = document.body.dataset.diff;
+    meta.content = (diff && css.getPropertyValue('--hl-bg').trim()) || css.getPropertyValue('--paper').trim() || DIFF_COLOR[diff] || '#fbfcfa';
   }
 
   // Jeden řádek: úrovně (symboly) vlevo, obtížnost (ikony) vpravo.
@@ -541,7 +549,9 @@
       const me = r.users.find((u) => u.id === state.user);
       const tick = '<svg class="tick" width="46" height="40" viewBox="0 0 46 40" aria-hidden="true"><path d="M4 22 C 10 26, 14 31, 17 36 C 22 24, 31 12, 43 4" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       const extra = [];
-      if (r.bonus) extra.push(`${r.streak} správně v řadě, bod navíc`);
+      const unicornTime = r.streak > 0 && r.streak % UNICORN_EVERY === 0;   // 10, 20, 30 … v řadě
+      if (unicornTime) extra.push(`${r.streak} správně v řadě! Přiběhl jednorožec${r.bonus ? ', bod navíc' : ''}.`);
+      else if (r.bonus) extra.push(`${r.streak} správně v řadě, bod navíc`);
       else if (r.streak >= 3) extra.push(`${r.streak} správně v řadě`);
       if (me.solved_today === state.goal) extra.push('Denní cíl splněný!');
       if (r.note) extra.push(esc(r.note));
@@ -549,9 +559,9 @@
         + `<span class="stamp">+${r.points + (r.bonus || 0)}</span></div>`
         + extra.map((t) => `<small>${t}</small>`).join('');
       renderKids(r.users);
-      celebrate($('question'));
+      celebrate($('question'), unicornTime ? 'unicorn' : null);
       if (offerSuggestion(fb, r.suggest)) return;   // s návrhem čeká na dítě, jinak sám další příklad
-      state.timer = setTimeout(next, r.note ? 2400 : 1500);
+      state.timer = setTimeout(next, unicornTime ? 3000 : r.note ? 2400 : 1500);   // jednorožec doběhne
       return;
     }
     // špatně: výsledek neprozradíme, jen co je špatně, a dítě to zkusí znovu
@@ -681,6 +691,33 @@
   } catch (e) { /* bez úložiště */ }
   setPaper(paperOpen);
 
+  // ---------- motiv ----------
+  // Volba v menu: podle telefonu → tmavý → světlý. Výchozí stav nastaví už
+  // skript v <head> (bez probliknutí), tady jen přepínání a změna v systému.
+  const THEME_LABEL = { auto: 'Motiv: podle telefonu', dark: 'Motiv: tmavý', light: 'Motiv: světlý' };
+  const THEME_NEXT = { auto: 'dark', dark: 'light', light: 'auto' };
+  const darkQuery = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+  function themePref() {
+    try { return THEME_LABEL[localStorage.getItem('matika_theme')] ? localStorage.getItem('matika_theme') : 'auto'; } catch (e) { return 'auto'; }
+  }
+  function applyTheme() {
+    const pref = themePref();
+    const dark = pref === 'dark' || (pref === 'auto' && darkQuery && darkQuery.matches);
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    document.querySelectorAll('[data-theme-toggle]').forEach((b) => { b.textContent = THEME_LABEL[pref]; });
+    paper.recolor();
+    syncThemeColor();
+  }
+  document.querySelectorAll('[data-theme-toggle]').forEach((b) => b.addEventListener('click', () => {
+    const next = THEME_NEXT[themePref()];
+    try {
+      if (next === 'auto') localStorage.removeItem('matika_theme'); else localStorage.setItem('matika_theme', next);
+    } catch (e) { /* bez úložiště jen do obnovení stránky */ }
+    applyTheme();
+  }));
+  if (darkQuery && darkQuery.addEventListener) darkQuery.addEventListener('change', applyTheme);
+  applyTheme();
+
   // Enter po ukázání výsledku = další příklad
   document.addEventListener('keydown', (e) => {
     if (document.activeElement && document.activeElement.closest('#feedback button')) return;   // Enter stiskne tlačítko s fokusem
@@ -698,11 +735,12 @@
   // Za správnou odpověď náhodný efekt, nikdy dvakrát po sobě stejný.
   // Kdo má v systému omezené animace, uvidí jen pochvalu.
   const CALM = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const UNICORN_EVERY = 10;   // jednorožec za každých 10 správně napoprvé v řadě
   const COLORS = ['#3b6cf6', '#1f9d55', '#f5b400', '#e8590c', '#d6336c', '#7048e8'];
   let lastEffect = null;
 
   // Jedna animovaná částice (emoji, nebo barevná konfeta); po doběhnutí zmizí.
-  function particle(x, y, frames, duration, emoji, delay = 0) {
+  function particle(x, y, frames, duration, emoji, delay = 0, easing = 'ease-out') {
     const c = document.createElement('i');
     c.className = emoji ? 'fx emoji' : 'fx confetti';
     if (emoji) c.textContent = emoji;
@@ -710,7 +748,7 @@
     c.style.left = x + 'px';
     c.style.top = y + 'px';
     document.body.appendChild(c);
-    c.animate(frames, { duration, delay, easing: 'ease-out', fill: 'backwards' }).onfinish = () => c.remove();
+    c.animate(frames, { duration, delay, easing, fill: 'backwards' }).onfinish = () => c.remove();
     return c;
   }
 
@@ -760,8 +798,33 @@
     },
   };
 
-  function celebrate(from) {
+  // Jednorožec za každých 10 správně v řadě: přeběhne přes obrazovku
+  // (zprava doleva, emoji 🦄 kouká doleva) a za sebou nechává duhu a třpytky.
+  function unicorn() {
+    const dur = 2800;
+    const y = Math.round(innerHeight * 0.4);
+    const x0 = innerWidth + 90;
+    const dist = innerWidth + 260;
+    const frames = [];
+    for (let i = 0; i <= 12; i++) {   // cval: nahoru a dolů
+      frames.push({ transform: `translate(${-dist * i / 12}px, ${i % 2 ? -34 : 0}px) rotate(${i % 2 ? -8 : 4}deg)`, offset: i / 12 });
+    }
+    particle(x0, y, frames, dur, '🦄', 0, 'linear').style.fontSize = '104px';
+    const t0 = performance.now();
+    const trail = setInterval(() => {
+      const t = (performance.now() - t0) / dur;
+      if (t >= 1) { clearInterval(trail); return; }
+      const x = x0 - dist * t + 50;
+      particle(x, y + 10 + Math.random() * 40, [
+        { transform: 'translate(0, 0) scale(.6)', opacity: 1 },
+        { transform: `translate(${20 + Math.random() * 40}px, ${40 + Math.random() * 90}px) scale(1.1)`, opacity: 0 },
+      ], 900 + Math.random() * 500, pick(['🌈', '✨', '⭐', '💖', '✨']));
+    }, 60);
+  }
+
+  function celebrate(from, force) {
     if (CALM || !document.body.animate) return;
+    if (force === 'unicorn') { unicorn(); return; }
     const name = pick(Object.keys(EFFECTS).filter((k) => k !== lastEffect));
     lastEffect = name;
     EFFECTS[name](from.getBoundingClientRect());

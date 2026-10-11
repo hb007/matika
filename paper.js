@@ -1,7 +1,9 @@
 // Papír na počítání: čtverečkovaný list, na který jde psát prstem, perem
 // nebo myší. Nic se neodesílá ani nerozpoznává, je to jen pomocný papír.
 window.Paper = (() => {
+  // barva pera ze stylů (--canvas-ink), ať je vidět i v tmavém motivu
   const PEN = { color: '#1f3a8a', width: 3 };
+  const penColor = (el) => getComputedStyle(el).getPropertyValue('--canvas-ink').trim() || PEN.color;
   const ERASER = { width: 26 };
 
   function create(canvas) {
@@ -9,6 +11,7 @@ window.Paper = (() => {
     let strokes = [];     // { tool, points: [[x, y], …] }
     let current = null;
     let tool = 'pen';
+    let ink = penColor(canvas);
 
     function resize() {
       const r = canvas.getBoundingClientRect();
@@ -28,7 +31,7 @@ window.Paper = (() => {
         ctx.globalCompositeOperation = 'destination-out';
         ctx.lineWidth = ERASER.width;
       } else {
-        ctx.strokeStyle = PEN.color;
+        ctx.strokeStyle = ink;
         ctx.lineWidth = PEN.width;
       }
       ctx.beginPath();
@@ -79,6 +82,8 @@ window.Paper = (() => {
 
     return {
       resize,
+      // po přepnutí motivu: nová barva pera i pro už napsané tahy
+      recolor() { ink = penColor(canvas); redraw(); },
       setTool(t) { tool = t; },
       undo() { strokes.pop(); redraw(); },
       clear() { strokes = []; current = null; redraw(); },

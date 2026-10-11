@@ -12,6 +12,14 @@
 * [x] zásoba pro všech 46 kombinací (30 na kombinaci, bez opakování, menší strop u malých úloh), po vyčerpání hláška místo náhrady
 * [x] ověřit na skutečném Androidu: appka z plochy v režimu letadlo, po připojení se body započtou (ověřil uživatel)
 
+## Tmavý motiv a jednorožec (2026-10-11)
+
+* [x] barvy napevno → proměnné, tmavá sada pod `[data-theme=dark]`, skript v `<head>` bez probliknutí, přepínač v obou menu, barva lišty prohlížeče podle záhlaví
+* [x] pero na papíře z `--canvas-ink`, při přepnutí motivu se přebarví i napsané
+* [x] jednorožec za každých 10 správně napoprvé v řadě (online i offline), další příklad až po doběhnutí
+* [x] ověřeno v Playwright (Pixel 7, tmavý systém): příklad, nápověda, papír, menu, výběr dítěte, výsledky, lišta offline; přepínač auto → tmavý → světlý, volba drží po obnovení; série 9 + správně → jednorožec s duhou
+* [ ] na zařízení ověřit: po kreslení na papír se v Playwrightu první ťuknutí jinam (štítek se jménem) nezapočítá, druhé ano; stejné i před touto změnou, nejspíš artefakt simulovaného dotyku
+
 ## Bublina nad stisknutou klávesou (2026-10-11)
 
 * [x] při stisku číslice nebo znaku je nad klávesou bublina s velkým znakem, rychlé ťuknutí ji ukáže aspoň 180 ms

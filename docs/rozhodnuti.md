@@ -3,6 +3,14 @@
 Proč je projekt tak, jak je. Jedno rozhodnutí = jedna sekce: datum, kontext, rozhodnutí, důsledky.
 Nejnovější nahoře. Zrušené rozhodnutí nemaž, označ ho jako nahrazené a odkaž na nové.
 
+## 2026-10-11: Tmavý motiv přes data-theme
+
+**Kontext:** Tmavý motiv má jít podle telefonu i ručně přepnout.
+
+**Rozhodnutí:** Skript v `<head>` nastaví `data-theme="dark|light"` na `<html>` (volba z menu, jinak `prefers-color-scheme`), CSS má jedinou tmavou sadu proměnných pod `[data-theme=dark]`. Žádný `@media (prefers-color-scheme)` blok, tmavé hodnoty by jinak byly dvakrát.
+
+**Důsledky:** Barvy jen přes proměnné; barva napevno v pravidle v tmavém motivu nebude sedět.
+
 ## 2026-10-11: Offline se zásobou příkladů
 
 **Kontext:** Děti chtějí cvičit i bez internetu (Android, appka na ploše). Všechno přitom dělal server: příklad, nápovědu i kontrolu.
