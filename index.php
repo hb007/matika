@@ -28,9 +28,11 @@ if ($kid) {
 <meta name="theme-color" content="#fbfcfa">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="<?= $nick !== '' ? htmlspecialchars($nick, ENT_QUOTES) : 'Matika' ?>">
+<meta name="apple-mobile-web-app-title" content="Matika<?= $nick !== '' ? ' ' . htmlspecialchars($nick, ENT_QUOTES) : '' ?>">
 <meta name="format-detection" content="telephone=no">
-<link rel="manifest" href="manifest.php<?= $kid ? "?kdo=$kid" : '' ?>">
+<?php if ($kid): /* aplikaci na plochu nabízí jen /holka a /kluk, viz manifest.php */ ?>
+<link rel="manifest" href="manifest.php?kdo=<?= $kid ?>">
+<?php endif; ?>
 <title>Matika</title>
 <link rel="icon" href="<?= $icon ?>.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="<?= $icon ?>-180.png">

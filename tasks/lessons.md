@@ -12,3 +12,8 @@ Poučení z oprav a korekcí, která platí i pro další práci na projektu.
 
 * Hosting (matika.brno.ai) posílá JS a CSS s `cache-control: max-age=259200` (3 dny), stránku jen s `max-age=300`. Bez verze v adrese tak prohlížeč po nasazení držel starý `app.js` a `style.css`, `index.php` ale stáhl nový. Nové HTML se starým JS aplikaci rozbilo („občas se blbě načte, musí se obnovit“). Reprodukováno lokálně podstrčením starého `app.js`: `Cannot set properties of null`.
 * `index.php` proto přidává ke skriptům a stylům `?v=<filemtime>` a posílá `Cache-Control: no-cache`. Každý nový JS nebo CSS soubor načítat stejně přes `$v(...)`.
+
+## Dvě aplikace na plochu z jednoho webu (2026-10-11)
+
+* Bez `scope` v manifestu je výchozí rozsah složka adresy, tady `/` pro kořen, `/holka` i `/kluk`. Kořenová aplikace pak zahrnuje i ostatní adresy a Android nabízel jen ji („instaluje se jen kořen“).
+* Každá aplikace potřebuje vlastní, nepřekrývající se `scope` (`./holka`, `./kluk`) a kořen bez manifestu. Kontrola: DevTools Protocol `Page.getAppManifest` a `Page.getInstallabilityErrors` přes Playwright.

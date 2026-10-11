@@ -1,6 +1,8 @@
 <?php
 // Manifest pro přidání na plochu: ikona z /holka nebo /kluk otevře rovnou to dítě
-// a jmenuje se podle jeho přezdívky v okamžiku instalace.
+// a jmenuje se podle jeho přezdívky v okamžiku instalace. Každé dítě má vlastní
+// scope: se společným „/“ by Android nainstaloval jen jednu aplikaci a druhá
+// adresa by se otevírala v ní. Kořen „/“ vlastní aplikaci nenabízí.
 require __DIR__ . '/lib/db.php';
 
 $kid = in_array($_GET['kdo'] ?? '', ['holka', 'kluk'], true) ? $_GET['kdo'] : '';
@@ -20,8 +22,9 @@ header('Cache-Control: no-cache');   // po přejmenování hned nový název
 echo json_encode([
     'id' => './' . $kid,
     'name' => 'Matika' . ($nick !== '' ? " $nick" : ''),
-    'short_name' => $nick !== '' ? $nick : 'Matika',   // pod ikonou se vejde ~12 znaků
+    'short_name' => 'Matika' . ($nick !== '' ? " $nick" : ''),
     'start_url' => './' . $kid,
+    'scope' => './' . $kid,
     'display' => 'standalone',
     'background_color' => '#fbfcfa',
     'theme_color' => $color,
