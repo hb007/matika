@@ -3,6 +3,14 @@
 Proč je projekt tak, jak je. Jedno rozhodnutí = jedna sekce: datum, kontext, rozhodnutí, důsledky.
 Nejnovější nahoře. Zrušené rozhodnutí nemaž, označ ho jako nahrazené a odkaž na nové.
 
+## 2026-10-11: Offline se zásobou příkladů
+
+**Kontext:** Děti chtějí cvičit i bez internetu (Android, appka na ploše). Všechno přitom dělal server: příklad, nápovědu i kontrolu.
+
+**Rozhodnutí:** Appka si online stahuje zásobu příkladů i se správným výsledkem, nápovědou a postupem. Bez internetu z ní bere příklady, odpověď kontroluje v telefonu (přepis `check_answer` do `offline.js`) a výsledky ukládá. Po připojení je pošle a server je přehraje přes `handle_answer` a `handle_reveal`, tedy přes stejná pravidla jako online. Příklady ze zásoby mají na serveru id (tabulka `issued`), server je ověří sám a započte jednou. Service worker (`sw.js`) drží stránku, skripty, styly a písma. Generátory se do JS nepřepisovaly: zásoba dá skoro totéž bez dvojí údržby generátorů, nápovědy a vysvětlení.
+
+**Důsledky:** Správný výsledek je v telefonu dřív, než ho dítě spočítá (šikovné dítě by ho našlo ve vývojářských nástrojích). Body offline jsou předběžné, rozbor chyby je jen online, opakování chyb offline nefunguje. Kontrola odpovědi existuje dvakrát (PHP a JS), shodu hlídá test před nasazením. Nevyužité příklady ze zásoby server po 90 dnech zapomene (nejvýš 1500 na dítě); výsledek k zapomenutému příkladu se nezapočte.
+
 ## 2026-10-11: Dvě děti na vlastních adresách, body a obtížnost
 
 **Kontext:** Bez bodů chybělo dětem porovnání a bez obtížnosti se nedalo přizpůsobit věku. Přihlašování a hesla dál nikdo nechce, ale hrozila záměna dětí na sdíleném zařízení.

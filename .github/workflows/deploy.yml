@@ -43,6 +43,9 @@ jobs:
       - name: Testy
         run: php tests/run.php
 
+      - name: Shoda kontroly odpovědí (server a offline v telefonu)
+        run: php tests/parity_cases.php | node tests/parity.js
+
       - name: FTP není nastavené
         if: env.HAS_FTP != 'true'
         run: echo "::warning::Chybí secrets FTP_SERVER, FTP_USERNAME a FTP_PASSWORD (Settings → Secrets and variables → Actions). Nic se nenahrálo."

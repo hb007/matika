@@ -4,7 +4,7 @@ stav: aktivní
 typ: kod
 varianta: A
 popis: Webová appka na procvičování matematiky pro 2. stupeň ZŠ (PHP + SQLite, FTP hosting)
-dalsi-krok: ověřit nasazení na hosting (GitHub Actions → FTP)
+dalsi-krok: ověřit offline na skutečném Androidu (režim letadlo)
 ---
 
 # Matika – procvičování pro 2. stupeň ZŠ
@@ -65,6 +65,8 @@ Pravidla, která hlídá server:
 
 **Papír na počítání.** Pod příkladem jde otevřít čtverečkovaný papír, na který se píše prstem, perem nebo myší (guma, krok zpět, smazat). Slouží k počítání pod sebou, appka z něj nic nečte. U každého nového příkladu se vyčistí. Na tabletu s otevřeným papírem se nevysouvá klávesnice sama.
 
+**Bez internetu.** Appka přidaná na plochu (Android, ale i iPhone a počítač) se otevře i bez internetu a dítě může dál cvičit. Dokud je online, stahuje si na pozadí zásobu příkladů: 30 pro aktuální úlohu, 15 pro každou další úlohu, kterou dítě používá, a 20 z Náhodného mixu jako zálohu. Ke každému příkladu je v zásobě i správný výsledek, kroky nápovědy a postup řešení. Bez internetu se nahoře ukáže lišta „Bez internetu. Počítáš ze zásoby“ a appka bere příklady odtud. Odpověď zkontroluje přímo v telefonu, nápověda i „Ukázat výsledek“ fungují. Rozbor chyby („sečetl jsi místo odečtení“) je jen online. Body v záhlaví jsou do připojení předběžné. Výsledky se uloží v telefonu a po připojení se samy odešlou (hned při obnovení spojení, jinak každých 30 sekund). Server je přehraje přes stejná pravidla jako online odpovědi, v pořadí a se dnem, kdy je dítě řešilo, takže body, série, denní cíl i opakování chyb vyjdou stejně. Každý příklad ze zásoby má na serveru své id, výsledek si server ověří sám a dvakrát ho nezapočte. Když vybraná úloha v zásobě dojde, appka vezme příklad z jiné úrovně téže úlohy nebo z mixu. Když dojde celá zásoba, vyzve k připojení. Výsledky a přejmenování fungují jen online. Poprvé je potřeba appku otevřít s internetem (a přes HTTPS, jinak prohlížeč offline režim nepovolí).
+
 ## Nasazení na hosting
 
 Stačí běžný webhosting s **PHP 8.1 nebo novějším** a rozšířením `pdo_sqlite`. Instalace není potřeba: databáze `data/matika-v2.sqlite` se založí sama při prvním použití. Složka `data/` musí být pro PHP zapisovatelná. Pro adresy `/holka` a `/kluk` je potřeba Apache s `mod_rewrite` (bez něj zbytek appky funguje).
@@ -112,11 +114,12 @@ Ve vývojovém Docker kontejneru (`docker-compose.yml`, image `vibecode` s PHP) 
 ## Jak to funguje
 
 * `index.php` + `app.js` + `paper.js` + `style.css` – jedna stránka, obrazovky se přepínají v JS. `index.php` pozná dítě z adresy (`/holka`, `/kluk`). Efekty za správnou odpověď jsou v `app.js` (objekt `EFFECTS`, Web Animations API, bez knihovny); nový efekt = nová položka v `EFFECTS`.
-* `api.php` – JSON API (`state`, `next`, `hint`, `answer`, `reveal`, `stats`, `rename`, `reset`). Každý požadavek nese `user` (1 holka, 2 kluk). Příklady generuje a kontroluje server, rozpracovaný příklad drží v PHP session zvlášť pro každé dítě. `answer` vrací jen správně/špatně a rozbor chyby, správný výsledek s postupem dá až `reveal`. Opakované odeslání hotového příkladu vrátí 409, body se nepřičtou dvakrát.
-* `lib/game.php` – body, série, denní cíl, opakování chyb, statistiky. `lib/db.php` – SQLite (tabulky `users`, `results`, `review` se založí samy).
+* `api.php` – JSON API (`state`, `next`, `hint`, `answer`, `reveal`, `stats`, `rename`, `reset`, pro offline `pool` a `sync`). Každý požadavek nese `user` (1 holka, 2 kluk). Příklady generuje a kontroluje server, rozpracovaný příklad drží v PHP session zvlášť pro každé dítě. `answer` vrací jen správně/špatně a rozbor chyby, správný výsledek s postupem dá až `reveal`. Opakované odeslání hotového příkladu vrátí 409, body se nepřičtou dvakrát.
+* `lib/game.php` – body, série, denní cíl, opakování chyb, statistiky. `lib/db.php` – SQLite (tabulky `users`, `results`, `review`, `issued` se založí samy).
 * `lib/generators.php` – generátory příkladů podle obtížnosti a kontrola odpovědí.
 * `lib/explain.php` – nápověda po krocích, postup řešení a rozbor typických chyb.
 * `paper.js` – papír na počítání (canvas, pero, guma).
+* `offline.js` – zásoba příkladů, kontrola odpovědi v telefonu (přepis `check_answer` z PHP) a fronta výsledků; `sw.js` – service worker, díky kterému se stránka otevře bez internetu (stránky nejdřív ze sítě, skripty, styly a písma z cache). `lib/offline.php` – vydávání zásoby (`pool`, tabulka `issued`) a dodatečné započtení výsledků (`sync`). Shodu kontroly odpovědi v PHP a JS hlídá `php tests/parity_cases.php | node tests/parity.js` (běží i před nasazením).
 * `manifest.php` – manifest pro přidání na plochu, pro `/holka` a `/kluk` zvlášť (vlastní ikona, barva, název podle přezdívky a vlastní `scope`).
 * `fonts/` – písma Atkinson Hyperlegible a Patrick Hand (woff2, latin a latin-ext).
 * `data/` – databáze (z nahrávání vyřazená, chrání ji `.htaccess` a `index.html`).

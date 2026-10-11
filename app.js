@@ -1,8 +1,11 @@
 // Matika – klientská logika. Jedna stránka, obrazovky se přepínají, všechno
-// důležité (generování příkladů, kontrola) dělá server v api.php.
+// důležité (generování příkladů, kontrola) dělá server v api.php. Bez
+// internetu appka řeší příklady ze zásoby v telefonu (offline.js) a výsledky
+// pošle po připojení.
 (() => {
   const $ = (id) => document.getElementById(id);
-  const state = { modules: {}, diffs: {}, goal: 20, users: [], user: null, module: null, level: null, diff: 'stredni', ex: null, lock: false, timer: null };
+  const state = { modules: {}, diffs: {}, goal: 20, users: [], user: null, module: null, level: null, diff: 'stredni', ex: null, lock: false, timer: null, offline: false };
+  const Offline = window.Offline;
   const DIFF_COLOR = { lehke: '#8fd970', stredni: '#ffd84d', tezke: '#ffa94d' };   // zvýrazňovače, i pro theme-color
   // Úrovně na telefonu krátce (symboly), celý název je v aria-label.
   const LEVEL_SHORT = {
@@ -21,11 +24,17 @@
   };
 
   async function api(action, data) {
-    const res = await fetch('api.php?action=' + action, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user: state.user, ...(data || {}) }),   // kdo cvičí, jde s každým požadavkem
-    });
+    let res;
+    try {
+      res = await fetch('api.php?action=' + action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: state.user, ...(data || {}) }),   // kdo cvičí, jde s každým požadavkem
+      });
+    } catch (e) {
+      // bez internetu: volající přepne na zásobu příkladů
+      throw Object.assign(new Error('Bez internetu.'), { status: 0, network: true });
+    }
     const json = await res.json().catch(() => ({ error: 'Server neodpověděl.' }));
     if (res.status === 401) { state.user = null; showWho(); }
     if (!res.ok) throw Object.assign(new Error(json.error || 'Chyba serveru'), { status: res.status });
@@ -73,6 +82,9 @@
   // dítěte (jméno, body dnes, proužek denního cíle), druhé dítě je v seznamu úloh.
   function renderKids(users) {
     state.users = users;
+    const cached = Offline.load('matika_state', null);
+    if (cached) { cached.users = users; Offline.save('matika_state', cached); }
+    updateBar();
     const me = users.find((u) => u.id === state.user);
     $('me').hidden = !me;
     $('brand').hidden = !!me;
@@ -188,7 +200,14 @@
   });
 
   // Session na serveru vypršela (příklad dlouho ležel): místo zaseknutí nový příklad.
+  // Vypadl internet: pokračuje se ze zásoby.
   async function failOrRenew(err) {
+    if (err.network) {
+      setOffline(true);
+      await next();
+      $('hint-info').textContent = 'Vypadl internet, pokračuješ příklady ze zásoby.';
+      return;
+    }
     if (err.status !== 404) { alert(err.message); return; }
     await next();
     $('hint-info').textContent = 'Předchozí příklad vypršel, tady je nový.';
@@ -196,14 +215,106 @@
 
   async function next() {
     clearTimeout(state.timer);
-    try {
-      state.ex = await api('next', { module: state.module, level: state.level, difficulty: state.diff });
-    } catch (e) {
-      alert(e.message);
-      return;
+    if (!state.offline) {
+      try {
+        state.ex = await api('next', { module: state.module, level: state.level, difficulty: state.diff });
+        showQuestion();
+        refill();
+        return;
+      } catch (e) {
+        if (!e.network) { alert(e.message); return; }
+        setOffline(true);
+      }
     }
+    const ex = Offline.take(state.user, state.module, state.level, state.diff);
+    if (!ex) { showEmptyPool(); return; }
+    state.ex = ex;
     showQuestion();
+    if (ex.other) $('hint-info').textContent = 'Tahle úloha v zásobě došla, tady je příklad odjinud.';
+    updateBar();
   }
+
+  // ---------- offline ----------
+  // Lišta nahoře: bez internetu, kolik příkladů zbývá v zásobě a kolik výsledků čeká.
+  function updateBar() {
+    const bar = $('offline-bar');
+    const waiting = state.user ? Offline.queue(state.user).length : 0;
+    if (!state.offline) { bar.hidden = true; return; }
+    const left = state.user ? Offline.poolSize(state.user) : 0;
+    bar.textContent = `Bez internetu. Počítáš ze zásoby (zbývá ${left}).`
+      + (waiting ? ` Výsledky (${waiting}) se odešlou, až budeš online.` : ' Výsledky se odešlou, až budeš online.');
+    bar.hidden = false;
+  }
+
+  function setOffline(on) {
+    state.offline = on;
+    updateBar();
+  }
+
+  function showEmptyPool() {
+    state.ex = null;
+    state.lock = true;
+    $('review').hidden = true;
+    $('question').innerHTML = '<span class="pool-empty">Zásoba příkladů došla. Připoj se k internetu a můžeš pokračovat.</span>';
+    $('inputs').innerHTML = '';
+    $('feedback').hidden = true;
+    $('hints').hidden = true;
+    $('btn-hint').hidden = true;
+    $('btn-reveal').hidden = true;
+    $('keypad').hidden = true;
+    $('hint-info').textContent = '';
+  }
+
+  // Doplní zásobu příkladů (aktuální úloha a úlohy, které dítě používá).
+  let refilling = false;
+  async function refill() {
+    if (state.offline || refilling || !state.user || !state.module) return;
+    const others = Object.entries(prefs()).filter(([m, v]) => m in state.modules && v && v.level)
+      .map(([module, v]) => ({ module, level: v.level, diff: v.diff }));
+    const want = Offline.wanted(state.user, { module: state.module, level: state.level, diff: state.diff }, others);
+    if (!want.length) return;
+    refilling = true;
+    const uid = state.user;
+    try {
+      const r = await api('pool', { want });
+      Offline.addToPool(uid, r.pool);
+    } catch (e) {
+      if (e.network) setOffline(true);
+    } finally {
+      refilling = false;
+    }
+  }
+
+  // Pošle výsledky vyřešené bez internetu (obou dětí) a zjistí, jestli je spojení.
+  let syncing = false;
+  async function trySync() {
+    if (syncing || !state.users.length) return;
+    syncing = true;
+    try {
+      let users = null;
+      for (const u of state.users) {
+        const items = Offline.queue(u.id);
+        if (!items.length && users) continue;   // prázdný sync stačí jednou jako test spojení
+        const r = await api('sync', { user: u.id, items });
+        Offline.forget(u.id, r.done);
+        users = r.users;
+      }
+      setOffline(false);
+      if (users) renderKids(users);
+      refill();
+    } catch (e) {
+      if (e.network) setOffline(true);
+    } finally {
+      syncing = false;
+      updateBar();
+    }
+  }
+
+  window.addEventListener('online', trySync);
+  window.addEventListener('offline', () => setOffline(true));
+  setInterval(() => {
+    if (state.offline || (state.user && Offline.queue(state.user).length)) trySync();
+  }, 30000);
 
   function showQuestion() {
     const q = state.ex;
@@ -335,9 +446,10 @@
 
   $('form-answer').addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (state.lock) return;
+    if (state.lock || !state.ex) return;
     const answer = collectAnswer();
     if (answerEmpty(answer)) return;
+    if (state.ex.local) { showAnswer(localAnswer(answer)); return; }
     state.lock = true;
     let r;
     try {
@@ -347,6 +459,33 @@
       failOrRenew(err);
       return;
     }
+    showAnswer(r);
+  });
+
+  // Odpověď na příklad ze zásoby: kontrola v telefonu, předběžné body, výsledek do fronty.
+  function localAnswer(answer) {
+    const ex = state.ex;
+    const c = Offline.check(ex, answer);
+    if (!c.readable) return { correct: false, note: c.note, why: '' };   // překlep, ne pokus
+    ex.tries++;
+    ex.answers.push(answer);
+    const me = state.users.find((u) => u.id === state.user);
+    if (!c.ok) {
+      if (ex.tries === 1 && me) me.streak = 0;
+      return { correct: false, note: c.note, why: '' };
+    }
+    const streak = ex.tries === 1 && me ? me.streak + 1 : 0;
+    const p = Offline.points(ex.diff, ex.tries, streak);
+    if (me) {
+      const add = p.points + p.bonus;
+      Object.assign(me, { streak, today: me.today + add, week: me.week + add, total: me.total + add, solved_today: me.solved_today + 1 });
+    }
+    Offline.record(state.user, ex, false);
+    trySync();
+    return { correct: true, note: c.note, points: p.points, bonus: p.bonus, streak, suggest: null, users: state.users, offline: true };
+  }
+
+  function showAnswer(r) {
     const fb = $('feedback');
     fb.hidden = false;
     if (r.correct) {
@@ -380,7 +519,7 @@
     const first = document.querySelector('#inputs input');
     setActive(first);
     if (!KEYPAD) first.select();
-  });
+  }
 
   // Po vyřešení nebo ukázání výsledku: příklad už nejde měnit.
   function endQuestion() {
@@ -413,11 +552,19 @@
   $('btn-reveal').addEventListener('click', async () => {
     if (!state.ex || state.lock) return;
     let r;
-    try {
-      r = await api('reveal');
-    } catch (err) {
-      failOrRenew(err);
-      return;
+    if (state.ex.local) {
+      const me = state.users.find((u) => u.id === state.user);
+      if (me) me.streak = 0;
+      Offline.record(state.user, state.ex, true);
+      trySync();
+      r = { answer: state.ex.answer, steps: state.ex.steps, suggest: null, users: state.users };
+    } else {
+      try {
+        r = await api('reveal');
+      } catch (err) {
+        failOrRenew(err);
+        return;
+      }
     }
     endQuestion();
     renderKids(r.users);
@@ -440,11 +587,17 @@
   $('btn-hint').addEventListener('click', async () => {
     if (!state.ex || state.lock) return;
     let r;
-    try {
-      r = await api('hint');
-    } catch (err) {
-      failOrRenew(err);
-      return;
+    if (state.ex.local) {
+      const ex = state.ex;
+      ex.shownHints = Math.min(ex.hints.length, ex.shownHints + 1);
+      r = { steps: ex.hints.slice(0, ex.shownHints), total: ex.hints.length };
+    } else {
+      try {
+        r = await api('hint');
+      } catch (err) {
+        failOrRenew(err);
+        return;
+      }
     }
     $('hints').innerHTML = r.steps.map((l) => `<li>${renderQ(l)}</li>`).join('');
     $('hints').hidden = false;
@@ -571,7 +724,14 @@
   const MODULE_NAME = (m) => (state.modules[m] ? state.modules[m].title : m);
 
   async function loadStats() {
-    const s = await api('stats');
+    let s;
+    try {
+      s = await api('stats');
+    } catch (e) {
+      if (e.network) setOffline(true);
+      alert(e.network ? 'Výsledky se ukážou, až budeš online.' : e.message);
+      return;
+    }
     renderKids(s.users);
     const row = (label, f) => `<tr><th>${label}</th>${s.users.map((u) => `<td class="num">${f(u)}</td>`).join('')}</tr>`;
     $('compare').innerHTML =
@@ -636,13 +796,36 @@
   // ---------- start ----------
   (async () => {
     try {
-      const s = await api('state');
+      let s;
+      try {
+        s = await api('state');
+        Offline.save('matika_state', s);
+      } catch (e) {
+        // bez internetu ze stavu z minula (úlohy, děti, body)
+        s = e.network && Offline.load('matika_state', null);
+        if (!s) throw e.network ? new Error('Bez internetu. Matiku je potřeba poprvé otevřít s internetem.') : e;
+        state.offline = true;
+      }
       const me = s.users.find((u) => u.kind === document.body.dataset.kid);
       Object.assign(state, { modules: s.modules, diffs: s.difficulties, goal: s.goal, user: me ? me.id : null });
       renderKids(s.users);
       if (state.user) openLast(); else showWho();
+      if (!state.offline) trySync();   // výsledky z minula a doplnění zásoby
     } catch (e) {
       document.body.insertAdjacentHTML('afterbegin', `<p style="padding:16px;color:#d64545">${esc(e.message)}</p>`);
     }
   })();
+
+  // Service worker: appka se otevře i bez internetu (sw.js). Po registraci
+  // mu stránka pošle, co právě načetla, ať je to v cache hned napoprvé.
+  if ('serviceWorker' in navigator && window.isSecureContext) {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => navigator.serviceWorker.ready)
+      .then((reg) => {
+        const urls = performance.getEntriesByType('resource').map((r) => r.name)
+          .filter((u) => u.startsWith(location.origin) && !u.includes('api.php'));
+        if (reg.active) reg.active.postMessage({ cache: urls, page: location.href });
+      })
+      .catch(() => { /* bez service workeru appka funguje dál, jen ne offline */ });
+  }
 })();

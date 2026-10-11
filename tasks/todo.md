@@ -2,6 +2,21 @@
 
 * [x] ověřit nasazení na hosting (GitHub Actions → FTP)
 
+## Offline se zásobou příkladů (2026-10-11)
+
+* [x] server: tabulka `issued`, `pool` (zásoba) a `sync` (přehrání přes `handle_answer`/`handle_reveal`), testy `tests/test_offline.php`
+* [x] `offline.js`: kontrola odpovědi v JS, zásoba, fronta výsledků; test shody s PHP (`tests/parity*.php/js`, i v nasazení)
+* [x] `sw.js`: stránka, skripty, styly, písma a ikony offline
+* [x] `app.js`: přepnutí na zásobu při výpadku, lišta „Bez internetu“, odeslání po připojení, stav z minula při startu bez sítě
+* [x] dokumentace (README, rozhodnutí)
+* [ ] ověřit na skutečném Androidu: appka z plochy v režimu letadlo, po připojení se body započtou
+
+### Výsledek
+
+* Playwright (Pixel 7, Chromium): online otevření → zásoba 30 + mix 20, stránka a skripty v cache → offline reload otevře appku s lištou → správně (+2), špatně a správně (+1), nápověda ve 2 krocích a ukázat výsledek (0) → online: fronta prázdná, na serveru +3 body a 2 vyřešené, lišta zmizí. Bez JS chyb.
+* Shoda kontroly odpovědi PHP a JS na 15 938 případech.
+* Neověřeno: skutečný Android, chování service workeru na produkčním HTTPS, plné localStorage.
+
 ## Samostatné příklady bez jmen a bodů (2026-10-11)
 
 * [x] api.php: jen `modules`, `next`, `hint`, `answer`; aktuální příklad v PHP session

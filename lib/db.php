@@ -27,6 +27,11 @@ function db_open(string $dsn): PDO
         id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id),
         task TEXT NOT NULL, q TEXT NOT NULL, ex TEXT NOT NULL, due INTEGER NOT NULL,
         UNIQUE (user_id, task, q))');
+    // příklady vydané do zásoby pro offline (id je náhodné, klient ho vrací se sync)
+    $pdo->exec('CREATE TABLE IF NOT EXISTS issued (
+        id TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id),
+        task TEXT NOT NULL, ex TEXT NOT NULL, created INTEGER NOT NULL)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS issued_user ON issued (user_id, created)');
     return $pdo;
 }
 

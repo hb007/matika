@@ -63,6 +63,7 @@ if ($kid) {
 </header>
 
 <main id="app">
+  <div class="offline-bar" id="offline-bar" role="status" hidden></div>
 
   <!-- kdo cvičí -->
   <section id="screen-who" class="screen" hidden>
@@ -121,6 +122,7 @@ if ($kid) {
   </section>
 </main>
 <script src="<?= $v('paper.js') ?>"></script>
+<script src="<?= $v('offline.js') ?>"></script>
 <script src="<?= $v('app.js') ?>"></script>
 </body>
 </html>

@@ -10,6 +10,7 @@ require __DIR__ . '/lib/generators.php';
 require __DIR__ . '/lib/explain.php';
 require __DIR__ . '/lib/db.php';
 require __DIR__ . '/lib/game.php';
+require __DIR__ . '/lib/offline.php';
 
 date_default_timezone_set('Europe/Prague');
 header('Content-Type: application/json; charset=utf-8');
@@ -121,6 +122,17 @@ try {
             require_ex($uid);
             $res = handle_reveal(db(), $_SESSION['cur'][$uid], $uid, $today);
             out($res + ['users' => users_state(db(), $today)]);
+
+        case 'pool':
+            // zásoba příkladů pro offline (viz lib/offline.php)
+            $uid = require_uid($in);
+            out(['pool' => issue_pool(db(), $uid, is_array($in['want'] ?? null) ? $in['want'] : [], time())]);
+
+        case 'sync':
+            // výsledky vyřešené bez internetu
+            $uid = require_uid($in);
+            $done = sync_results(db(), $uid, is_array($in['items'] ?? null) ? $in['items'] : [], time());
+            out(['done' => $done, 'users' => users_state(db(), $today)]);
 
         case 'stats':
             $stats = [];
