@@ -2,9 +2,8 @@
 
 Poučení z oprav a korekcí, která platí i pro další práci na projektu.
 
-## FTP-Deploy-Action maže zmizelé složky celé (2026-10-11)
+## FTP-Deploy-Action a složky (2026-10-11)
 
-* Když z repa zmizí složka, akce na serveru zavolá rekurzivní mazání celé složky, včetně souborů vyřazených přes `exclude`. `exclude` chrání jen jednotlivé soubory, ne jejich složku.
-* Při rušení databáze se tak málem smazala `data/` i se SQLite. Nasazení spadlo jen díky chybě akce (absolutní cesta `/data`, odpověď FTP 550), po chybě se neuložil stav synchronizace a každé další nasazení by spadlo znovu.
-* Než z repa odstraním složku, ověřím, co v ní na serveru zůstane. Složku se serverovými daty v repu nechám (stačí `.htaccess` a `index.html`).
-* Do `data/` na hostingu FTP nezapíše (chyba 553 při nahrávání `data/.htaccess`, v 11:21 ještě šlo). Soubory v `data/` v repu neměň, jinak nasazení spadne.
+* Když z repa zmizí složka, akce (v4.3.5) na serveru maže celou složku rekurzivně, včetně souborů vyřazených přes `exclude`. `exclude` chrání jen jednotlivé soubory, ne jejich složku.
+* Když složka na serveru chybí (smazaná ručně), mazání spadne na `550 Failed to change directory` a nahrávání souboru do ní na `553 Could not create file`. Po chybě se neuloží stav synchronizace, takže každé další nasazení spadne stejně.
+* Postup při odstranění složky z repa: ověřit, co v ní na serveru je (data, která tam mají zůstat, nejdřív přesunout). Když složka na serveru chybí, založit ji prázdnou a teprve pak pushnout.

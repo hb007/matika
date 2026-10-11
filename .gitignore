@@ -1,4 +1,4 @@
-# Data a nastavení appky (SQLite, výstup instalátoru)
+# Lokální data a nastavení ze starší verze s databází
 *.sqlite
 *.sqlite-journal
 *.sqlite-wal

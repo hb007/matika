@@ -10,11 +10,9 @@
 #              FTP_PROTOCOL  ftps (výchozí) nebo ftp, když hosting FTPS neumí
 #
 # Nahrávají se jen změněné soubory (stav si akce drží na serveru v souboru
-# .ftp-deploy-sync-state.json). Appka nemá databázi ani nastavení; pozůstatky
-# starší verze na serveru (databáze v data/, config.local.php, install.php)
-# akce nepřepíše ani nesmaže, uklízí se ručně (viz README). Pozor: složku,
-# která z repa zmizí, akce maže celou i s vyřazenými soubory, proto data/
-# v repu zůstává.
+# .ftp-deploy-sync-state.json). Pozor: složku, která z repa zmizí, akce na
+# serveru maže celou včetně vyřazených souborů, a když tam složka už není,
+# nasazení spadne (viz tasks/lessons.md).
 
 name: Nasazení na FTP
 
@@ -62,6 +60,3 @@ jobs:
             docs/**
             tasks/**
             docker-compose*.yml
-            data/*.sqlite*
-            config.local.php
-            install.php
