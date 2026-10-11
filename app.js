@@ -2,7 +2,7 @@
 // důležité (generování příkladů, kontrola) dělá server v api.php.
 (() => {
   const $ = (id) => document.getElementById(id);
-  const state = { modules: {}, module: null, level: null, ex: null, lock: false, timer: null };
+  const state = { modules: {}, module: null, level: null, levels: {}, ex: null, lock: false, timer: null };
 
   async function api(action, data) {
     const res = await fetch('api.php?action=' + action, {
@@ -63,13 +63,35 @@
 
   // ---------- příklady ----------
   function startTask(module, level) {
-    const m = state.modules[module];
     state.module = module;
     state.level = level;
-    $('task').textContent = `${m.title} – ${m.levels[level]}`;
+    state.levels[module] = level;   // záložka si pamatuje poslední úroveň
+    renderTabs();
     show('round');
+    $('tabs').querySelector('[aria-current]').scrollIntoView({ inline: 'center', block: 'nearest' });
     next();
   }
+
+  // Záložky s typy úloh a pod nimi úrovně: přepínání bez návratu do menu.
+  function renderTabs() {
+    const btn = (cls, attr, val, label, on) =>
+      `<button type="button" class="${cls}" ${attr}="${val}"${on ? ' aria-current="true"' : ''}>${esc(label)}</button>`;
+    $('tabs').innerHTML = Object.entries(state.modules)
+      .map(([key, m]) => btn('tab', 'data-module', key, m.title, key === state.module)).join('');
+    $('chips').innerHTML = Object.entries(state.modules[state.module].levels)
+      .map(([lv, label]) => btn('chip', 'data-level', lv, label, lv === state.level)).join('');
+  }
+
+  $('tabs').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-module]');
+    if (!b) return;
+    const key = b.dataset.module;
+    startTask(key, state.levels[key] || Object.keys(state.modules[key].levels)[0]);
+  });
+  $('chips').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-level]');
+    if (b) startTask(state.module, b.dataset.level);
+  });
 
   async function next() {
     clearTimeout(state.timer);
@@ -92,6 +114,7 @@
     $('hint-info').textContent = '';
     $('btn-hint').hidden = false;
     $('btn-hint').textContent = 'Nápověda';
+    $('btn-reveal').hidden = true;
     paper.clear();
     $('btn-submit').hidden = false;
     state.lock = false;
@@ -218,29 +241,61 @@
     }
     const fb = $('feedback');
     fb.hidden = false;
-    $('keypad').hidden = true;
-    $('btn-submit').hidden = true;
-    document.querySelectorAll('#inputs input').forEach((inp) => (inp.disabled = true));
-    $('btn-hint').hidden = true;
-    $('hint-info').textContent = '';
     if (r.correct) {
+      endQuestion();
       fb.className = 'feedback ok';
       fb.innerHTML = pick(['Správně!', 'Přesně tak!', 'Paráda!', 'Trefa!', 'Výborně!', 'Super!']) + (r.note ? `<small>${esc(r.note)}</small>` : '');
       confetti($('question'));
       state.timer = setTimeout(next, r.note ? 2400 : 1500);
-    } else {
-      fb.className = 'feedback bad';
-      const steps = (r.steps || []).length ? `<ol class="steps">${r.steps.map((l) => `<li>${renderQ(l)}</li>`).join('')}</ol>` : '';
-      fb.innerHTML = `Správně je <b>${renderQ(r.answer)}</b>`
-        + (r.note ? `<small>${esc(r.note)}</small>` : '')
-        + (r.why ? `<span class="why">${esc(r.why)}</span>` : '')
-        + steps
-        + `<div class="next"><button type="button" class="btn" id="btn-next">Další</button></div>`;
-      if (!KEYPAD) $('btn-next').focus();
-      $('btn-next').addEventListener('click', next);
-      // na telefonu může být vysvětlení pod okrajem obrazovky
-      fb.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      return;
     }
+    // špatně: výsledek neprozradíme, jen co je špatně, a dítě to zkusí znovu
+    fb.className = 'feedback';
+    void fb.offsetWidth;   // restart animace, i když je hláška stejná jako minule
+    fb.className = 'feedback bad';
+    fb.innerHTML = 'Ještě ne, zkus to znovu.'
+      + (r.note ? `<small>${esc(r.note)}</small>` : '')
+      + (r.why ? `<span class="why">${esc(r.why)}</span>` : '');
+    $('btn-reveal').hidden = false;
+    state.lock = false;
+    const first = document.querySelector('#inputs input');
+    if (KEYPAD) setActive(first);
+    else first.select();
+  });
+
+  // Po vyřešení nebo ukázání výsledku: příklad už nejde měnit.
+  function endQuestion() {
+    state.lock = true;
+    $('keypad').hidden = true;
+    $('btn-submit').hidden = true;
+    document.querySelectorAll('#inputs input').forEach((inp) => (inp.disabled = true));
+    $('btn-hint').hidden = true;
+    $('btn-reveal').hidden = true;
+    $('hint-info').textContent = '';
+  }
+
+  // Správný výsledek s postupem, jen když si o něj dítě řekne.
+  $('btn-reveal').addEventListener('click', async () => {
+    if (!state.ex || state.lock) return;
+    let r;
+    try {
+      r = await api('reveal');
+    } catch (err) {
+      alert(err.message);
+      return;
+    }
+    endQuestion();
+    const fb = $('feedback');
+    fb.hidden = false;
+    fb.className = 'feedback bad reveal';
+    const steps = r.steps.length ? `<ol class="steps">${r.steps.map((l) => `<li>${renderQ(l)}</li>`).join('')}</ol>` : '';
+    fb.innerHTML = `Správně je <b>${renderQ(r.answer)}</b>`
+      + steps
+      + `<div class="next"><button type="button" class="btn" id="btn-next">Další</button></div>`;
+    if (!KEYPAD) $('btn-next').focus();
+    $('btn-next').addEventListener('click', next);
+    // na telefonu může být vysvětlení pod okrajem obrazovky
+    fb.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   });
 
   // Nápověda po krocích: každé kliknutí odkryje další krok.
@@ -288,7 +343,7 @@
   } catch (e) { /* bez úložiště */ }
   setPaper(paperOpen);
 
-  // Enter po špatné odpovědi = další příklad
+  // Enter po ukázání výsledku = další příklad
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && state.lock && !$('feedback').hidden && $('btn-next')) {
       e.preventDefault();

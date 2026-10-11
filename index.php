@@ -36,7 +36,8 @@
 
   <!-- příklad -->
   <section id="screen-round" class="screen" hidden>
-    <div class="meta" id="task"></div>
+    <nav class="tabs" id="tabs" aria-label="Typ úlohy"></nav>
+    <div class="chips" id="chips" aria-label="Úroveň"></div>
     <div class="round-grid">
       <div class="round-main">
         <div class="question" id="question"></div>
@@ -49,6 +50,7 @@
         <div class="hintbox">
           <ol id="hints" class="hints" hidden></ol>
           <button type="button" class="hintbtn" id="btn-hint">Nápověda</button>
+          <button type="button" class="hintbtn" id="btn-reveal" hidden>Ukázat výsledek</button>
           <span id="hint-info" class="hint-info"></span>
         </div>
       </div>

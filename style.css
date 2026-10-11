@@ -69,7 +69,24 @@ input:focus { outline: none; border-color: var(--accent); }
 .levels button small { color: var(--muted); font-weight: 500; float: right; }
 
 /* kolo */
-.meta { display: flex; justify-content: space-between; color: var(--muted); margin: 8px 0 24px; font-weight: 600; }
+.tabs {
+  display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none;
+  margin: -8px -16px 10px; padding: 0 16px; border-bottom: 1px solid #e3e8f4;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex: none; background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px;
+  color: var(--muted); font-size: 16px; font-weight: 700; padding: 10px 10px 8px; cursor: pointer;
+}
+.tab:hover { color: var(--ink); }
+.tab[aria-current] { color: var(--accent); border-bottom-color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+.chip {
+  border: 2px solid #d5dbea; background: var(--card); color: var(--ink); border-radius: 999px;
+  font-size: 14px; font-weight: 600; padding: 5px 12px; cursor: pointer;
+}
+.chip:hover { border-color: var(--accent); }
+.chip[aria-current] { border-color: var(--accent); background: #eef2ff; color: var(--accent); }
 .question {
   font-size: 44px; font-weight: 800; text-align: center; margin: 12px 0 24px; letter-spacing: 1px;
   display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap;
@@ -94,6 +111,10 @@ input:focus { outline: none; border-color: var(--accent); }
   .feedback.ok { animation: pop .4s cubic-bezier(.3, 1.6, .5, 1); }
 }
 @keyframes pop { from { transform: scale(.6); opacity: 0; } }
+@media (prefers-reduced-motion: no-preference) {
+  .feedback.bad:not(.reveal) { animation: shake .35s; }
+}
+@keyframes shake { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
 .confetti {
   position: fixed; z-index: 50; width: 9px; height: 14px; margin: -7px 0 0 -4px;
   border-radius: 2px; pointer-events: none;
@@ -173,7 +194,7 @@ input:focus { outline: none; border-color: var(--accent); }
   .top { padding-top: max(8px, env(safe-area-inset-top)); padding-bottom: 8px; }
   .brand { font-size: 20px; }
   h1 { font-size: 24px; }
-  .meta { margin-bottom: 12px; font-size: 15px; }
+  .chips { margin-bottom: 12px; }
   .question { font-size: 38px; margin: 4px 0 14px; }
   .answer input { width: 160px; font-size: 28px; padding: 8px; }
   .answer input.narrow { width: 86px; }
@@ -192,5 +213,5 @@ input:focus { outline: none; border-color: var(--accent); }
   .question { font-size: 30px; margin: 0 0 8px; }
   .key { height: 42px; font-size: 22px; }
   .keypad { margin-top: 8px; }
-  .meta { margin-bottom: 6px; }
+  .chips { margin-bottom: 6px; }
 }

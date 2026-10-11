@@ -1,7 +1,7 @@
 <?php
 // JSON API. Volá se POST /api.php?action=... s JSON tělem.
 // Bez přihlášení a bez databáze: aktuální příklad drží PHP session,
-// klient správnou odpověď dostane až po odeslání své.
+// správnou odpověď klient dostane, jen když si o ni řekne (reveal).
 declare(strict_types=1);
 
 require __DIR__ . '/lib/generators.php';
@@ -63,12 +63,16 @@ switch ($action) {
         $ex = current_ex();
         $given = $in['answer'] ?? '';
         [$ok, $note] = check_answer($ex, $given);
-        $res = ['correct' => $ok, 'answer' => answer_str($ex), 'note' => $note];
+        $res = ['correct' => $ok, 'note' => $note];
         if (!$ok) {
+            // jen co je špatně, výsledek ne: dítě má další pokus
             $res['why'] = $note !== '' ? '' : diagnose($ex, $given);   // u nečitelné odpovědi stačí poznámka
-            $res['steps'] = explain($ex);
         }
         out($res);
+
+    case 'reveal':
+        $ex = current_ex();
+        out(['answer' => answer_str($ex), 'steps' => explain($ex)]);
 
     default:
         fail('Neznámá akce.', 404);
