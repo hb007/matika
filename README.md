@@ -27,7 +27,7 @@ Cvičí dvě děti, 👧 holka a 👦 kluk, bez hesla. Každé má svou adresu (
 | Zlomky: násobení a dělení | jmenovatele 2–5 | 2–9 | 2–12 |
 | Dělení s ocáskem | 100–999 : 2–9 | 1 000–9 999 : 2–9 | 1 000–99 999 : 11–99 |
 | Závorky a pořadí: pořadí operací (`3 + 4 · 5`), se závorkami (`(3 + 4) · 5`), všechno (`2 · (8 − 3) + 4`) | sčítance do 20, činitele 2–5, výsledek do 100 | do 50, 2–10, do 500 | do 100, 2–12, do 2 000, víc operací |
-| Desetinná čísla · : (násobení, dělení, krát a děleno 10/100/1 000) | desetinné · celé, : celým; posun čárky o 1 místo | i desetinné · desetinné, : desetinným; posun o 1–2 místa | větší čísla; posun o 1–3 místa. Zadání je skoro vždy desetinné číslo (nekončí nulou), celé výsledky jen občas; u násobení a dělení nejvýš 2 desetinná místa, u posunu čárky 3 |
+| Desetinná čísla · : (násobení, dělení, krát a děleno 10/100/1 000) | desetinné · celé, : celým; posun čárky o 1 místo | i desetinné · desetinné, : desetinným; posun o 1–2 místa | větší čísla; posun o 1–3 místa. Zadání je skoro vždy desetinné číslo (nekončí nulou), výsledek může vyjít celý; u násobení a dělení nejvýš 2 desetinná místa, u posunu čárky 3 |
 | Procenta: kolik je 20 % ze 150, kolik % je 30 ze 150, celek (30 je 20 % z kolika) | 10, 20, 25, 50, 75, 100 %, kulatá čísla | 5–90 % | 1–150 %, do 2 000 |
 | Dělitelnost: znaky dělitelnosti (nejmenší číslice místo □), největší společný dělitel D(a, b), nejmenší společný násobek n(a, b) | 3místná, dělitel 2, 3, 5, 10; čísla do 30 | do 4 míst, i 4, 6, 9; do 60 | 4–5 míst; do 150 |
 | Průměr, medián, modus | 3–5 čísel do 10 (medián z lichého počtu) | 5–6 čísel do 30 | 6–8 čísel do 100 (medián může být ,5) |

@@ -387,8 +387,8 @@ function gen_desetinna(string $level, string $diff): array
         }
         if ($level === 'nasobeni') {
             $r = $x * $y;
-            if (dec_places($r) > 2 || (dec_places($r) === 0 && rand(0, 3) > 0)) {
-                continue;   // celý výsledek jen občas
+            if (dec_places($r) > 2) {
+                continue;
             }
             return ['q' => dec_fmt($x) . ' · ' . dec_fmt($y), 'kind' => 'num', 'a' => (float) round($r, 4),
                     'p' => ['op' => 'dmd', 'form' => 'nasobeni', 'x' => $x, 'y' => $y, 'mul' => true, 'dec' => true]];
@@ -396,8 +396,7 @@ function gen_desetinna(string $level, string $diff): array
         // dělení: dělenec = výsledek · dělitel, ať vyjde beze zbytku
         $r = $x;
         $dividend = round($r * $y, 6);
-        if (dec_places($dividend) > 2 || $y == 0 || dec_places($dividend) + dec_places($y) + dec_places($r) === 0
-            || (dec_places($r) === 0 && rand(0, 3) > 0)) {
+        if (dec_places($dividend) > 2 || $y == 0 || dec_places($dividend) + dec_places($y) + dec_places($r) === 0) {
             continue;   // aspoň jedno desetinné číslo, jinak to není úloha na desetinná čísla
         }
         return ['q' => dec_fmt($dividend) . ' : ' . dec_fmt($y), 'kind' => 'num', 'a' => (float) round($r, 4),
