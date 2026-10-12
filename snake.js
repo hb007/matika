@@ -4,8 +4,8 @@
 // barva dítěte). Funguje i offline, nic neposílá na server.
 window.Snake = (() => {
   const N = 15;            // políček na šířku i výšku
-  const START_MS = 170;    // krok na začátku
-  const MIN_MS = 80;       // nejrychlejší krok
+  const START_MS = 220;    // krok na začátku (klidné tempo, ať se dítě rozkouká)
+  const MIN_MS = 100;      // nejrychlejší krok (dosáhne ho po 30 jablkách)
   const FASTER = 4;        // o kolik ms zrychlí každé jablko
   const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 
