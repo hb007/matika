@@ -229,7 +229,11 @@ function diagnose_expr(array $p, float $g, $answer): string
 // Neznámá, kterou dítě píše do políčka (u rovnic „x =“), jinak null.
 function question_var(array $ex): ?string
 {
-    return ($ex['p']['op'] ?? '') === 'eq' ? 'x' : more_var($ex);
+    $p = $ex['p'] ?? [];
+    if (($p['op'] ?? '') === 'rom') {
+        return $p['form'] === 'na_rimske' ? 'římsky' : null;
+    }
+    return ($p['op'] ?? '') === 'eq' ? 'x' : more_var($ex);
 }
 
 function eq_rand(array $range, bool $nonzero = false): int

@@ -2,6 +2,12 @@
 
 * [x] ověřit nasazení na hosting (GitHub Actions → FTP)
 
+## Římské číslice (2026-10-13)
+
+* [x] `lib/rimske.php`: úloha se dvěma úrovněmi (na arabské, na římské), rozsahy 1–39 / 40–399 / 400–3 999, kontrola správného zápisu, nápověda, postup, rozbor chyb; nový druh odpovědi `roman`
+* [x] klient: klávesnice s písmeny podle obtížnosti, malá písmena z klávesnice; kontrola v `offline.js` a případy v testu shody PHP/JS; `tests/test_rimske.php`
+* [x] ověřeno v Playwright (telefon, světlý i tmavý): špatný zápis IIII s vysvětlením, nápověda, správná odpověď, převod na arabské s číselnou klávesnicí
+
 ## Offline se zásobou příkladů (2026-10-11)
 
 * [x] server: tabulka `issued`, `pool` (zásoba) a `sync` (přehrání přes `handle_answer`/`handle_reveal`), testy `tests/test_offline.php`

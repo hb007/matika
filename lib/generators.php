@@ -3,9 +3,10 @@
 //
 // Každý příklad je pole:
 //   q    – zadání pro zobrazení (zlomky jako "3/4", klient je vykreslí svisle)
-//   kind – 'num' (jedno číslo), 'frac' (zlomek), 'divrem' (podíl + zbytek)
+//   kind – 'num' (jedno číslo), 'frac' (zlomek), 'divrem' (podíl + zbytek),
+//          'roman' (římské číslo)
 //   a    – správná odpověď: int|float pro num, [čitatel, jmenovatel] pro frac,
-//          [podíl, zbytek] pro divrem
+//          [podíl, zbytek] pro divrem, text (MCMXCIV) pro roman
 //   strict (jen frac) – vyžaduje se zkrácený tvar (modul krácení)
 //   p    – operandy (pro nápovědu, vysvětlení a rozbor chyby, viz explain.php)
 
@@ -21,6 +22,7 @@ const MODULES = [
     'zavorky'     => ['title' => 'Závorky a pořadí',       'levels' => ['poradi' => 'Pořadí operací', 'zavorky' => 'Se závorkami', 'mix' => 'Všechno']],
     'rovnice'     => ['title' => 'Rovnice',                'levels' => ['jednoducha' => 'Jednoduché', 'dvoukrokova' => 'Na dva kroky', 'obe' => 'x na obou stranách a závorky']],
     'statistika'  => ['title' => 'Průměr, medián, modus',  'levels' => ['prumer' => 'Průměr', 'median' => 'Medián', 'modus' => 'Modus']],
+    'rimske'      => ['title' => 'Římské číslice',         'levels' => ['na_arabske' => 'Z římských na arabské', 'na_rimske' => 'Z arabských na římské']],
     'mix'         => ['title' => 'Náhodný mix',            'levels' => ['vse' => 'Všechno']],
 ];
 
@@ -262,6 +264,9 @@ function extra_keys(array $ex): array
     if ($ex['kind'] === 'frac') {
         return ['/'];
     }
+    if ($ex['kind'] === 'roman') {
+        return $ex['p']['keys'];   // místo číslic písmena I V X … podle obtížnosti
+    }
     if (!empty($ex['p']['neg'])) {
         return ['−'];   // rovnice na těžké: x může vyjít záporné
     }
@@ -280,6 +285,8 @@ function answer_str(array $ex): string
             return frac_str($ex['a'][0], $ex['a'][1]);
         case 'divrem':
             return fmt_num($ex['a'][0]) . ' zb. ' . $ex['a'][1];
+        case 'roman':
+            return $ex['a'];
         default:
             return fmt_num($ex['a']);
     }
@@ -350,9 +357,23 @@ function check_answer(array $ex, $given): array
                 return [false, 'Vyplň podíl i zbytek (zbytek může být 0).'];
             }
             return [(int) $q === $ex['a'][0] && (int) $r === $ex['a'][1], ''];
+
+        case 'roman':
+            $g = roman_norm((string) $given);
+            if (!roman_readable($g)) {
+                return [false, 'Piš římskými číslicemi (I, V, X, L, C, D, M).'];
+            }
+            if ($g === $ex['a']) {
+                return [true, ''];
+            }
+            if (!preg_match(ROMAN_RE, $g)) {
+                return [false, 'Takhle se římské číslo nepíše: stejná číslice nejvýš 3× za sebou, před větší číslici se dává jen I, X nebo C.'];
+            }
+            return [false, ''];
     }
     return [false, ''];
 }
 
 require_once __DIR__ . '/algebra.php';   // závorky a rovnice
 require_once __DIR__ . '/more.php';      // procenta, dělitelnost, statistika, desetinná · :
+require_once __DIR__ . '/rimske.php';    // římské číslice

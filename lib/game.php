@@ -168,6 +168,7 @@ function answer_readable(array $ex, $given): bool
     return match ($ex['kind']) {
         'frac' => parse_frac($given) !== null,
         'divrem' => parse_num($given['q']) !== null && parse_num($given['r']) !== null,
+        'roman' => roman_readable($given),
         default => parse_num($given) !== null,
     };
 }

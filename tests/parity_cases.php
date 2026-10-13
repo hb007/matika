@@ -20,6 +20,9 @@ $variants = function (array $ex): array {
             return [['q' => (string) $a[0], 'r' => (string) $a[1]], ['q' => (string) ($a[0] + 1), 'r' => (string) $a[1]],
                     ['q' => (string) $a[0], 'r' => ''], ['q' => 'x', 'r' => '0'], ['q' => fmt_num($a[0]), 'r' => (string) $a[1]],
                     ['q' => $a[0] . '.0', 'r' => (string) $a[1]], ['q' => (string) $a[0], 'r' => (string) ($a[1] + 1)]];
+        case 'roman':
+            return [$a, strtolower($a), " $a ", substr($a, 0, 1) . ' ' . substr($a, 1), $a . 'I', 'I' . $a, 'IIII', 'VV', 'IC', 'XM', 'MMMM', "\u{a0}$a", "$a\n",
+                    'XLIX', 'CDXLIV', '49', '', 'abc', 'X-I'];
         default:
             $s = answer_str($ex);
             return [$s, (string) $a, str_replace(',', '.', $s), str_replace('−', '-', $s), (string) ($a + 1), (string) -$a,

@@ -21,6 +21,7 @@
     procenta: { z_cisla: '% z', kolik: '?%', zaklad: '100%' },
     delitelnost: { znaky: '□', nsd: 'D', nsn: 'n' },
     statistika: { prumer: 'Ø', median: 'med', modus: 'mod' },
+    rimske: { na_arabske: 'XII→12', na_rimske: '12→XII' },
   };
   // Obtížnost jako ikony: pírko, kámen, činka; „vše“ (jen v mixu) jako zamíchání.
   const ICON = (d) => `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -368,10 +369,11 @@
         <span>zb.</span><input type="text" inputmode="numeric" id="ans-r" class="narrow" autocomplete="off" placeholder="0"${ro}>`;
       $('ans-q').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('ans-r').focus(); } });
     } else {
-      const mode = q.kind === 'frac' ? 'text' : 'decimal';
+      const mode = q.kind === 'frac' || q.kind === 'roman' ? 'text' : 'decimal';
       const ph = q.kind === 'frac' ? 'např. 3/4' : '';
+      const caps = q.kind === 'roman' ? ' autocapitalize="characters" spellcheck="false"' : '';
       // rovnice: dítě píše hodnotu neznámé („x = …“)
-      inputs.innerHTML = (q.var ? `<span>${esc(q.var)} =</span>` : '') + `<input type="text" inputmode="${mode}" id="ans" autocomplete="off" placeholder="${ph}"${ro}>`
+      inputs.innerHTML = (q.var ? `<span>${esc(q.var)} =</span>` : '') + `<input type="text" inputmode="${mode}" id="ans" autocomplete="off" placeholder="${ph}"${caps}${ro}>`
         + (q.unit ? `<span>${esc(q.unit)}</span>` : '');   // jednotka za políčkem (… %)
     }
     // Klávesnice v appce je vidět všude (i počítač, tablet s klávesnicí); na
@@ -397,6 +399,7 @@
 
   function renderKeypad(q) {
     const extra = q.keys || [];
+    if (q.kind === 'roman') return renderRomanKeypad(extra);
     const k1 = q.kind === 'divrem' ? 'zb.' : extra[0] || '';
     const k2 = q.kind === 'divrem' ? '' : extra[1] || '';
     const key = (label, cls = '') => label
@@ -407,6 +410,20 @@
       key('4') + key('5') + key('6') + key(k1, 'fn') +
       key('1') + key('2') + key('3') + key(k2, 'fn') +
       key('0', 'wide') + `<button type="button" class="key ok wide" data-key="ok">Hotovo</button>`;
+    $('keypad').hidden = false;
+  }
+
+  // Římské číslice: místo číslic písmena (I V X, na těžké až M) po třech v řádku.
+  function renderRomanKeypad(letters) {
+    const key = (label) => label
+      ? `<button type="button" class="key" data-key="${esc(label)}">${esc(label)}</button>`
+      : '<button type="button" class="key blank" tabindex="-1" aria-hidden="true"></button>';
+    let html = '';
+    for (let i = 0; i < letters.length; i += 3) {
+      html += [0, 1, 2].map((j) => key(letters[i + j])).join('')
+        + (i === 0 ? '<button type="button" class="key fn" data-key="del" aria-label="Smazat">smaž</button>' : key(''));
+    }
+    $('keypad').innerHTML = html + key('') + key('') + '<button type="button" class="key ok wide" data-key="ok">Hotovo</button>';
     $('keypad').hidden = false;
   }
 
@@ -425,7 +442,7 @@
       activeInput.value = v.slice(0, -1);
       return;
     }
-    if (v.length >= 12) return;
+    if (v.length >= (state.ex.kind === 'roman' ? 15 : 12)) return;   // MMMDCCCLXXXVIII má 15 znaků
     if (k === '−') {
       activeInput.value = v.startsWith('-') ? v.slice(1) : '-' + v;   // přepíná znaménko
     } else if (k === ',') {
@@ -457,7 +474,7 @@
   let bubbleAt = 0;
   let bubbleTimer = null;
   function showBubble(btn) {
-    if (!btn || !/^([0-9]|−|,|\/)$/.test(btn.dataset.key)) return;   // jen znaky, ne smaž, zb., Hotovo
+    if (!btn || !/^([0-9]|−|,|\/|[IVXLCDM])$/.test(btn.dataset.key)) return;   // jen znaky, ne smaž, zb., Hotovo
     clearTimeout(bubbleTimer);
     document.querySelectorAll('.key.pressed').forEach((k) => k.classList.remove('pressed'));
     const r = btn.getBoundingClientRect();
@@ -486,7 +503,9 @@
   document.addEventListener('keydown', (e) => {
     if (!KEYPAD || $('screen-round').hidden || state.lock || e.metaKey || e.ctrlKey) return;
     const map = { Backspace: 'del', Enter: 'ok', '-': '−', ',': ',', '.': ',', '/': '/' };
-    const k = /^[0-9]$/.test(e.key) ? e.key : map[e.key];
+    const roman = state.ex && state.ex.kind === 'roman';
+    const k = roman ? (/^[ivxlcdm]$/i.test(e.key) ? e.key.toUpperCase() : { Backspace: 'del', Enter: 'ok' }[e.key])
+      : /^[0-9]$/.test(e.key) ? e.key : map[e.key];
     if (!k) return;
     e.preventDefault();
     pressKey(k);

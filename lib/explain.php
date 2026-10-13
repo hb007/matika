@@ -371,6 +371,9 @@ function explain(array $ex): array
     if ($ex['kind'] === 'frac') {
         return explain_frac($p, $ex['a']);
     }
+    if ($p['op'] === 'rom') {
+        return explain_rom($ex);
+    }
     if ($p['op'] === 'expr') {
         return explain_expr($p);
     }
@@ -397,6 +400,9 @@ function diagnose(array $ex, $given): string
     if ($ex['kind'] === 'frac') {
         $f = parse_frac((string) $given);
         return $f ? diagnose_frac($p, $f, $ex['a']) : '';
+    }
+    if ($p['op'] === 'rom') {
+        return diagnose_rom($ex, $given);
     }
     $g = parse_num((string) $given);
     if ($g === null) {
@@ -429,6 +435,9 @@ function hint_steps(array $ex): array
     }
     if ($ex['kind'] === 'frac') {
         return steps_frac($p);
+    }
+    if ($p['op'] === 'rom') {
+        return hints_rom($ex);
     }
     if ($p['op'] === 'expr') {
         return steps_expr($p);

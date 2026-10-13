@@ -80,6 +80,15 @@ window.Offline = (() => {
       }
       return { ok: true, readable: true, note: reduced ? '' : `Správně, ale dá se zkrátit na ${fracStr(n, d)}.` };
     }
+    if (ex.kind === 'roman') {
+      const g = String(given).replace(/[ \t\r\n]+/g, '').toUpperCase();
+      if (!/^[IVXLCDM]+$/.test(g)) return { ok: false, note: 'Piš římskými číslicemi (I, V, X, L, C, D, M).', readable: false };
+      if (g === ex.a) return { ok: true, note: '', readable: true };
+      if (!/^M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(g)) {
+        return { ok: false, readable: true, note: 'Takhle se římské číslo nepíše: stejná číslice nejvýš 3× za sebou, před větší číslici se dává jen I, X nebo C.' };
+      }
+      return { ok: false, note: '', readable: true };
+    }
     // divrem
     const q = parseNum(given.q);
     const r = parseNum(given.r);
