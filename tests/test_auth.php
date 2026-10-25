@@ -224,3 +224,19 @@ foreach (['Ela', 'žofie', 'a b', ''] as $bad) {
     }
     check($threw, "adresa '$bad' odmitnuta (obsazena nebo neplatna)");
 }
+
+// nahrazení databáze kopií jiné (VACUUM INTO): stejná data, zdroj beze změny
+$src = sys_get_temp_dir() . '/matika-src-' . bin2hex(random_bytes(4)) . '.sqlite';
+$s1 = db_open('sqlite:' . $src);
+$s1->exec("INSERT INTO users (id, slug, name, color) VALUES (5, 'ela', 'Ela', 'ruzova')");
+$s1 = null;
+$dst = sys_get_temp_dir() . '/matika-dst-' . bin2hex(random_bytes(4)) . '.sqlite';
+$s2 = new PDO('sqlite:' . $src);
+$s2->exec('VACUUM INTO ' . $s2->quote($dst));
+$s2 = null;
+$d = db_open('sqlite:' . $dst);
+check(user_by_slug($d, 'ela')['id'] === 5, 'kopie databaze ma stejna data');
+$d = null;
+foreach (array_merge(glob("$src*"), glob("$dst*")) as $x) {
+    unlink($x);
+}
