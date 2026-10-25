@@ -8,6 +8,4 @@ DirectoryIndex index.php
     RewriteRule ^(holka|kluk)$ index.php [L]
     RewriteRule ^u/[a-z0-9-]+$ index.php [L]
     RewriteRule ^admin$ admin.php [L]
-    # heslo správce (basic auth) i pod CGI/FastCGI, kde PHP hlavičku Authorization jinak nevidí
-    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 </IfModule>

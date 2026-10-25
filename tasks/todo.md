@@ -9,6 +9,7 @@
 * [x] `admin.php`: třídy a kódy, děti, nový PIN, přesun, smazání, přehled za třídu; heslo v `data/config.php`
 * [x] adresy `/u/<přezdívka>`, manifest a ikona (`icon.php`) v barvě dítěte, holka a kluk beze změny adres
 * [x] ověřeno v Playwright (telefon): nový sešit se špatným a správným kódem, odpověď, výsledky a žebříček, odhlášení, jiné dítě se špatným PINem, holka nastaví PIN, úvodní obrazovka se dvěma sešity, bez sešitu, správa
+* [x] správa: přihlášení formulářem místo basic auth (hosting dialog na heslo neukázal)
 * [ ] po nasazení: vytvořit `data/config.php`, nastavit PIN holce a klukovi, založit třídy
 
 ## Římské číslice (2026-10-13)

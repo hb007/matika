@@ -1,7 +1,7 @@
 <?php
 // Správa pro rodiče a učitele: třídy a jejich kódy, děti (nový PIN, přesun do
 // třídy, smazání), přehled pro rodiče u každého dítěte a za třídu. Chrání ji
-// HTTP basic auth s heslem z data/config.php (mimo repo):
+// heslo z data/config.php (mimo repo), přihlášení formulářem do session:
 //   <?php return ['admin_password' => 'tajne-heslo'];
 // Bez hesla v configu správa nejde otevřít. Stránka je čisté PHP bez JS.
 declare(strict_types=1);
@@ -19,28 +19,53 @@ if ($password === '') {
         . 'Na serveru vytvoř soubor <code>data/config.php</code> s obsahem <code>&lt;?php return [\'admin_password\' =&gt; \'tajne-heslo\'];</code></p>';
     exit;
 }
-// heslo z basic auth; pod CGI/FastCGI ho PHP nedostane do PHP_AUTH_PW, jen
-// jako hlavičku Authorization (předává ji .htaccess)
-$given = (string) ($_SERVER['PHP_AUTH_PW'] ?? '');
-foreach (['HTTP_AUTHORIZATION', 'REDIRECT_HTTP_AUTHORIZATION'] as $k) {
-    if ($given === '' && preg_match('/^Basic\s+(\S+)$/i', (string) ($_SERVER[$k] ?? ''), $m)) {
-        $given = (string) substr((string) base64_decode($m[1], true), strpos((string) base64_decode($m[1], true), ':') + 1);
+$path = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/\\') . '/';
+session_start(['name' => 'matika_' . substr(md5($path), 0, 8), 'cookie_path' => $path, 'cookie_httponly' => true, 'cookie_samesite' => 'Lax']);
+$self = basename($_SERVER['SCRIPT_NAME']);
+$h = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES);
+
+// Přihlášení formulářem (ne HTTP basic auth: některé hostingy pod CGI/FastCGI
+// hlavičku WWW-Authenticate zahodí a prohlížeč se na heslo nezeptá).
+// Špatné heslo brzdí vteřinová pauza a po 5 pokusech minuta zámek v session.
+if (($_POST['do'] ?? '') === 'odhlasit') {
+    unset($_SESSION['admin_ok']);
+    header('Location: ' . $self);
+    exit;
+}
+$loginError = '';
+if (empty($_SESSION['admin_ok']) && isset($_POST['password'])) {
+    if (($_SESSION['admin_until'] ?? 0) > time()) {
+        $loginError = 'Moc pokusů, zkus to za minutu.';
+    } elseif (hash_equals($password, (string) $_POST['password'])) {
+        session_regenerate_id(true);
+        $_SESSION['admin_ok'] = true;
+        $_SESSION['admin_fails'] = 0;
+        header('Location: ' . $self);
+        exit;
+    } else {
+        sleep(1);
+        $_SESSION['admin_fails'] = ($_SESSION['admin_fails'] ?? 0) + 1;
+        if ($_SESSION['admin_fails'] >= 5) {
+            $_SESSION['admin_fails'] = 0;
+            $_SESSION['admin_until'] = time() + 60;
+        }
+        $loginError = 'Špatné heslo.';
     }
 }
-if (!hash_equals($password, $given)) {
-    header('WWW-Authenticate: Basic realm="Matika – správa", charset="UTF-8"');
-    http_response_code(401);
-    echo 'Je potřeba heslo správce.';
+if (empty($_SESSION['admin_ok'])) {
+    http_response_code($loginError !== '' ? 403 : 200);
+    echo '<!doctype html><html lang="cs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">'
+        . '<title>Matika – správa</title><link rel="stylesheet" href="style.css"></head><body style="max-width:420px;margin:0 auto;padding:16px">'
+        . '<h1 style="font-family:var(--hand);font-weight:400;color:var(--pen)">Matika – správa</h1>'
+        . '<form method="post" class="login"><label class="field"><span>Heslo správce</span><input type="password" name="password" autocomplete="current-password" autofocus required></label>'
+        . ($loginError !== '' ? '<p class="login-error">' . $h($loginError) . '</p>' : '')
+        . '<div class="login-actions"><button class="btn">Přihlásit</button><a href="./" class="ghostbtn btn-link">Zpět do appky</a></div></form></body></html>';
     exit;
 }
 
-$path = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/\\') . '/';
-session_start(['name' => 'matika_' . substr(md5($path), 0, 8), 'cookie_path' => $path, 'cookie_httponly' => true, 'cookie_samesite' => 'Lax']);
 $csrf = $_SESSION['admin_csrf'] ??= bin2hex(random_bytes(16));
 $today = date('Y-m-d');
 $db = db();
-$h = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES);
-$self = basename($_SERVER['SCRIPT_NAME']);
 
 // ---------- akce (POST, pak přesměrování) ----------
 $msg = '';
@@ -164,7 +189,8 @@ function per_task_table(array $per, bool $kids = false): string
 </head>
 <body class="admin">
 <h1>Matika – správa</h1>
-<nav><a class="link" href="<?= $self ?>">Třídy a děti</a><a class="link" href="./">Appka</a></nav>
+<nav><a class="link" href="<?= $self ?>">Třídy a děti</a><a class="link" href="./">Appka</a>
+<form method="post" class="inline"><input type="hidden" name="do" value="odhlasit"><button class="link">Odhlásit</button></form></nav>
 <?php if ($msg !== ''): ?><p class="msg"><?= $h($msg) ?></p><?php endif; ?>
 
 <?php if ($page === 'dite' && ($kid = user_rows($db, [$id])[0] ?? null)): ?>
