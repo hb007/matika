@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 delete_user($db, $id);
                 $back = $self;
-                $msg = 'Sešit smazaný.';
+                $msg = 'Účet smazaný.';
                 break;
             default:
                 throw new InvalidArgumentException('Neznámá akce.');
@@ -172,7 +172,7 @@ function per_task_table(array $per, bool $kids = false): string
   <h2><span class="kid" data-color="<?= $h($kid['color']) ?>"><?= $h($kid['name']) ?></span>
     <small>(<?= $h($kid['class_name'] ?: 'bez třídy') ?>, adresa <a class="link" href="<?= in_array($kid['slug'], ['holka', 'kluk'], true) ? $h($kid['slug']) : 'u/' . $h($kid['slug']) ?>">/<?= in_array($kid['slug'], ['holka', 'kluk'], true) ? '' : 'u/' ?><?= $h($kid['slug']) ?></a>)</small></h2>
   <p>Dnes <?= $u['today'] ?> b., týden <?= $u['week'] ?> b., celkem <?= $u['total'] ?> b., dnes vyřešeno <?= $u['solved_today'] ?> z <?= GOAL ?>, dní v řadě se splněným cílem: <?= $u['days'] ?: '–' ?>,
-    dnes v appce <?= intdiv($u['time_today'], 60000) ?> min. Sešit založený <?= $h($kid['created'] ?: 'před zavedením sešitů') ?>.<?= $kid['has_pin'] ? '' : ' <b>Ještě nemá PIN</b> (nastaví si ho při prvním přihlášení, nebo ho nastav tady).' ?></p>
+    dnes v appce <?= intdiv($u['time_today'], 60000) ?> min. Účet založený <?= $h($kid['created'] ?: 'před zavedením účtů') ?>.<?= $kid['has_pin'] ? '' : ' <b>Ještě nemá PIN</b> (nastaví si ho při prvním přihlášení, nebo ho nastav tady).' ?></p>
   <form method="post" class="inline"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="pin"><input type="hidden" name="id" value="<?= $id ?>"><input type="hidden" name="back" value="<?= $self ?>?p=dite&amp;id=<?= $id ?>">
     <label>Nový PIN (<?= PIN_MIN ?>–<?= PIN_MAX ?> číslic) <input type="text" name="pin" inputmode="numeric" pattern="\d{<?= PIN_MIN ?>,<?= PIN_MAX ?>}" required></label> <button class="btn">Nastavit PIN</button></form><br>
   <form method="post" class="inline"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="rename"><input type="hidden" name="id" value="<?= $id ?>"><input type="hidden" name="back" value="<?= $self ?>?p=dite&amp;id=<?= $id ?>">
@@ -183,8 +183,8 @@ function per_task_table(array $per, bool $kids = false): string
     </select></label> <button class="btn">Přesunout</button></form><br>
   <form method="post" class="inline"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="logout_all"><input type="hidden" name="id" value="<?= $id ?>"><input type="hidden" name="back" value="<?= $self ?>?p=dite&amp;id=<?= $id ?>">
     <button class="btn">Odhlásit ze všech zařízení</button></form>
-  <form method="post" class="inline" onsubmit="return confirm('Opravdu smazat tenhle sešit i se všemi body a nálepkami? Vrátit to nejde.')"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="delete"><input type="hidden" name="id" value="<?= $id ?>">
-    <button class="btn danger">Smazat sešit</button></form>
+  <form method="post" class="inline" onsubmit="return confirm('Opravdu smazat tenhle účet i se všemi body a nálepkami? Vrátit to nejde.')"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="delete"><input type="hidden" name="id" value="<?= $id ?>">
+    <button class="btn danger">Smazat účet</button></form>
   <h3>Úspěšnost napoprvé</h3>
   <?= per_task_table($st['per_task']) ?>
   <h3>Co nejde (30 dní)</h3>
@@ -195,7 +195,7 @@ function per_task_table(array $per, bool $kids = false): string
   <?php $cls = null; foreach ($classes as $c) { if ((int) $c['id'] === $id) { $cls = $c; } } ?>
   <h2><?= $cls ? $h($cls['name']) : 'Bez třídy' ?></h2>
   <?php if ($cls): ?>
-  <p>Kód třídy pro nové sešity: <code><?= $h($cls['code']) ?></code></p>
+  <p>Kód třídy pro nové účty: <code><?= $h($cls['code']) ?></code></p>
   <form method="post" class="inline"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="class_rename"><input type="hidden" name="id" value="<?= $id ?>"><input type="hidden" name="back" value="<?= $self ?>?p=trida&amp;id=<?= $id ?>">
     <label>Název <input type="text" name="name" value="<?= $h($cls['name']) ?>" maxlength="<?= NAME_MAX ?>" required></label> <button class="btn">Přejmenovat</button></form>
   <form method="post" class="inline" onsubmit="return confirm('Vygenerovat nový kód? Starý přestane platit.')"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="class_code"><input type="hidden" name="id" value="<?= $id ?>"><input type="hidden" name="back" value="<?= $self ?>?p=trida&amp;id=<?= $id ?>">
@@ -213,7 +213,7 @@ function per_task_table(array $per, bool $kids = false): string
 
 <?php else: ?>
   <h2>Třídy</h2>
-  <p>Nový sešit si dítě založí v appce („Nový sešit“) s kódem své třídy. Kód mu dej osobně, na web nepatří.</p>
+  <p>Účet si dítě založí v appce („Založit účet“) s kódem své třídy. Kód mu dej osobně, na web nepatří.</p>
   <table class="table"><tr><th>Třída</th><th>Kód</th><th class="num">Dětí</th></tr>
   <?php foreach ($classes as $c): ?>
     <tr><td><a class="link" href="<?= $self ?>?p=trida&amp;id=<?= $c['id'] ?>"><?= $h($c['name']) ?></a></td><td><code><?= $h($c['code']) ?></code></td><td class="num"><?= $c['kids'] ?></td></tr>

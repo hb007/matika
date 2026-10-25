@@ -183,9 +183,15 @@ body[data-diff] .top { border-bottom: 0; box-shadow: inset 0 -6px 0 var(--hl); p
 .cover-label small:last-child { border-top: 1px solid var(--rule); padding-top: 4px; }
 .cover-label .kid-name { font-size: 38px; line-height: 1.05; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cover-note { position: absolute; left: 48px; bottom: 20px; color: var(--on-accent); font-size: 16px; font-weight: 700; }
-.who-more { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.who-more { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 18px; }
 .who-more .btn, .who-more .ghostbtn { min-height: 48px; padding: 8px 18px; font-size: 17px; }
+.who-more .btn.big { min-height: 60px; padding: 10px 28px; font-size: 22px; }
 .who-note { color: var(--muted); font-size: 15px; margin: 12px 0 0; }
+.who-more .who-note { margin: 0; }
+.who-note .link { font-size: 15px; padding: 0; }
+#welcome h1 { font-family: var(--hand); font-size: 40px; font-weight: 400; color: var(--pen); margin: 8px 0 10px; }
+.lead { font-size: 18px; max-width: 540px; margin: 0 0 10px; }
+#who-known .who-more { margin-top: 24px; }
 
 /* ---------- přihlášení: PIN, jiné dítě, nový sešit ---------- */
 .login { max-width: 420px; }

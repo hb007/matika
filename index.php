@@ -91,19 +91,34 @@ $color = $kid ? (COLORS[$kid['color']] ?? COLORS['modra']) : null;
   <div class="offline-bar" id="offline-bar" role="status" hidden></div>
   <div class="time-bar" id="time-bar" role="status" hidden></div>
 
-  <!-- kdo cvičí: sešity přihlášené na tomhle zařízení, jiné dítě, nový sešit, bez sešitu -->
+  <!-- úvod: na zařízení bez účtu uvítání a „Zkusit hned“, jinak desky sešitů
+       dětí přihlášených na tomhle zařízení (klepnutí otevře rovnou dítě) -->
   <section id="screen-who" class="screen" hidden>
-    <h1>Kdo dnes cvičí?</h1>
-    <div class="covers" id="who-pick"></div>
-    <div class="who-more">
-      <button type="button" class="btn" data-login="other">Jiné dítě</button>
-      <button type="button" class="btn" data-login="register">Nový sešit</button>
-      <button type="button" class="ghostbtn" data-login="guest">Zkusit bez sešitu</button>
+    <div id="welcome" hidden>
+      <h1>Pojď si zacvičit matiku</h1>
+      <p class="lead">Pro 2. stupeň: násobilka, zlomky, desetinná čísla, procenta, rovnice, římské číslice a další. Příklad za příkladem, s nápovědou po krocích.</p>
+      <p class="lead">S účtem sbíráš body a nálepky, soutěžíš se třídou a za splněný denní cíl máš hry.</p>
+      <div class="who-more">
+        <button type="button" class="btn big" data-login="guest">Zkusit hned</button>
+        <span class="who-note">bez účtu, body se neukládají</span>
+      </div>
+      <div class="who-more">
+        <button type="button" class="ghostbtn" data-login="other">Mám účet</button>
+        <button type="button" class="ghostbtn" data-login="register">Založit účet</button>
+      </div>
     </div>
-    <p class="who-note">Bez sešitu se body neukládají: po zavření zmizí a nejsou odměny, nálepky ani žebříček.</p>
+    <div id="who-known" hidden>
+      <h1>Kdo dnes cvičí?</h1>
+      <div class="covers" id="who-pick"></div>
+      <div class="who-more">
+        <button type="button" class="btn" data-login="other">Přihlásit se</button>
+        <button type="button" class="btn" data-login="register">Založit účet</button>
+        <button type="button" class="ghostbtn" data-login="guest">Zkusit bez účtu</button>
+      </div>
+    </div>
   </section>
 
-  <!-- přihlášení: PIN k sešitu, jiné dítě (přezdívka + PIN), nový sešit -->
+  <!-- přihlášení: PIN k účtu, přihlášení (přezdívka + PIN), nový účet -->
   <section id="screen-login" class="screen" hidden>
     <form id="form-login" class="login" autocomplete="off"></form>
   </section>

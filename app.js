@@ -121,28 +121,32 @@
     // přepnutí dítěte je v seznamu úloh i pod štítkem se jménem
     const other = realUsers().filter((u) => u.id !== state.user).map((u) =>
       `<a class="task-item" href="${kidHref(u)}">Přepnout na <span class="kid-name" data-color="${esc(u.color)}">${esc(u.name)}</span><b>${u.today} b.</b></a>`).join('')
-      + (isGuest() ? '<a class="task-item link-ink" href="./">Přihlásit se nebo založit sešit</a>'
-        : '<a class="task-item link-ink" href="./">Jiné dítě</a>');
+      + (isGuest() ? '<a class="task-item link-ink" href="./">Přihlásit se nebo založit účet</a>'
+        : '<a class="task-item link-ink" href="./">Přihlásit jiné dítě</a>');
     $('task-other').innerHTML = other;
     $('me-other').innerHTML = other;
     document.querySelectorAll('[data-stats]').forEach((b) => { b.hidden = isGuest(); });
   }
 
-  // Úvodní obrazovka: sešity přihlášené na tomhle zařízení (klepnutí otevře
-  // rovnou dítě), jiné dítě (přezdívka + PIN), nový sešit, bez sešitu.
+  // Úvodní obrazovka: na zařízení bez účtu uvítání s „Zkusit hned“ (nováček
+  // neví, co je sešit, tak nejdřív počítá); jinak desky dětí přihlášených na
+  // tomhle zařízení (klepnutí otevře rovnou dítě), přihlášení, nový účet, bez účtu.
   function showWho() {
     const kids = realUsers();
+    $('welcome').hidden = kids.length > 0;
+    $('who-known').hidden = !kids.length;
     $('who-pick').innerHTML = kids.map((u) =>
       `<a class="cover" href="${kidHref(u)}" data-color="${esc(u.color)}"><span class="cover-label"><small>Jméno</small>`
       + `<span class="kid-name">${esc(u.name)}</span><small>${esc(u.class_name || 'Předmět: matika')}</small></span>`
       + `<span class="cover-note">Dnes ${u.today} bodů</span></a>`).join('');
-    $('who-pick').hidden = !kids.length;
     delete document.body.dataset.color;
     show('who');
   }
-  document.querySelectorAll('[data-login]').forEach((b) => b.addEventListener('click', () => {
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-login]');
+    if (!b) return;
     if (b.dataset.login === 'guest') startGuest(); else showLogin(b.dataset.login);
-  }));
+  });
 
   // Bez sešitu: příklady bez ukládání, body jen do zavření prohlížeče (server je drží v session).
   function startGuest() {
@@ -180,20 +184,21 @@
     if (mode === 'pin') {
       html = `<h1>Ahoj!</h1>${head}${pin('pin', 'Tvůj PIN')}`;
     } else if (mode === 'setup') {
-      html = `<h1>Nastav si PIN</h1>${head}<p class="who-note">Sešit je teď na PIN, ať ti do něj nikdo neleze. Vymysli si ${state.pin.min} až ${state.pin.max} číslic a zapamatuj si je.</p>`
+      html = `<h1>Nastav si PIN</h1>${head}<p class="who-note">Účet je teď na PIN, ať ti do něj nikdo neleze. Vymysli si ${state.pin.min} až ${state.pin.max} číslic a zapamatuj si je.</p>`
         + pin('pin', 'Nový PIN') + pin('pin2', 'Ještě jednou');
     } else if (mode === 'other') {
-      html = `<h1>Jiné dítě</h1><label class="field"><span>Přezdívka</span><input type="text" name="name" maxlength="20" autocomplete="off" required></label>${pin('pin', 'PIN')}`;
+      html = `<h1>Přihlásit se</h1><label class="field"><span>Přezdívka</span><input type="text" name="name" maxlength="20" autocomplete="off" required></label>${pin('pin', 'PIN')}`;
     } else {
       const swatches = Object.entries(state.colors).map(([k, name], i) =>
         `<label class="swatch" data-color="${k}"><input type="radio" name="color" value="${k}"${i === 0 ? ' checked' : ''}><span></span>${esc(name)}</label>`).join('');
-      html = `<h1>Nový sešit</h1><label class="field"><span>Přezdívka (ne celé jméno, web je veřejný)</span><input type="text" name="name" maxlength="20" autocomplete="off" required></label>`
+      html = `<h1>Nový účet</h1><label class="field"><span>Přezdívka (ne celé jméno, web je veřejný)</span><input type="text" name="name" maxlength="20" autocomplete="off" required></label>`
         + `<fieldset class="field"><legend>Barva</legend><div class="swatches">${swatches}</div></fieldset>`
         + pin('pin', `PIN (${state.pin.min} až ${state.pin.max} číslic, zapamatuj si ho)`) + pin('pin2', 'PIN ještě jednou')
-        + '<label class="field"><span>Kód třídy (dostaneš od učitele nebo rodičů)</span><input type="text" name="code" autocomplete="off" autocapitalize="characters" maxlength="12" required></label>';
+        + '<label class="field"><span>Kód třídy (dostaneš od učitele nebo rodičů)</span><input type="text" name="code" autocomplete="off" autocapitalize="characters" maxlength="12" required></label>'
+        + '<p class="who-note">Nemáš kód? <button type="button" class="link" data-login="guest">Zkus to zatím bez účtu</button>, body se jen neuloží.</p>';
     }
     f.innerHTML = html + '<p class="login-error" id="login-error" role="alert"></p>'
-      + `<div class="login-actions"><button type="submit" class="btn">${mode === 'register' ? 'Založit sešit' : mode === 'setup' ? 'Nastavit' : 'Otevřít sešit'}</button>`
+      + `<div class="login-actions"><button type="submit" class="btn">${mode === 'register' ? 'Založit účet' : mode === 'setup' ? 'Nastavit' : 'Přihlásit se'}</button>`
       + '<a href="./" class="ghostbtn btn-link">Zpět</a></div>';
     delete document.body.dataset.color;
     show('login');
@@ -381,7 +386,7 @@
     state.lock = true;
     $('review').hidden = true;
     const any = state.user && Offline.poolSize(state.user) > 0;
-    $('question').innerHTML = '<span class="pool-empty">' + (isGuest() ? 'Bez sešitu to bez internetu nejde. Se sešitem má appka zásobu příkladů i offline.'
+    $('question').innerHTML = '<span class="pool-empty">' + (isGuest() ? 'Bez účtu to bez internetu nejde. S účtem má appka zásobu příkladů i offline.'
       : 'Příklady na tuhle úlohu a obtížnost už nejsou. Další přibudou, až budeš online.' + (any ? ' Zatím můžeš zkusit jinou úlohu nebo obtížnost.' : '')) + '</span>';
     $('inputs').innerHTML = '';
     $('feedback').hidden = true;
@@ -707,6 +712,10 @@
       const fresh = rewards.filter((x) => x.new).map((x) => Rewards.STICKER[x.kind].name);
       if (fresh.length) extra.push(`Nová nálepka do alba: ${esc(fresh.join(', '))}.`);
       if (r.note) extra.push(esc(r.note));
+      // bez účtu: po pár příkladech (a při splnění cíle) nabídnout účet, ať body nepropadnou
+      if (isGuest() && (me.solved_today === 5 || me.solved_today === state.goal)) {
+        extra.push(`Máš ${me.today} bodů jen do zavření appky. <a class="link" href="./?ucet">Založ si účet</a> a body, nálepky i žebříček ti zůstanou.`);
+      }
       fb.innerHTML = `<div class="praise">${tick}<span class="hand">${pick(['Výborně!', 'Správně!', 'Přesně tak!', 'Paráda!', 'Trefa!', 'Super!'])}</span>`
         + `<span class="stamp">+${r.points + (r.bonus || 0)}</span></div>`
         + extra.map((t) => `<small>${t}</small>`).join('');
@@ -1209,7 +1218,7 @@
   const RANGES = { today: 'Dnes', week: 'Tento týden', total: 'Celkem' };
 
   async function loadStats() {
-    if (isGuest()) { alert('Výsledky a body jsou jen se sešitem.'); return; }
+    if (isGuest()) { alert('Výsledky a body jsou jen s účtem.'); return; }
     let s;
     try {
       s = await api('stats');
@@ -1329,7 +1338,7 @@
         alert('PIN je změněný.');
         return;
       } else if (b.classList.contains('logout')) {
-        if (!confirm('Odhlásit sešit z tohoto zařízení? Příště bude chtít PIN.')) return;
+        if (!confirm('Odhlásit se z tohoto zařízení? Příště bude appka chtít PIN.')) return;
         await api('logout');
         location.href = './';
         return;
@@ -1371,6 +1380,7 @@
       renderKids(s.users);
       if (me) openLast();
       else if (page) showLogin(page.has_pin ? 'pin' : 'setup', page);
+      else if (location.search === '?ucet') showLogin('register');   // z nabídky hostovi po pár příkladech
       else showWho();
       if (!state.offline) trySync();   // výsledky z minula a doplnění zásoby
     } catch (e) {

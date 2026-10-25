@@ -119,7 +119,7 @@ function guest_state(string $today): array
         $g = ['day' => $today, 'points' => 0, 'solved' => 0, 'streak' => 0];
     }
     $_SESSION['guest'] = $g;
-    return ['id' => GUEST, 'slug' => '', 'name' => 'Bez sešitu', 'color' => 'modra', 'class_id' => null, 'class_name' => '',
+    return ['id' => GUEST, 'slug' => '', 'name' => 'Bez účtu', 'color' => 'modra', 'class_id' => null, 'class_name' => '',
             'streak' => $g['streak'], 'has_pin' => false, 'created' => '', 'days' => 0, 'time_today' => 0,
             'total' => $g['points'], 'week' => $g['points'], 'today' => $g['points'], 'solved_today' => $g['solved']];
 }
@@ -176,7 +176,7 @@ try {
                 $u = $ids ? user_rows(db(), [(int) $ids[0]])[0] : null;
             }
             if (!$u) {
-                fail('Takový sešit tu není.');
+                fail('Takový účet tu není. Zkontroluj přezdívku.');
             }
             try {
                 if (!$u['has_pin']) {
@@ -305,7 +305,7 @@ try {
             // veřejná karta jiného dítěte (klepnutí v žebříčku)
             require_uid($in, true);
             $card = user_card(db(), (int) param($in, 'target'), $today);
-            $card ? out($card) : fail('Takový sešit tu není.', 404);
+            $card ? out($card) : fail('Takový účet tu není.', 404);
 
         default:
             fail('Neznámá akce.', 404);

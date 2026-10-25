@@ -105,7 +105,7 @@ function check_pin(PDO $db, int $uid, string $pin, int $now): void
         throw new InvalidArgumentException('Moc špatných pokusů. Zkus to za chvíli.');
     }
     if ($u['pin_hash'] === null) {
-        throw new InvalidArgumentException('Tenhle sešit ještě nemá PIN.');
+        throw new InvalidArgumentException('Tenhle účet ještě nemá PIN.');
     }
     $up = $db->prepare('UPDATE users SET pin_fails = pin_fails + 1 WHERE id = ? AND pin_until <= ?');
     $up->execute([$uid, $now]);
