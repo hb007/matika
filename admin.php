@@ -129,12 +129,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $msg = 'Přezdívka a adresa změněné.';
                 break;
-            case 'import_novy':
-                db_replace_from(novy_db_file());
-                $db = db();
-                $db->exec('DELETE FROM tokens');   // přihlášení zařízení patřila k podsložce, děti zadají PIN znovu
-                $msg = 'Databáze převzatá ze zkušební složky novy/: ' . db_counts($db) . '. Děti se na téhle adrese přihlásí PINem znovu.';
-                break;
             case 'class_set':
                 $cid = (int) ($_POST['class_id'] ?? 0) ?: null;
                 $db->prepare('UPDATE users SET class_id = ? WHERE id = ?')->execute([$cid, $id]);
@@ -162,19 +156,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Location: ' . (preg_match('~^[\w.?=&-]*$~', $back) ? $back : $self));
     exit;
 }
-// zkušební kopie v podsložce novy/ (jednorázové stěhování na hlavní doménu)
-function novy_db_file(): string
-{
-    return __DIR__ . '/novy/data/matika-v2.sqlite';
-}
-
-// co v databázi je (kontrola po stěhování)
-function db_counts(PDO $db): string
-{
-    $n = fn(string $t) => (int) $db->query("SELECT COUNT(*) FROM $t")->fetchColumn();
-    return $n('users') . ' dětí, ' . $n('results') . ' výsledků, ' . $n('classes') . ' tříd, ' . $n('invites') . ' zvacích odkazů';
-}
-
 $msg = (string) ($_SESSION['admin_msg'] ?? '');
 unset($_SESSION['admin_msg']);
 
@@ -294,20 +275,6 @@ function per_task_table(array $per, bool $kids = false): string
     <label>Nová třída <input type="text" name="name" placeholder="6.A" maxlength="<?= NAME_MAX ?>" required></label>
     <label>Heslo (nepovinné, jinak náhodné) <input type="text" name="code" pattern="[A-Za-z0-9]{4,12}" maxlength="12"></label>
     <button class="btn">Založit třídu</button></form>
-
-  <?php if (is_dir(__DIR__ . '/novy')): ?>
-  <h2>Převzít databázi ze zkušební složky novy/</h2>
-  <p>Tady teď je: <?= $h(db_counts($db)) ?>.</p>
-  <?php if (!is_file(novy_db_file())): ?>
-  <p>Databáze zkušební kopie nenalezena (<code><?= $h(novy_db_file()) ?></code>).</p>
-  <?php else: ?>
-  <?php try { $ndb = db_open('sqlite:' . novy_db_file()); $nc = db_counts($ndb); $ndb = null; } catch (PDOException $e) { $nc = 'nejde otevřít: ' . $e->getMessage(); } ?>
-  <p>V <code>novy/</code> je: <?= $h($nc) ?>.</p>
-  <p>Tlačítko zkopíruje databázi z <code>novy/</code> sem (děti s PINy, body, nálepky, třídy, zvací odkazy) a <b>zdejší databázi přepíše</b>. Co děti vyřešily tady od přenosu do <code>novy/</code>, se ztratí. Zkušební složky se to nedotkne; po přestěhování ji smaž.</p>
-  <form method="post" class="inline" onsubmit="return confirm('Přepsat zdejší databázi kopií z novy/?')"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="import_novy">
-    <button class="btn danger">Převzít databázi z novy/</button></form>
-  <?php endif; ?>
-  <?php endif; ?>
 
   <h2>Zvací odkazy</h2>
   <p>Kdo odkaz otevře, založí si účet bez hesla, rovnou ve vybrané třídě (nebo bez třídy). Odkaz platí, dokud ho nesmažeš; smazání založené účty nezruší.</p>
