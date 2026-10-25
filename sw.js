@@ -1,14 +1,13 @@
 // Service worker: appka se otevře i bez internetu.
-// - stránky (/, /holka, /kluk): nejdřív síť, bez sítě poslední uložená verze
+// - stránky (/, /holka, /u/anicka …): nejdřív síť, bez sítě poslední uložená verze
 // - skripty, styly, písma, ikony: z cache (nové verze mají jinou adresu ?v=…)
 // - api.php se neukládá nikdy; bez sítě si příklady řeší appka sama (offline.js)
-const CACHE = 'matika-v1';
+const CACHE = 'matika-v2';
 const STATIC = [
   'fonts/atkinson-hyperlegible-400-latin.woff2', 'fonts/atkinson-hyperlegible-400-latin-ext.woff2',
   'fonts/atkinson-hyperlegible-700-latin.woff2', 'fonts/atkinson-hyperlegible-700-latin-ext.woff2',
   'fonts/patrick-hand-400-latin.woff2', 'fonts/patrick-hand-400-latin-ext.woff2',
-  'icon.svg', 'icon-holka.svg', 'icon-kluk.svg',
-  'icon-180.png', 'icon-512.png', 'icon-holka-180.png', 'icon-holka-512.png', 'icon-kluk-180.png', 'icon-kluk-512.png',
+  'icon.svg', 'icon-180.png', 'icon-512.png',
 ];
 
 self.addEventListener('install', (e) => {
@@ -36,6 +35,7 @@ async function put(req, res) {
 }
 
 // Stránka appky: klíč bez parametrů, ať /holka i /holka?x=1 najdou tutéž.
+// Ikony v barvě dítěte (icon.php?barva=…) se ukládají jako ostatní soubory.
 const pageKey = (url) => url.origin + url.pathname;
 
 async function page(req) {

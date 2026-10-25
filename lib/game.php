@@ -7,6 +7,7 @@ const GOAL = 20;           // denní cíl: vyřešených příkladů
 const STREAK_BONUS = 5;    // každých 5 napoprvé správně v řadě = +1 bod
 const REVIEW_AFTER = 5;    // chybný příklad se vrátí po 5 dalších
 const SUGGEST_WINDOW = 10; // návrh jiné obtížnosti podle posledních 10 příkladů
+const GUEST = 0;           // „bez sešitu“: příklady bez ukládání (body jen v session, api.php)
 
 function base_points(string $diff, int $tries): int
 {
@@ -75,10 +76,7 @@ function user_exists(PDO $db, int $uid): bool
 
 function rename_user(PDO $db, int $uid, string $name): void
 {
-    $name = trim((string) preg_replace('/\s+/u', ' ', $name));   // neplatné UTF-8 → null → ''
-    if ($name === '' || mb_strlen($name) > 20) {
-        throw new InvalidArgumentException('Přezdívka musí mít 1 až 20 znaků.');
-    }
+    $name = clean_name($name);
     if (!user_exists($db, $uid)) {
         throw new InvalidArgumentException('Neznámý uživatel.');
     }
@@ -121,6 +119,9 @@ function next_exercise(PDO $db, int $uid, string $module, string $level, string 
     // fronta chyb je po úlohách (bez ohledu na úroveň a obtížnost), mix bere ze všech;
     // LIKE kvůli starším záznamům s klíčem "úloha|úroveň|obtížnost"
     $task = $module;
+    if ($uid === GUEST) {   // bez sešitu se chyby neopakují
+        return ['ex' => $ex, 'task' => $task, 'diff' => $ex['d'] ?? $diff, 'tries' => 0, 'done' => false, 'review' => false];
+    }
     if ($module === 'mix') {
         $st = $db->prepare('SELECT id, ex FROM review WHERE user_id = ? AND due <= ? ORDER BY due, id LIMIT 1');
         $st->execute([$uid, done_count($db, $uid)]);
@@ -185,44 +186,70 @@ function handle_answer(PDO $db, array &$cur, int $uid, $given, string $today): a
         return ['correct' => false, 'note' => $note, 'why' => ''];   // překlep, ne pokus
     }
     $cur['tries']++;
+    $guest = $uid === GUEST;
     if (!$ok) {
         if ($cur['tries'] === 1) {
-            queue_review($db, $uid, $cur);
-            set_streak($db, $uid, 0);
+            if (!$guest) {
+                queue_review($db, $uid, $cur);
+            }
+            cur_set_streak($db, $cur, $uid, 0);
         }
         return ['correct' => false, 'note' => $note, 'why' => $note !== '' ? '' : diagnose($ex, $given)];
     }
     $first = $cur['tries'] === 1;
-    $streak = $first ? get_streak($db, $uid) + 1 : 0;
-    set_streak($db, $uid, $streak);
+    $streak = $first ? cur_streak($db, $cur, $uid) + 1 : 0;
+    cur_set_streak($db, $cur, $uid, $streak);
     $points = base_points($cur['diff'], $cur['tries']);
     $bonus = $first ? streak_bonus($streak) : 0;
+    $cur['done'] = true;
+    if ($guest) {   // bez sešitu: body jen pro tuhle návštěvu, bez odměn a návrhů
+        return ['correct' => true, 'note' => $note, 'points' => $points, 'bonus' => $bonus, 'streak' => $streak, 'rewards' => [], 'suggest' => null];
+    }
     $before = total_points($db, $uid);
     record_result($db, $uid, $cur, true, $points + $bonus, $today);
-    $cur['done'] = true;
     return ['correct' => true, 'note' => $note, 'points' => $points, 'bonus' => $bonus, 'streak' => $streak,
             'rewards' => rewards_after_correct($db, $uid, $cur, $streak, $before, $today),
             'suggest' => suggest_difficulty($db, $uid, task_module($cur), $cur['diff'])];
 }
 
+// Série v řadě: v databázi, bez sešitu (GUEST) jen v rozpracovaném příkladu
+// (api.php ji přenáší mezi příklady v session).
+function cur_streak(PDO $db, array $cur, int $uid): int
+{
+    return $uid === GUEST ? (int) ($cur['streak'] ?? 0) : get_streak($db, $uid);
+}
+
+function cur_set_streak(PDO $db, array &$cur, int $uid, int $streak): void
+{
+    if ($uid === GUEST) {
+        $cur['streak'] = $streak;
+    } else {
+        set_streak($db, $uid, $streak);
+    }
+}
+
 function handle_reveal(PDO $db, array &$cur, int $uid, string $today): array
 {
     if (!$cur['done']) {
-        if ($cur['tries'] === 0) {
+        if ($cur['tries'] === 0 && $uid !== GUEST) {
             queue_review($db, $uid, $cur);
         }
-        set_streak($db, $uid, 0);
-        record_result($db, $uid, $cur, false, 0, $today);
+        cur_set_streak($db, $cur, $uid, 0);
+        if ($uid !== GUEST) {
+            record_result($db, $uid, $cur, false, 0, $today);
+        }
         $cur['done'] = true;
     }
     return ['answer' => answer_str($cur['ex']), 'steps' => explain($cur['ex']),
-            'suggest' => suggest_difficulty($db, $uid, task_module($cur), $cur['diff'])];
+            'suggest' => $uid === GUEST ? null : suggest_difficulty($db, $uid, task_module($cur), $cur['diff'])];
 }
 
-function users_state(PDO $db, string $today): array
+// Stav dětí pro klienta (body dnes, týden, celkem, cíl, série). Bez $uids
+// všechny děti (správa), jinak jen vybrané (přihlášené na zařízení).
+function users_state(PDO $db, string $today, ?array $uids = null): array
 {
     $out = [];
-    foreach ($db->query('SELECT id, kind, name, streak FROM users ORDER BY id')->fetchAll() as $u) {
+    foreach (user_rows($db, $uids) as $u) {
         $st = $db->prepare('SELECT COALESCE(SUM(points), 0) AS total,
                 COALESCE(SUM(CASE WHEN day >= ? THEN points END), 0) AS week,
                 COALESCE(SUM(CASE WHEN day = ? THEN points END), 0) AS today,
@@ -230,14 +257,66 @@ function users_state(PDO $db, string $today): array
             FROM results WHERE user_id = ?');
         $st->execute([week_start($today), $today, $today, $u['id']]);
         $sums = array_map('intval', $st->fetch());
-        // GOAL přímo v SQL: parametr by šel jako text a COUNT(*) >= '20' v SQLite neplatí nikdy
-        $st = $db->prepare('SELECT day FROM results WHERE user_id = ? AND solved = 1 GROUP BY day HAVING COUNT(*) >= ' . GOAL);
-        $st->execute([$u['id']]);
-        $out[] = ['id' => (int) $u['id'], 'kind' => $u['kind'], 'name' => $u['name'], 'streak' => (int) $u['streak'],
-                  'days' => day_streak($st->fetchAll(PDO::FETCH_COLUMN), $today),
-                  'time_today' => usage_on($db, (int) $u['id'], $today)] + $sums;   // ms v appce dnes, všechna zařízení
+        $out[] = $u + ['days' => day_streak(goal_days($db, $u['id']), $today),
+                       'time_today' => usage_on($db, $u['id'], $today)] + $sums;   // ms v appce dnes, všechna zařízení
     }
     return $out;
+}
+
+function user_rows(PDO $db, ?array $uids): array
+{
+    $uids = $uids === null ? null : array_values(array_filter(array_map('intval', $uids)));
+    if ($uids === []) {
+        return [];
+    }
+    $where = $uids === null ? '' : ' WHERE u.id IN (' . implode(',', $uids) . ')';
+    $rows = $db->query('SELECT u.id, u.slug, u.name, u.color, u.class_id, u.streak, u.created, u.pin_hash IS NOT NULL AS has_pin, c.name AS class_name
+        FROM users u LEFT JOIN classes c ON c.id = u.class_id' . $where . ' ORDER BY u.id')->fetchAll();
+    return array_map(fn($u) => ['id' => (int) $u['id'], 'slug' => $u['slug'], 'name' => $u['name'], 'color' => $u['color'],
+        'class_id' => $u['class_id'] === null ? null : (int) $u['class_id'], 'class_name' => $u['class_name'] ?? '',
+        'streak' => (int) $u['streak'], 'has_pin' => (bool) $u['has_pin'], 'created' => $u['created']], $rows);
+}
+
+// Žebříček: všechny děti (nebo jedna třída) s body dnes, za týden a celkem
+// a sérií dní. Řazení si dělá klient podle záložky.
+function leaderboard(PDO $db, string $today, ?int $classId): array
+{
+    $where = $classId === null ? '' : ' WHERE u.class_id = ' . $classId;
+    $st = $db->prepare('SELECT u.id, u.name, u.color, u.class_id,
+            COALESCE(SUM(r.points), 0) AS total,
+            COALESCE(SUM(CASE WHEN r.day >= ? THEN r.points END), 0) AS week,
+            COALESCE(SUM(CASE WHEN r.day = ? THEN r.points END), 0) AS today
+        FROM users u LEFT JOIN results r ON r.user_id = u.id' . $where . ' GROUP BY u.id ORDER BY total DESC, u.id');
+    $st->execute([week_start($today), $today]);
+    $rows = $st->fetchAll();
+    // dny se splněným cílem pro všechny najednou (GOAL v SQL, viz goal_days)
+    $days = [];
+    foreach ($db->query('SELECT user_id, day FROM results WHERE solved = 1 GROUP BY user_id, day HAVING COUNT(*) >= ' . GOAL)->fetchAll() as $d) {
+        $days[(int) $d['user_id']][] = $d['day'];
+    }
+    return array_map(fn($u) => ['id' => (int) $u['id'], 'name' => $u['name'], 'color' => $u['color'],
+        'class_id' => $u['class_id'] === null ? null : (int) $u['class_id'],
+        'today' => (int) $u['today'], 'week' => (int) $u['week'], 'total' => (int) $u['total'],
+        'days' => day_streak($days[(int) $u['id']] ?? [], $today)], $rows);
+}
+
+// Veřejná karta dítěte (klepnutí v žebříčku): body, série dní a album.
+function user_card(PDO $db, int $uid, string $today): ?array
+{
+    $u = users_state($db, $today, [$uid])[0] ?? null;
+    if (!$u) {
+        return null;
+    }
+    unset($u['streak'], $u['time_today'], $u['has_pin'], $u['created']);
+    return $u + ['stickers' => user_stickers($db, $uid)];
+}
+
+// Přehled za třídu pro správce: úspěšnost napoprvé podle úlohy a obtížnosti.
+function class_stats(PDO $db, ?int $classId): array
+{
+    $where = $classId === null ? 'u.class_id IS NULL' : 'u.class_id = ' . $classId;
+    return $db->query('SELECT r.module, r.difficulty, COUNT(*) AS n, SUM(r.tries = 1 AND r.solved = 1) AS first, COUNT(DISTINCT r.user_id) AS kids
+        FROM results r JOIN users u ON u.id = r.user_id WHERE ' . $where . ' GROUP BY r.module, r.difficulty ORDER BY r.module, r.difficulty')->fetchAll();
 }
 
 function user_stats(PDO $db, int $uid, string $today): array

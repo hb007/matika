@@ -1,8 +1,10 @@
 Options -Indexes
 DirectoryIndex index.php
 
-# /holka a /kluk: stránka s profilem dítěte (bez lomítka na konci, ať sedí relativní cesty)
+# /holka, /kluk (sešity ze starší verze) a /u/<přezdívka>: stránka s profilem
+# dítěte (bez lomítka na konci; relativní cesty řeší <base> v index.php)
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteRule ^(holka|kluk)$ index.php [L]
+    RewriteRule ^u/[a-z0-9-]+$ index.php [L]
 </IfModule>

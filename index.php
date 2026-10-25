@@ -3,27 +3,31 @@
 // z cache (staré app.js s novým HTML aplikaci rozbije).
 header('Cache-Control: no-cache');
 $v = fn(string $f): string => $f . '?v=' . filemtime(__DIR__ . '/' . $f);
-// /holka a /kluk otevřou rovnou profil dítěte (přepis v .htaccess; lokální
-// php -S sem pošle každou neexistující adresu).
-$kid = basename((string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH));
-$kid = in_array($kid, ['holka', 'kluk'], true) ? $kid : '';
-$icon = $kid ? "icon-$kid" : 'icon';
-// název ikony na ploše (iOS ho bere odsud) podle přezdívky dítěte
-$nick = '';
-if ($kid) {
-    require __DIR__ . '/lib/db.php';
+require __DIR__ . '/lib/db.php';
+// Adresa dítěte: /holka a /kluk (sešity ze starší verze), /u/<přezdívka> pro
+// ostatní (přepis v .htaccess; lokální php -S sem pošle každou neexistující
+// adresu). Kořen „/“ je úvodní obrazovka s výběrem sešitu.
+$path = (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+$slug = preg_match('~(?:^|/)(?:u/)?([a-z0-9-]+)$~', $path, $m) && !str_ends_with($path, '.php') ? $m[1] : '';
+$kid = null;
+if ($slug !== '') {
     try {
-        $nick = kid_name(db(), $kid);
+        $kid = user_by_slug(db(), $slug);
     } catch (PDOException $e) {
-        // bez databáze aspoň výchozí jméno
+        // bez databáze aspoň stránka
     }
-    $nick = $nick !== '' ? $nick : ucfirst($kid);
 }
+// cesta ke kořenu appky: /u/anicka je o složku hlouběji, relativní adresy
+// (app.js, api.php) proto jdou přes <base>
+$base = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/\\') . '/';
+$nick = $kid['name'] ?? '';
+$color = $kid ? (COLORS[$kid['color']] ?? COLORS['modra']) : null;
 ?>
 <!doctype html>
 <html lang="cs">
 <head>
 <meta charset="utf-8">
+<base href="<?= htmlspecialchars($base, ENT_QUOTES) ?>">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#fbfcfa">
 <meta name="color-scheme" content="light dark">
@@ -42,15 +46,18 @@ if ($kid) {
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Matika<?= $nick !== '' ? ' ' . htmlspecialchars($nick, ENT_QUOTES) : '' ?>">
 <meta name="format-detection" content="telephone=no">
-<?php if ($kid): /* aplikaci na plochu nabízí jen /holka a /kluk, viz manifest.php */ ?>
-<link rel="manifest" href="manifest.php?kdo=<?= $kid ?>">
+<?php if ($kid): /* aplikaci na plochu nabízí jen stránka dítěte, viz manifest.php */ ?>
+<link rel="manifest" href="manifest.php?kdo=<?= htmlspecialchars($kid['slug'], ENT_QUOTES) ?>">
+<link rel="icon" href="icon.php?barva=<?= $kid['color'] ?>&amp;svg=1" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.php?barva=<?= $kid['color'] ?>&amp;size=180">
+<?php else: ?>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
 <?php endif; ?>
 <title>Matika</title>
-<link rel="icon" href="<?= $icon ?>.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="<?= $icon ?>-180.png">
 <link rel="stylesheet" href="<?= $v('style.css') ?>">
 </head>
-<body<?= $kid ? " data-kid=\"$kid\"" : '' ?>>
+<body<?= $kid ? ' data-slug="' . htmlspecialchars($kid['slug'], ENT_QUOTES) . '" data-color="' . $kid['color'] . '"' : '' ?>>
 <header class="top">
   <a href="./" class="brand" id="brand">Matika</a>
   <div class="account">
@@ -84,10 +91,21 @@ if ($kid) {
   <div class="offline-bar" id="offline-bar" role="status" hidden></div>
   <div class="time-bar" id="time-bar" role="status" hidden></div>
 
-  <!-- kdo cvičí -->
+  <!-- kdo cvičí: sešity přihlášené na tomhle zařízení, jiné dítě, nový sešit, bez sešitu -->
   <section id="screen-who" class="screen" hidden>
     <h1>Kdo dnes cvičí?</h1>
     <div class="covers" id="who-pick"></div>
+    <div class="who-more">
+      <button type="button" class="btn" data-login="other">Jiné dítě</button>
+      <button type="button" class="btn" data-login="register">Nový sešit</button>
+      <button type="button" class="ghostbtn" data-login="guest">Zkusit bez sešitu</button>
+    </div>
+    <p class="who-note">Bez sešitu se body neukládají: po zavření zmizí a nejsou odměny, nálepky ani žebříček.</p>
+  </section>
+
+  <!-- přihlášení: PIN k sešitu, jiné dítě (přezdívka + PIN), nový sešit -->
+  <section id="screen-login" class="screen" hidden>
+    <form id="form-login" class="login" autocomplete="off"></form>
   </section>
 
   <!-- příklad -->
@@ -163,10 +181,16 @@ if ($kid) {
     <button type="button" class="link" id="btn-games-back">Zpět ke hrám</button>
   </section>
 
-  <!-- výsledky -->
+  <!-- výsledky: moje body, žebříček třídy a všech, album, přehled pro rodiče -->
   <section id="screen-stats" class="screen" hidden>
     <h1>Výsledky</h1>
     <table class="table" id="compare"></table>
+    <div class="me-actions" id="me-actions"></div>
+    <h2>Žebříček</h2>
+    <div class="tabs" id="board-scope" role="tablist" aria-label="Kdo"></div>
+    <div class="tabs" id="board-range" role="tablist" aria-label="Období"></div>
+    <div id="board"></div>
+    <div id="card" class="card" hidden></div>
     <h2>Album nálepek</h2>
     <div id="album"></div>
     <h2>Přehled pro rodiče</h2>

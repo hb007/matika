@@ -13,8 +13,8 @@
 # .ftp-deploy-sync-state.json). Pozor: složku, která z repa zmizí, akce na
 # serveru maže celou včetně vyřazených souborů, a když tam složka už není,
 # nasazení spadne (viz tasks/lessons.md). Databáze v data/ se nikdy
-# nepřepisuje ani nemaže (vyřazená z nahrávání), složka data/ proto musí
-# zůstat v repu. Před nahráním běží testy (tests/run.php).
+# nepřepisuje ani nemaže (vyřazená z nahrávání, stejně jako data/config.php
+# s heslem správce), složka data/ proto musí zůstat v repu. Před nahráním běží testy (tests/run.php).
 
 name: Nasazení na FTP
 
@@ -70,3 +70,4 @@ jobs:
             docker-compose*.yml
             tests/**
             data/*.sqlite*
+            data/config.php

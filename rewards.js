@@ -28,14 +28,14 @@ window.Rewards = (() => {
   const PRIORITY = ['zlaty_jednorozec', 'drak30', 'drak14', 'drak7', 'drak3', 'poklad5000', 'poklad2000', 'poklad1000',
     'duha', 'ohnostroj', 'poklad500', 'poklad100', 'raketa', 'jednorozec', 'sova'];
 
-  function text(rw, kid) {
+  function text(rw) {
     const v = rw.value;
     switch (rw.kind) {
       case 'jednorozec': return `${v} správně v řadě! Přiběhl jednorožec.`;
       case 'duha': return `${v} správně v řadě! Duha přes celé nebe.`;
       case 'zlaty_jednorozec': return `${v} správně v řadě! Zlatý jednorožec!`;
       case 'raketa': return `${v} těžkých napoprvé v řadě! Raketa startuje.`;
-      case 'sova': return `${kid === 'holka' ? 'Naučila' : 'Naučil'} ses to! Tenhle ti minule nešel.`;
+      case 'sova': return 'Už to umíš! Tenhle ti minule nešel.';
       case 'ohnostroj': return 'Denní cíl splněný! Ohňostroj!';
       default:
         if (rw.kind.startsWith('drak')) return `${v} ${v >= 2 && v <= 4 ? 'dny' : 'dní'} v řadě se splněným cílem! ${STICKER[rw.kind].name} přiletěl.`;

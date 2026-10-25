@@ -15,6 +15,7 @@ check($girl['streak'] === 0, 'serie v rade smazana');
 check($girl['solved_today'] === 3, 'vyresene priklady zustaly');
 check(user_stats($db, 1, $today)['per_task'] !== [], 'prehled pro rodice zustal');
 check($boy['total'] === 9, 'body kluka beze zmeny');
+check(count(users_state($db, $today, [2])) === 1 && users_state($db, $today, [])  === [], 'users_state jen pro vybrane');
 $threw = false;
 try {
     reset_points($db, 3);

@@ -3,6 +3,14 @@
 Proč je projekt tak, jak je. Jedno rozhodnutí = jedna sekce: datum, kontext, rozhodnutí, důsledky.
 Nejnovější nahoře. Zrušené rozhodnutí nemaž, označ ho jako nahrazené a odkaž na nové.
 
+## 2026-10-25: Sešity s PINem a třídami místo dvou pevných dětí
+
+**Kontext:** Appku má používat víc dětí z různých tříd. Dvě pevná děti (holka, kluk) bez hesla si lezly do profilů a nešlo přidat další.
+
+**Rozhodnutí:** Každé dítě má sešit (přezdívka, barva z palety, PIN 4–6 číslic) a adresu `/u/<přezdívka>`; holka a kluk zůstávají na `/holka` a `/kluk` (nainstalované ikony fungují dál) a PIN si nastaví při prvním otevření. Nový sešit vyžaduje kód třídy (jeden kód = jedna třída, dává ho učitel nebo rodič osobně), žádné e-maily. Zařízení si přihlášení pamatuje tokenem v cookie na rok, pro každé dítě zvlášť, takže sdílený tablet zná víc dětí a PIN se píše jen poprvé; server přihlášení ověří u každého požadavku. Zapomenutý PIN řeší správce (`/admin`, jedno heslo v `data/config.php`, HTTP basic auth). Výsledky: žebříček třída/všichni × dnes/týden/celkem, veřejná karta dítěte s albem, přehled pro rodiče jen u sebe (správce u všech). Zůstává režim bez sešitu: příklady bez ukládání.
+
+**Důsledky:** Tabulka `users` přestavěná (kind → slug, barva, PIN, třída), nové `classes` a `tokens`, migrace sama při prvním požadavku. Ikony na plochu kreslí `icon.php` (GD) místo PNG v repu. Odměna „sova“ má text bez rodu. Učitelské účty a kód na dítě zatím ne (jde přidat později).
+
 ## 2026-10-11: Čas v celé appce: upozornění, ne vypínání
 
 **Kontext:** Cílem je, aby dítě netrávilo na telefonu čas. Limit 10 minut jen na hry nestačil a vypínání s odpočtem nebylo žádoucí.

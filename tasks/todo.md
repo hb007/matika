@@ -2,6 +2,15 @@
 
 * [x] ověřit nasazení na hosting (GitHub Actions → FTP)
 
+## Sešity s PINem, třídy, správa (2026-10-25)
+
+* [x] server: `lib/auth.php` (registrace s kódem třídy, PIN + zámek, tokeny zařízení, smazání), migrace `users`, tabulky `classes` a `tokens`, akce `register`/`login`/`logout`/`pin`/`card`, žebříček, bez sešitu (GUEST); testy `tests/test_auth.php`
+* [x] klient: úvodní obrazovka se sešity zařízení, PIN, jiné dítě, nový sešit (paleta barev), bez sešitu; Výsledky se žebříčkem a kartou dítěte; 401 → přihlášení bez ztráty fronty
+* [x] `admin.php`: třídy a kódy, děti, nový PIN, přesun, smazání, přehled za třídu; heslo v `data/config.php`
+* [x] adresy `/u/<přezdívka>`, manifest a ikona (`icon.php`) v barvě dítěte, holka a kluk beze změny adres
+* [x] ověřeno v Playwright (telefon): nový sešit se špatným a správným kódem, odpověď, výsledky a žebříček, odhlášení, jiné dítě se špatným PINem, holka nastaví PIN, úvodní obrazovka se dvěma sešity, bez sešitu, správa
+* [ ] po nasazení: vytvořit `data/config.php`, nastavit PIN holce a klukovi, založit třídy
+
 ## Římské číslice (2026-10-13)
 
 * [x] `lib/rimske.php`: úloha se dvěma úrovněmi (na arabské, na římské), rozsahy 1–39 / 40–399 / 400–3 999, kontrola správného zápisu, nápověda, postup, rozbor chyb; nový druh odpovědi `roman`

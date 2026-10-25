@@ -1,6 +1,25 @@
 <?php
 // SQLite v data/ (složka zůstává v repu, viz tasks/lessons.md). Tabulky
-// a oba uživatele založí první požadavek sám.
+// a oba původní uživatele (holka, kluk) založí první požadavek sám.
+
+// Paleta barev dítěte: klíč → název a odstíny (světlý motiv: text i pozadí
+// štítku; tmavý motiv: text, pozadí). Stejné klíče zná style.css ([data-color=…])
+// a icon.php (ikona na plochu). Holka a kluk ze starší verze mají růžovou a petrolejovou.
+const COLORS = [
+    'ruzova'      => ['name' => 'růžová',      'light' => '#d6336c', 'dark' => '#ff86b0', 'dark_bg' => '#c22d62'],
+    'petrolejova' => ['name' => 'petrolejová', 'light' => '#0c7c8c', 'dark' => '#46c7d8', 'dark_bg' => '#0b6f7d'],
+    'cervena'     => ['name' => 'červená',     'light' => '#c92a2a', 'dark' => '#ff8787', 'dark_bg' => '#b02525'],
+    'oranzova'    => ['name' => 'oranžová',    'light' => '#d9480f', 'dark' => '#ffa94d', 'dark_bg' => '#c0410d'],
+    'zlata'       => ['name' => 'zlatá',       'light' => '#a37a00', 'dark' => '#ffd43b', 'dark_bg' => '#8c6900'],
+    'zelena'      => ['name' => 'zelená',      'light' => '#2b8a3e', 'dark' => '#69db7c', 'dark_bg' => '#2f7a3a'],
+    'limetkova'   => ['name' => 'limetková',   'light' => '#5c940d', 'dark' => '#a9e34b', 'dark_bg' => '#4f7f0b'],
+    'modra'       => ['name' => 'modrá',       'light' => '#1f45b5', 'dark' => '#8fadff', 'dark_bg' => '#3557c9'],
+    'fialova'     => ['name' => 'fialová',     'light' => '#7048e8', 'dark' => '#b197fc', 'dark_bg' => '#5f3dc4'],
+    'purpurova'   => ['name' => 'purpurová',   'light' => '#ae3ec9', 'dark' => '#e599f7', 'dark_bg' => '#9c36b5'],
+    'hneda'       => ['name' => 'hnědá',       'light' => '#8b5a2b', 'dark' => '#d9a066', 'dark_bg' => '#7a4e24'],
+    'grafitova'   => ['name' => 'grafitová',   'light' => '#495057', 'dark' => '#ced4da', 'dark_bg' => '#3b4148'],
+];
+
 function db(): PDO
 {
     static $pdo = null;
@@ -13,10 +32,23 @@ function db_open(string $dsn): PDO
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
-    $pdo->exec('PRAGMA busy_timeout = 3000');   // dvě děti na dvou zařízeních najednou
+    $pdo->exec('PRAGMA busy_timeout = 3000');   // víc dětí na víc zařízeních najednou
+    // třídy: každá má registrační kód, podle něj se nové dítě zařadí
+    $pdo->exec('CREATE TABLE IF NOT EXISTS classes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, code TEXT NOT NULL UNIQUE)');
+    // děti: slug je v adrese (/u/anicka; holka a kluk mají /holka a /kluk), PIN je hash,
+    // pin_fails a pin_until brzdí hádání PINu (lib/auth.php)
     $pdo->exec('CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY, kind TEXT NOT NULL, name TEXT NOT NULL, streak INTEGER NOT NULL DEFAULT 0)');
-    $pdo->exec("INSERT OR IGNORE INTO users (id, kind, name) VALUES (1, 'holka', 'Holka'), (2, 'kluk', 'Kluk')");
+        id INTEGER PRIMARY KEY, slug TEXT NOT NULL UNIQUE, name TEXT NOT NULL,
+        color TEXT NOT NULL DEFAULT \'modra\', class_id INTEGER REFERENCES classes(id),
+        pin_hash TEXT, pin_fails INTEGER NOT NULL DEFAULT 0, pin_until INTEGER NOT NULL DEFAULT 0,
+        streak INTEGER NOT NULL DEFAULT 0, created TEXT NOT NULL DEFAULT \'\')');
+    db_migrate_users($pdo);
+    $pdo->exec("INSERT OR IGNORE INTO users (id, slug, name, color) VALUES (1, 'holka', 'Holka', 'ruzova'), (2, 'kluk', 'Kluk', 'petrolejova')");
+    // zapamatovaná zařízení: cookie nese náhodný token, tady je jeho hash (lib/auth.php)
+    $pdo->exec('CREATE TABLE IF NOT EXISTS tokens (
+        hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), created INTEGER NOT NULL, used INTEGER NOT NULL)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS tokens_user ON tokens (user_id)');
     $pdo->exec('CREATE TABLE IF NOT EXISTS results (
         id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id),
         day TEXT NOT NULL, module TEXT NOT NULL, difficulty TEXT NOT NULL,
@@ -52,10 +84,60 @@ function db_open(string $dsn): PDO
     return $pdo;
 }
 
-// Přezdívka dítěte (holka, kluk) pro název aplikace na ploše; neznámé dítě = ''.
-function kid_name(PDO $db, string $kind): string
+// Starší verze měla users (id, kind, name, streak) jen pro holku a kluka.
+// Tabulku přestavíme (SQLite neumí měnit sloupce): kind → slug, barva podle
+// dítěte, bez PINu (nastaví si ho při prvním přihlášení). Body a vše ostatní
+// zůstává, id se nemění.
+function db_migrate_users(PDO $pdo): void
 {
-    $st = $db->prepare('SELECT name FROM users WHERE kind = ?');
-    $st->execute([$kind]);
-    return (string) $st->fetchColumn();
+    $cols = array_column($pdo->query('PRAGMA table_info(users)')->fetchAll(), 'name');
+    if (!in_array('kind', $cols, true)) {
+        return;
+    }
+    $pdo->exec('BEGIN IMMEDIATE');
+    try {
+        $cols = array_column($pdo->query('PRAGMA table_info(users)')->fetchAll(), 'name');
+        if (in_array('kind', $cols, true)) {   // mezitím to neudělal jiný požadavek
+            $pdo->exec('ALTER TABLE users RENAME TO users_old');
+            $pdo->exec('CREATE TABLE users (
+                id INTEGER PRIMARY KEY, slug TEXT NOT NULL UNIQUE, name TEXT NOT NULL,
+                color TEXT NOT NULL DEFAULT \'modra\', class_id INTEGER REFERENCES classes(id),
+                pin_hash TEXT, pin_fails INTEGER NOT NULL DEFAULT 0, pin_until INTEGER NOT NULL DEFAULT 0,
+                streak INTEGER NOT NULL DEFAULT 0, created TEXT NOT NULL DEFAULT \'\')');
+            $pdo->exec("INSERT INTO users (id, slug, name, color, streak)
+                SELECT id, kind, name, CASE kind WHEN 'holka' THEN 'ruzova' WHEN 'kluk' THEN 'petrolejova' ELSE 'modra' END, streak FROM users_old");
+            $pdo->exec('DROP TABLE users_old');
+        }
+        $pdo->exec('COMMIT');
+    } catch (PDOException $e) {
+        $pdo->exec('ROLLBACK');
+        throw $e;
+    }
+}
+
+// Dítě podle adresy (holka, kluk, anicka …); neznámé = null.
+function user_by_slug(PDO $db, string $slug): ?array
+{
+    $st = $db->prepare('SELECT id, slug, name, color, class_id, pin_hash IS NOT NULL AS has_pin FROM users WHERE slug = ?');
+    $st->execute([$slug]);
+    $u = $st->fetch();
+    return $u ? ['id' => (int) $u['id'], 'slug' => $u['slug'], 'name' => $u['name'], 'color' => $u['color'],
+                 'class_id' => $u['class_id'] === null ? null : (int) $u['class_id'], 'has_pin' => (bool) $u['has_pin']] : null;
+}
+
+// Přezdívka dítěte pro název aplikace na ploše; neznámé dítě = ''.
+function kid_name(PDO $db, string $slug): string
+{
+    return user_by_slug($db, $slug)['name'] ?? '';
+}
+
+// Nastavení mimo repo: data/config.php vrací pole, třeba ['admin_password' => '…'].
+function config(): array
+{
+    static $cfg = null;
+    if ($cfg === null) {
+        $f = __DIR__ . '/../data/config.php';
+        $cfg = is_file($f) ? (array) (include $f) : [];
+    }
+    return $cfg;
 }

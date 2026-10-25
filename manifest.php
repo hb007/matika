@@ -1,36 +1,42 @@
 <?php
-// Manifest pro přidání na plochu: ikona z /holka nebo /kluk otevře rovnou to dítě
-// a jmenuje se podle jeho přezdívky v okamžiku instalace. Každé dítě má vlastní
-// scope: se společným „/“ by Android nainstaloval jen jednu aplikaci a druhá
-// adresa by se otevírala v ní. Kořen „/“ vlastní aplikaci nenabízí.
+// Manifest pro přidání na plochu: ikona ze stránky dítěte otevře rovnou jeho
+// sešit, má jeho barvu a jmenuje se podle přezdívky v okamžiku instalace.
+// Každé dítě má vlastní scope: se společným „/“ by Android nainstaloval jen
+// jednu aplikaci a ostatní adresy by se otevíraly v ní. Kořen „/“ vlastní
+// aplikaci nenabízí. Holka a kluk mají adresy ze starší verze (/holka, /kluk),
+// ať už nainstalované aplikace fungují dál; ostatní /u/<přezdívka>.
 require __DIR__ . '/lib/db.php';
 
-$kid = in_array($_GET['kdo'] ?? '', ['holka', 'kluk'], true) ? $_GET['kdo'] : '';
-$nick = '';
-if ($kid) {
+$slug = preg_match('/^[a-z0-9-]{1,20}$/', $_GET['kdo'] ?? '') ? $_GET['kdo'] : '';
+$kid = null;
+if ($slug !== '') {
     try {
-        $nick = kid_name(db(), $kid);
+        $kid = user_by_slug(db(), $slug);
     } catch (PDOException $e) {
-        // bez databáze aspoň výchozí jméno
+        // bez databáze aspoň výchozí
     }
-    $nick = $nick !== '' ? $nick : ucfirst($kid);
 }
-$icon = $kid ? "icon-$kid" : 'icon';
-$color = ['holka' => '#d6336c', 'kluk' => '#0c7c8c', '' => '#1f45b5'][$kid];
+if (!$kid) {
+    http_response_code(404);
+    exit;
+}
+$path = in_array($slug, ['holka', 'kluk'], true) ? './' . $slug : './u/' . $slug;
+$color = COLORS[$kid['color']] ?? COLORS['modra'];
+$icon = 'icon.php?barva=' . $kid['color'];
 header('Content-Type: application/manifest+json; charset=utf-8');
 header('Cache-Control: no-cache');   // po přejmenování hned nový název
 echo json_encode([
-    'id' => './' . $kid,
-    'name' => 'Matika' . ($nick !== '' ? " $nick" : ''),
-    'short_name' => 'Matika' . ($nick !== '' ? " $nick" : ''),
-    'start_url' => './' . $kid,
-    'scope' => './' . $kid,
+    'id' => $path,
+    'name' => 'Matika ' . $kid['name'],
+    'short_name' => 'Matika ' . $kid['name'],
+    'start_url' => $path,
+    'scope' => $path,
     'display' => 'standalone',
     'background_color' => '#fbfcfa',
-    'theme_color' => $color,
+    'theme_color' => $color['light'],
     'icons' => [
-        ['src' => "$icon-512.png", 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any maskable'],
-        ['src' => "$icon-180.png", 'sizes' => '180x180', 'type' => 'image/png'],
-        ['src' => "$icon.svg", 'sizes' => 'any', 'type' => 'image/svg+xml'],
+        ['src' => "$icon&size=512", 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any maskable'],
+        ['src' => "$icon&size=180", 'sizes' => '180x180', 'type' => 'image/png'],
+        ['src' => "$icon&svg=1", 'sizes' => 'any', 'type' => 'image/svg+xml'],
     ],
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);

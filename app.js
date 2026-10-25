@@ -6,7 +6,9 @@
   const $ = (id) => document.getElementById(id);
   const Rewards = window.Rewards;
   let game = null;    // právě hraná hra (viz GAMES)
-  const state = { modules: {}, diffs: {}, goal: 20, users: [], user: null, module: null, level: null, diff: 'stredni', ex: null, lock: false, timer: null, offline: false };
+  // user: id přihlášeného dítěte, 0 = bez sešitu (guest), null = nic nevybráno;
+  // users: děti přihlášené na tomhle zařízení (+ řádek bez sešitu s id 0); page: dítě z adresy
+  const state = { modules: {}, diffs: {}, goal: 20, colors: {}, pin: { min: 4, max: 6 }, users: [], user: null, page: null, module: null, level: null, diff: 'stredni', ex: null, lock: false, timer: null, offline: false };
   const Offline = window.Offline;
   const DIFF_COLOR = { lehke: '#8fd970', stredni: '#ffd84d', tezke: '#ffa94d' };   // zvýrazňovače, i pro theme-color
   // Úrovně na telefonu krátce (symboly), celý název je v aria-label.
@@ -45,7 +47,7 @@
       throw Object.assign(new Error('Bez internetu.'), { status: 0, network: true });
     }
     const json = await res.json().catch(() => ({ error: 'Server neodpověděl.' }));
-    if (res.status === 401) { state.user = null; showWho(); }
+    if (res.status === 401) onUnauthorized((data && 'user' in data) ? data.user : state.user);
     if (!res.ok) throw Object.assign(new Error(json.error || 'Chyba serveru'), { status: res.status });
     return json;
   }
@@ -88,11 +90,18 @@
     return module === 'mix' ? { ...state.diffs, vse: 'Vše' } : state.diffs;
   }
 
-  // Kdo cvičí, určuje adresa (/holka, /kluk). V záhlaví je štítek aktivního
-  // dítěte (jméno, body dnes, proužek denního cíle), druhé dítě je v seznamu úloh.
+  // Adresa stránky dítěte: holka a kluk mají adresy ze starší verze, ostatní /u/<přezdívka>.
+  const kidHref = (u) => (u.slug === 'holka' || u.slug === 'kluk' ? u.slug : 'u/' + u.slug);
+  const isGuest = () => state.user === 0;
+  // děti se sešitem (bez řádku „bez sešitu“), třeba pro sync a čas v appce
+  const realUsers = () => state.users.filter((u) => u.id);
+
+  // Kdo cvičí, určuje adresa (/holka, /u/anicka) a přihlášení na zařízení. V záhlaví
+  // je štítek aktivního dítěte (jméno, body dnes, proužek denního cíle), ostatní
+  // přihlášené děti jsou v nabídce pod štítkem i v seznamu úloh.
   function renderKids(users) {
     state.users = users;
-    Usage.fromUsers(users);
+    Usage.fromUsers(realUsers());
     const cached = Offline.load('matika_state', null);
     if (cached) { cached.users = users; Offline.save('matika_state', cached); }
     updateBar();
@@ -101,6 +110,7 @@
     $('brand').hidden = !!me;
     $('btn-task').hidden = !me;
     if (!me) return;
+    document.body.dataset.color = me.color;
     const pct = Math.min(100, (me.solved_today / state.goal) * 100);
     $('me').innerHTML = `<span class="me-name">${esc(me.name)}</span> <b>${me.today} b.</b>`
       + (me.days ? ` <span class="me-days" title="Dní v řadě se splněným cílem">${me.days}× cíl</span>` : '')
@@ -109,19 +119,109 @@
     renderGameButtons();
     document.title = `${me.name} – Matika`;
     // přepnutí dítěte je v seznamu úloh i pod štítkem se jménem
-    const other = users.filter((u) => u.id !== state.user).map((u) =>
-      `<a class="task-item" href="${u.kind}" data-kind="${u.kind}">Přepnout na <span class="kid-name">${esc(u.name)}</span><b>${u.today} b.</b></a>`).join('');
+    const other = realUsers().filter((u) => u.id !== state.user).map((u) =>
+      `<a class="task-item" href="${kidHref(u)}">Přepnout na <span class="kid-name" data-color="${esc(u.color)}">${esc(u.name)}</span><b>${u.today} b.</b></a>`).join('')
+      + (isGuest() ? '<a class="task-item link-ink" href="./">Přihlásit se nebo založit sešit</a>'
+        : '<a class="task-item link-ink" href="./">Jiné dítě</a>');
     $('task-other').innerHTML = other;
     $('me-other').innerHTML = other;
+    document.querySelectorAll('[data-stats]').forEach((b) => { b.hidden = isGuest(); });
   }
 
+  // Úvodní obrazovka: sešity přihlášené na tomhle zařízení (klepnutí otevře
+  // rovnou dítě), jiné dítě (přezdívka + PIN), nový sešit, bez sešitu.
   function showWho() {
-    $('who-pick').innerHTML = state.users.map((u) =>
-      `<a class="cover" href="${u.kind}" data-kind="${u.kind}"><span class="cover-label"><small>Jméno</small>`
-      + `<span class="kid-name">${esc(u.name)}</span><small>Předmět: matika</small></span>`
+    const kids = realUsers();
+    $('who-pick').innerHTML = kids.map((u) =>
+      `<a class="cover" href="${kidHref(u)}" data-color="${esc(u.color)}"><span class="cover-label"><small>Jméno</small>`
+      + `<span class="kid-name">${esc(u.name)}</span><small>${esc(u.class_name || 'Předmět: matika')}</small></span>`
       + `<span class="cover-note">Dnes ${u.today} bodů</span></a>`).join('');
+    $('who-pick').hidden = !kids.length;
+    delete document.body.dataset.color;
     show('who');
   }
+  document.querySelectorAll('[data-login]').forEach((b) => b.addEventListener('click', () => {
+    if (b.dataset.login === 'guest') startGuest(); else showLogin(b.dataset.login);
+  }));
+
+  // Bez sešitu: příklady bez ukládání, body jen do zavření prohlížeče (server je drží v session).
+  function startGuest() {
+    state.user = 0;
+    renderKids(state.users);
+    openLast();
+  }
+
+  // Server dítě nezná jako přihlášené (vypršelo, odhlášené jinde): u aktivního
+  // dítěte ukázat přihlášení (fronta offline výsledků zůstane), jiné jen vyřadit.
+  function onUnauthorized(uid) {
+    if (uid === 0 || uid === null) return;
+    if (uid !== state.user) { state.users = state.users.filter((u) => u.id !== uid); return; }
+    const u = state.users.find((x) => x.id === uid) || state.page;
+    state.user = null;
+    clearTimeout(state.timer);
+    state.ex = null;
+    if (u) showLogin(u.has_pin ? 'pin' : 'setup', u); else showWho();
+  }
+
+  // ---------- přihlášení ----------
+  // mode: pin (sešit z adresy, zná PIN), setup (sešit ze starší verze bez PINu),
+  // other (jiné dítě: přezdívka + PIN), register (nový sešit)
+  function showLogin(mode, user) {
+    const f = $('form-login');
+    f.dataset.mode = mode;
+    f.dataset.user = user ? user.id : '';
+    const pin = (name, label) => `<label class="field"><span>${label}</span><input type="password" name="${name}" inputmode="numeric" pattern="[0-9]*" autocomplete="off" minlength="${state.pin.min}" maxlength="${state.pin.max}" required></label>`;
+    const head = user ? `<div class="login-who" data-color="${esc(user.color)}"><span class="kid-name">${esc(user.name)}</span></div>` : '';
+    let html = '';
+    if (mode === 'pin') {
+      html = `<h1>Ahoj!</h1>${head}${pin('pin', 'Tvůj PIN')}`;
+    } else if (mode === 'setup') {
+      html = `<h1>Nastav si PIN</h1>${head}<p class="who-note">Sešit je teď na PIN, ať ti do něj nikdo neleze. Vymysli si ${state.pin.min} až ${state.pin.max} číslic a zapamatuj si je.</p>`
+        + pin('pin', 'Nový PIN') + pin('pin2', 'Ještě jednou');
+    } else if (mode === 'other') {
+      html = `<h1>Jiné dítě</h1><label class="field"><span>Přezdívka</span><input type="text" name="name" maxlength="20" autocomplete="off" required></label>${pin('pin', 'PIN')}`;
+    } else {
+      const swatches = Object.entries(state.colors).map(([k, name], i) =>
+        `<label class="swatch" data-color="${k}"><input type="radio" name="color" value="${k}"${i === 0 ? ' checked' : ''}><span></span>${esc(name)}</label>`).join('');
+      html = `<h1>Nový sešit</h1><label class="field"><span>Přezdívka (ne celé jméno, web je veřejný)</span><input type="text" name="name" maxlength="20" autocomplete="off" required></label>`
+        + `<fieldset class="field"><legend>Barva</legend><div class="swatches">${swatches}</div></fieldset>`
+        + pin('pin', `PIN (${state.pin.min} až ${state.pin.max} číslic, zapamatuj si ho)`) + pin('pin2', 'PIN ještě jednou')
+        + '<label class="field"><span>Kód třídy (dostaneš od učitele nebo rodičů)</span><input type="text" name="code" autocomplete="off" autocapitalize="characters" maxlength="12" required></label>';
+    }
+    f.innerHTML = html + '<p class="login-error" id="login-error" role="alert"></p>'
+      + `<div class="login-actions"><button type="submit" class="btn">${mode === 'register' ? 'Založit sešit' : mode === 'setup' ? 'Nastavit' : 'Otevřít sešit'}</button>`
+      + '<a href="./" class="ghostbtn btn-link">Zpět</a></div>';
+    delete document.body.dataset.color;
+    show('login');
+    const first = f.querySelector('input:not([type=radio])');
+    if (first) first.focus();
+  }
+
+  $('form-login').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const d = Object.fromEntries(new FormData(f).entries());
+    const err = $('login-error');
+    err.textContent = '';
+    if ('pin2' in d && d.pin !== d.pin2) { err.textContent = 'PINy se liší, zkus to znovu.'; return; }
+    f.querySelector('button').disabled = true;
+    let r;
+    try {
+      r = f.dataset.mode === 'register'
+        ? await api('register', { user: null, name: d.name, color: d.color, pin: d.pin, code: d.code })
+        : await api('login', { user: null, target: Number(f.dataset.user) || 0, name: d.name || '', pin: d.pin });
+    } catch (ex) {
+      err.textContent = ex.network ? 'Přihlásit se jde jen s internetem.' : ex.message;
+      f.querySelector('button').disabled = false;
+      return;
+    }
+    // sešit z jiné adresy: přejít na ni (ikona na plochu, manifest); jinak rovnou cvičit
+    if (!state.page || state.page.id !== r.user.id) { location.href = kidHref(r.user); return; }
+    state.user = r.user.id;
+    renderKids(r.users);
+    openLast();
+    trySync();
+  });
 
   // ---------- seznam úloh v záhlaví ----------
   function renderTaskMenu() {
@@ -277,8 +377,8 @@
     state.lock = true;
     $('review').hidden = true;
     const any = state.user && Offline.poolSize(state.user) > 0;
-    $('question').innerHTML = '<span class="pool-empty">Příklady na tuhle úlohu a obtížnost už nejsou. Další přibudou, až budeš online.'
-      + (any ? ' Zatím můžeš zkusit jinou úlohu nebo obtížnost.' : '') + '</span>';
+    $('question').innerHTML = '<span class="pool-empty">' + (isGuest() ? 'Bez sešitu to bez internetu nejde. Se sešitem má appka zásobu příkladů i offline.'
+      : 'Příklady na tuhle úlohu a obtížnost už nejsou. Další přibudou, až budeš online.' + (any ? ' Zatím můžeš zkusit jinou úlohu nebo obtížnost.' : '')) + '</span>';
     $('inputs').innerHTML = '';
     $('feedback').hidden = true;
     $('hints').hidden = true;
@@ -315,11 +415,11 @@
   // Pošle výsledky vyřešené bez internetu (obou dětí) a zjistí, jestli je spojení.
   let syncing = false;
   async function trySync() {
-    if (syncing || !state.users.length) return;
+    if (syncing || !realUsers().length) return;
     syncing = true;
     try {
       let users = null;
-      for (const u of state.users) {
+      for (const u of realUsers()) {
         const items = Offline.queue(u.id);
         if (!items.length && users) continue;   // prázdný sync stačí jednou jako test spojení
         const r = await api('sync', { user: u.id, items });
@@ -589,8 +689,7 @@
       const rewards = r.rewards || [];
       const kinds = rewards.map((x) => x.kind);
       const big = Rewards.primary(rewards);
-      const kid = document.body.dataset.kid || (state.users.find((u) => u.id === state.user) || {}).kind;
-      rewards.forEach((x) => extra.push(esc(Rewards.text(x, kid))));
+      rewards.forEach((x) => extra.push(esc(Rewards.text(x))));
       const streakShown = kinds.some((k) => ['jednorozec', 'duha', 'zlaty_jednorozec'].includes(k));
       if (r.bonus) extra.push(streakShown ? 'Bod navíc za sérii.' : `${r.streak} správně v řadě, bod navíc`);
       else if (r.streak >= 3 && !streakShown) extra.push(`${r.streak} správně v řadě`);
@@ -932,7 +1031,7 @@
   // ---------- čas v appce (měření a odesílání: usage.js) ----------
   Usage.init({
     api, today, setOffline,
-    users: () => state.users, user: () => state.user, offline: () => state.offline,
+    users: realUsers, user: () => state.user, offline: () => state.offline,
     bar(min) {
       const bar = $('time-bar');
       bar.hidden = min === null;
@@ -1092,7 +1191,14 @@
   // ---------- výsledky ----------
   const MODULE_NAME = (m) => (state.modules[m] ? state.modules[m].title : m);
 
+  // Výsledky: moje body, žebříček (třída / všichni × dnes / týden / celkem),
+  // album a přehled pro rodiče. Cizí dítě v žebříčku má veřejnou kartu (body, album).
+  let board = null;
+  const boardTab = { scope: 'class', range: 'week' };
+  const RANGES = { today: 'Dnes', week: 'Tento týden', total: 'Celkem' };
+
   async function loadStats() {
+    if (isGuest()) { alert('Výsledky a body jsou jen se sešitem.'); return; }
     let s;
     try {
       s = await api('stats');
@@ -1102,64 +1208,121 @@
       return;
     }
     renderKids(s.users);
-    const row = (label, f) => `<tr><th>${label}</th>${s.users.map((u) => `<td class="num">${f(u)}</td>`).join('')}</tr>`;
+    const me = s.users.find((u) => u.id === state.user);
+    if (!me) return;
+    const row = (label, v) => `<tr><th>${label}</th><td class="num">${v}</td></tr>`;
     $('compare').innerHTML =
-      `<tr><th></th>${s.users.map((u) => `<th class="num"><span class="kid-name" data-kind="${u.kind}">${esc(u.name)}</span> <button type="button" class="link rename" data-user="${u.id}">přejmenovat</button></th>`).join('')}</tr>`
-      + row('Dnes', (u) => u.today + ' b.')
-      + row('Tento týden', (u) => u.week + ' b.')
-      + row('Celkem', (u) => u.total + ' b.')
-      + row('Dnes vyřešeno', (u) => `${u.solved_today} / ${state.goal}`)
-      + row('Dní v řadě se splněným cílem', (u) => u.days || '–')
-      + row('Dnes v appce (všechna zařízení)', (u) => Usage.minutes(Math.floor(Usage.ms(u.id) / 60000)))
-      + row('', (u) => `<button type="button" class="link reset" data-user="${u.id}">Smazat body</button>`);
+      `<tr><th colspan="2"><span class="kid-name" data-color="${esc(me.color)}">${esc(me.name)}</span>${me.class_name ? ` <span class="class-name">${esc(me.class_name)}</span>` : ''}</th></tr>`
+      + row('Dnes', me.today + ' b.')
+      + row('Tento týden', me.week + ' b.')
+      + row('Celkem', me.total + ' b.')
+      + row('Dnes vyřešeno', `${me.solved_today} / ${state.goal}`)
+      + row('Dní v řadě se splněným cílem', me.days || '–')
+      + row('Dnes v appce (všechna zařízení)', Usage.minutes(Math.floor(Usage.ms(me.id) / 60000)));
+    $('me-actions').innerHTML = '<button type="button" class="link rename">Přejmenovat</button>'
+      + '<button type="button" class="link pin">Změnit PIN</button>'
+      + '<button type="button" class="link logout">Odhlásit z tohoto zařízení</button>'
+      + '<button type="button" class="link reset">Smazat body</button>';
+    board = s.board;
+    if (!board.class) boardTab.scope = 'all';
+    $('card').hidden = true;
+    renderBoard();
     // album: získané nálepky (kolikrát), nezískané šedě s tím, jak je dostat
-    const all = Object.entries(Rewards.STICKER);
-    $('album').innerHTML = s.users.map((u) => {
-      const have = s.stats[u.id].stickers || {};
-      const got = all.filter(([k]) => have[k]).length;
-      return `<details open data-kind="${u.kind}"><summary><span class="kid-name" data-kind="${u.kind}">${esc(u.name)}</span> <span class="album-count">${got} z ${all.length}</span></summary>`
-        + `<div class="album">${all.map(([k, st]) => {
-          const n = have[k] || 0;
-          const style = st.gold ? ' style="filter:sepia(1) saturate(6) hue-rotate(-12deg) brightness(1.15)"' : st.hue ? ` style="filter:hue-rotate(${st.hue}deg)"` : '';
-          return `<div class="sticker${n ? '' : ' locked'}" title="${esc(st.how)}"><span class="sticker-e"${n ? style : ''}>${st.e}</span>`
-            + `<b>${esc(st.name)}</b><small>${n ? (n > 1 ? `${n}×` : 'mám') : esc(st.how)}</small></div>`;
-        }).join('')}</div></details>`;
-    }).join('');
-    $('parent').innerHTML = s.users.map((u) => {
-      const st = s.stats[u.id];
-      const per = st.per_task.length
-        ? `<table class="table">${st.per_task.map((p) => `<tr><td>${esc(MODULE_NAME(p.module))} – ${esc(state.diffs[p.difficulty] || p.difficulty)}</td><td class="num">${p.n}×</td><td class="num">${Math.round((p.first / p.n) * 100)} % napoprvé</td></tr>`).join('')}</table>`
-        : '<p class="empty">Zatím nic.</p>';
-      const hard = st.hardest.length
-        ? `<div class="mistakes">${st.hardest.map((h) => `<div><span>${renderQ(h.question)}</span><span class="right">${renderQ(h.answer)}</span></div>`).join('')}</div>`
-        : '<p class="empty">Žádné opakované chyby.</p>';
-      return `<details open><summary><span class="kid-name" data-kind="${u.kind}">${esc(u.name)}</span></summary>${per}<h3>Co nejde (30 dní)</h3>${hard}</details>`;
-    }).join('');
+    $('album').innerHTML = renderAlbum(s.stats.stickers || {});
+    const st = s.stats;
+    const per = st.per_task.length
+      ? `<table class="table">${st.per_task.map((p) => `<tr><td>${esc(MODULE_NAME(p.module))} – ${esc(state.diffs[p.difficulty] || p.difficulty)}</td><td class="num">${p.n}×</td><td class="num">${Math.round((p.first / p.n) * 100)} % napoprvé</td></tr>`).join('')}</table>`
+      : '<p class="empty">Zatím nic.</p>';
+    const hard = st.hardest.length
+      ? `<div class="mistakes">${st.hardest.map((h) => `<div><span>${renderQ(h.question)}</span><span class="right">${renderQ(h.answer)}</span></div>`).join('')}</div>`
+      : '<p class="empty">Žádné opakované chyby.</p>';
+    $('parent').innerHTML = `${per}<h3>Co nejde (30 dní)</h3>${hard}`;
     show('stats');
   }
 
-  document.querySelectorAll('[data-stats]').forEach((b) =>
-    b.addEventListener('click', () => { clearTimeout(state.timer); state.ex = null; loadStats(); }));
-  $('compare').addEventListener('click', async (e) => {
-    const r = e.target.closest('.reset');
-    if (r) {
-      const u = state.users.find((x) => x.id === Number(r.dataset.user));
-      if (!confirm(`Smazat všechny body (${u.total}) dítěte ${u.name}? Vrátit to nejde. Vyřešené příklady v přehledu a nálepky v albu zůstanou.`)) return;
-      try {
-        await api('reset', { target: u.id });
-        loadStats();
-      } catch (err) {
-        alert(err.message);
-      }
+  function renderAlbum(have) {
+    const all = Object.entries(Rewards.STICKER);
+    const got = all.filter(([k]) => have[k]).length;
+    return `<p class="album-count">${got} z ${all.length}</p><div class="album">${all.map(([k, st]) => {
+      const n = have[k] || 0;
+      const style = st.gold ? ' style="filter:sepia(1) saturate(6) hue-rotate(-12deg) brightness(1.15)"' : st.hue ? ` style="filter:hue-rotate(${st.hue}deg)"` : '';
+      return `<div class="sticker${n ? '' : ' locked'}" title="${esc(st.how)}"><span class="sticker-e"${n ? style : ''}>${st.e}</span>`
+        + `<b>${esc(st.name)}</b><small>${n ? (n > 1 ? `${n}×` : 'mám') : esc(st.how)}</small></div>`;
+    }).join('')}</div>`;
+  }
+
+  // Žebříček: ve „dnes“ a „týden“ jen děti s body, v „celkem“ všichni; vlastní řádek vždy.
+  function renderBoard() {
+    const tab = (id, items, cur) => { $(id).innerHTML = Object.entries(items).map(([k, label]) =>
+      `<button type="button" role="tab" class="tab" data-tab="${k}" aria-selected="${k === cur}">${esc(label)}</button>`).join(''); };
+    const scopes = board.class ? { class: board.class_name || 'Moje třída', all: 'Všichni' } : { all: 'Všichni' };
+    tab('board-scope', scopes, boardTab.scope);
+    tab('board-range', RANGES, boardTab.range);
+    const r = boardTab.range;
+    const list = (boardTab.scope === 'class' ? board.class : board.all)
+      .filter((u) => r === 'total' || u[r] > 0 || u.id === state.user)
+      .sort((a, b) => b[r] - a[r] || b.days - a.days || a.id - b.id);
+    $('board').innerHTML = list.length ? `<ol class="board">${list.map((u, i) =>
+      `<li class="board-row${u.id === state.user ? ' mine' : ''}" data-color="${esc(u.color)}"><span class="rank">${i + 1}.</span>`
+      + `<button type="button" class="board-kid" data-user="${u.id}"><span class="kid-name">${esc(u.name)}</span></button>`
+      + (u.days ? `<span class="me-days" title="Dní v řadě se splněným cílem">${u.days}× cíl</span>` : '')
+      + `<b class="num">${u[r]} b.</b></li>`).join('')}</ol>` : '<p class="empty">Zatím nikdo nemá body.</p>';
+  }
+  ['board-scope', 'board-range'].forEach((id) => $(id).addEventListener('click', (e) => {
+    const b = e.target.closest('[data-tab]');
+    if (!b) return;
+    boardTab[id === 'board-scope' ? 'scope' : 'range'] = b.dataset.tab;
+    renderBoard();
+  }));
+  // karta jiného dítěte: body, série dní, album
+  $('board').addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-user]');
+    if (!b) return;
+    const card = $('card');
+    let c;
+    try {
+      c = await api('card', { target: Number(b.dataset.user) });
+    } catch (err) {
+      alert(err.message);
       return;
     }
-    const b = e.target.closest('.rename');
-    if (!b) return;
-    const u = state.users.find((x) => x.id === Number(b.dataset.user));
-    const name = prompt('Přezdívka (1 až 20 znaků):', u.name);
-    if (name === null) return;
+    card.dataset.color = c.color;
+    card.innerHTML = `<div class="card-head"><span class="kid-name">${esc(c.name)}</span>${c.class_name ? ` <span class="class-name">${esc(c.class_name)}</span>` : ''}`
+      + '<button type="button" class="link card-close">Zavřít</button></div>'
+      + `<p>Dnes ${c.today} b., tento týden ${c.week} b., celkem ${c.total} b.${c.days ? `, ${c.days}× cíl v řadě` : ''}.</p>` + renderAlbum(c.stickers || {});
+    card.hidden = false;
+    card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  });
+  $('card').addEventListener('click', (e) => { if (e.target.closest('.card-close')) $('card').hidden = true; });
+
+  document.querySelectorAll('[data-stats]').forEach((b) =>
+    b.addEventListener('click', () => { clearTimeout(state.timer); state.ex = null; loadStats(); }));
+  $('me-actions').addEventListener('click', async (e) => {
+    const me = state.users.find((x) => x.id === state.user);
+    const b = e.target.closest('button');
+    if (!b || !me) return;
     try {
-      await api('rename', { target: u.id, name });
+      if (b.classList.contains('reset')) {
+        if (!confirm(`Smazat všechny svoje body (${me.total})? Vrátit to nejde. Vyřešené příklady v přehledu a nálepky v albu zůstanou.`)) return;
+        await api('reset');
+      } else if (b.classList.contains('rename')) {
+        const name = prompt('Přezdívka (1 až 20 znaků):', me.name);
+        if (name === null) return;
+        await api('rename', { name });
+      } else if (b.classList.contains('pin')) {
+        const old = prompt('Starý PIN:');
+        if (old === null) return;
+        const pin = prompt(`Nový PIN (${state.pin.min} až ${state.pin.max} číslic):`);
+        if (pin === null) return;
+        await api('pin', { old, pin });
+        alert('PIN je změněný.');
+        return;
+      } else if (b.classList.contains('logout')) {
+        if (!confirm('Odhlásit sešit z tohoto zařízení? Příště bude chtít PIN.')) return;
+        await api('logout');
+        location.href = './';
+        return;
+      }
       loadStats();
     } catch (err) {
       alert(err.message);
@@ -1172,7 +1335,7 @@
       e.preventDefault();
       clearTimeout(state.timer);
       state.ex = null;
-      if (state.user) openLast(); else showWho();
+      if (state.user !== null) openLast(); else showWho();
     })
   );
 
@@ -1180,8 +1343,9 @@
   (async () => {
     try {
       let s;
+      const slug = document.body.dataset.slug || '';
       try {
-        s = await api('state');
+        s = await api('state', { user: null, slug });
         Offline.save('matika_state', s);
       } catch (e) {
         // bez internetu ze stavu z minula (úlohy, děti, body)
@@ -1189,10 +1353,14 @@
         if (!s) throw e.network ? new Error('Bez internetu. Matiku je potřeba poprvé otevřít s internetem.') : e;
         state.offline = true;
       }
-      const me = s.users.find((u) => u.kind === document.body.dataset.kid);
-      Object.assign(state, { modules: s.modules, diffs: s.difficulties, goal: s.goal, user: me ? me.id : null });
+      // dítě z adresy: přihlášené na zařízení → rovnou cvičit, jinak PIN (nebo nastavení PINu)
+      const page = s.page && s.page.slug === slug ? s.page : null;
+      const me = page && s.users.find((u) => u.id === page.id);
+      Object.assign(state, { modules: s.modules, diffs: s.difficulties, goal: s.goal, colors: s.colors || {}, pin: s.pin || state.pin, page, user: me ? me.id : null });
       renderKids(s.users);
-      if (state.user) openLast(); else showWho();
+      if (me) openLast();
+      else if (page) showLogin(page.has_pin ? 'pin' : 'setup', page);
+      else showWho();
       if (!state.offline) trySync();   // výsledky z minula a doplnění zásoby
     } catch (e) {
       document.body.insertAdjacentHTML('afterbegin', `<p style="padding:16px;color:#d64545">${esc(e.message)}</p>`);

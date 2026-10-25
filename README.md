@@ -3,7 +3,7 @@ nazev: Matika
 stav: aktivní
 typ: kod
 varianta: A
-popis: Webová appka na procvičování matematiky pro 2. stupeň ZŠ (PHP + SQLite, FTP hosting)
+popis: Webová appka na procvičování matematiky pro 2. stupeň ZŠ (PHP + SQLite, FTP hosting), sešity dětí s PINem a třídami
 dalsi-krok: –
 ---
 
@@ -11,7 +11,7 @@ dalsi-krok: –
 
 Jednoduchá webová appka (PHP 8.1+, SQLite, bez frameworků a bez buildu). Funguje na počítači, tabletu i telefonu.
 
-Cvičí dvě děti, 👧 holka a 👦 kluk, bez hesla. Každé má svou adresu (`/holka`, `/kluk`), sbírá body a v horním řádku i ve „Výsledcích“ se porovnávají. Dítě si vybere úlohu, úroveň a obtížnost (lehké, střední, těžké) a řeší samostatné příklady jeden za druhým, dokud chce. Správná odpověď spustí efekt a pochvalu a hned naskočí další příklad. Po špatné odpovědi má dítě další pokus, správný výsledek se ukáže jen na vyžádání.
+Každé dítě má svůj **sešit** (přezdívka, barva, PIN) zařazený do třídy podle registračního kódu, vlastní adresu (`/u/anicka`; holka a kluk ze starší verze `/holka`, `/kluk`), sbírá body a ve „Výsledcích“ je žebříček třídy a všech dětí. Kdo sešit nechce, zkusí appku bez něj (body se neukládají). Dítě si vybere úlohu, úroveň a obtížnost (lehké, střední, těžké) a řeší samostatné příklady jeden za druhým, dokud chce. Správná odpověď spustí efekt a pochvalu a hned naskočí další příklad. Po špatné odpovědi má dítě další pokus, správný výsledek se ukáže jen na vyžádání.
 
 ## Co se dá procvičovat
 
@@ -62,7 +62,7 @@ Pravidla, která hlídá server:
 
 Když přijde víc odměn najednou, hraje animace té nejvzácnější a texty se ukážou všechny. Další příklad pak naskočí až po doběhnutí. Offline appka pozná jen sérii, denní cíl a body. Nálepky za offline příklady (i sovu a raketu) doplní server po připojení. Při omezených animacích zůstane jen text.
 
-**Album nálepek** je ve Výsledcích pro obě děti: získané nálepky v barvě dítěte s počtem, nezískané šedě s popisem, jak je dostat. „Smazat body“ nálepky nemaže.
+**Album nálepek** je ve Výsledcích u každého dítěte (vlastní i cizí přes žebříček): získané nálepky v barvě dítěte s počtem, nezískané šedě s popisem, jak je dostat. „Smazat body“ nálepky nemaže.
 
 **Hry.** Pět her jako odměna: Had, Pexeso (dvojice příklad a výsledek), 2048, Cihly (rozbíjení cihel pálkou) a Ptáček (proletět mezi sloupy). V menu je „Hry“: rozcestník, kde si dítě hru vybere (u každé je rekord), nebo nechá vybrat „Náhodnou hru“. Při splnění denního cíle appka nabídne „Vybrat hru“ (otevře rozcestník) nebo „Další příklad“. Hry jsou zamčené, dokud dítě nesplní denní cíl. Pak má na den 3 hry (hra = jedno kolo od startu do konce, „Hrát znovu“ je další hra) a za každých dalších 10 vyřešených příkladů jednu hru navíc. Pauza při odchodu z appky hru nespotřebuje. Limity jsou v `app.js` (`GAME_PLAYS`, `GAME_EXTRA_EVERY`), počítají se v prohlížeči pro každé dítě zvlášť a fungují i offline. Ovládání: tažení prstem, šipky pod plochou (jen u her, které je potřebují), šipky nebo WASD a mezerník na klávesnici.
 
@@ -76,7 +76,13 @@ Když přijde víc odměn najednou, hraje animace té nejvzácnější a texty s
 
 **Vzhled.** Čtverečkovaný sešit: papír s mřížkou, tuha a modrý inkoust, písma Atkinson Hyperlegible (čitelnost, nesplete 1/l a 0/O) a Patrick Hand (ručně psané jméno a pochvala). Písma jsou ve složce `fonts/`, nenačítají se z Google Fonts. Holka má růžovou, kluk petrolejovou: barva nese štítek se jménem, pochvalu a ikonu na plochu. Obtížnost je zvýrazňovač v záhlaví: lehké zelený, střední žlutý, těžké oranžový. V rozhraní nejsou emoji (zůstávají jen v efektech za správnou odpověď).
 
-**Kdo cvičí.** Adresa `/holka` nebo `/kluk` otevře rovnou profil dítěte, na `/` se appka zeptá „Kdo dnes cvičí?“ (dvoje desky sešitu se štítkem). V záhlaví je štítek aktivního dítěte s body dnes a proužkem denního cíle. Klepnutí na štítek se jménem nabídne přepnutí na druhé dítě (přejde na jeho adresu) a výsledky. Obojí je i v seznamu úloh. Dítě se posílá s každým požadavkem, takže se nespletou ani dvě karty v jednom prohlížeči. Na plochu jde přidat zvlášť aplikace holky (z `/holka`) a kluka (z `/kluk`). Každá otevře rovnou svoje dítě, má jeho barvu (`icon-kluk-*.png`, `icon-holka-*.png`) a jmenuje se „Matika“ plus přezdívka v okamžiku přidání (pozdější přejmenování už ikonu na ploše nezmění). Kořen `/` vlastní aplikaci nenabízí: se společným rozsahem `/` by Android nainstaloval jen jednu aplikaci. Přepnutí na druhé dítě uvnitř nainstalované aplikace otevře jeho stránku v prohlížeči. Přezdívky jdou změnit ve „Výsledcích“ (✏️). Web je veřejný, proto přezdívky, ne skutečná jména.
+**Kdo cvičí.** Na `/` se appka zeptá „Kdo dnes cvičí?“: desky sešitů dětí přihlášených na tomhle zařízení (klepnutí otevře rovnou dítě), „Jiné dítě“ (přezdívka + PIN), „Nový sešit“ a „Zkusit bez sešitu“. Adresa dítěte (`/u/anicka`, `/holka`, `/kluk`) otevře rovnou jeho sešit, když je na zařízení přihlášené, jinak chce PIN. Přihlášení si zařízení pamatuje (cookie s tokenem na rok, pro každé dítě zvlášť, nejvýš 12 dětí), takže na sdíleném tabletu je přihlášených víc dětí a PIN se zadává jen poprvé. Odhlásit jde ve Výsledcích. V záhlaví je štítek aktivního dítěte v jeho barvě s body dnes a proužkem denního cíle; klepnutí nabídne přepnutí na jiné přihlášené dítě, „Jiné dítě“ a výsledky. Dítě se posílá s každým požadavkem a server ověří, že je na zařízení přihlášené, takže se nespletou ani dvě karty v jednom prohlížeči. Na plochu jde přidat aplikace každého dítěte z jeho adresy: otevře rovnou jeho sešit, má jeho barvu (`icon.php`) a jmenuje se „Matika“ plus přezdívka v okamžiku přidání. Kořen `/` vlastní aplikaci nenabízí: se společným rozsahem `/` by Android nainstaloval jen jednu aplikaci. Přepnutí na jiné dítě uvnitř nainstalované aplikace otevře jeho stránku v prohlížeči. Web je veřejný, proto přezdívky, ne skutečná jména.
+
+**Nový sešit.** Přezdívka, barva z palety 12 barev (`lib/db.php` `COLORS`), PIN (4 až 6 číslic) a **kód třídy**. Kód dostane dítě osobně od učitele nebo rodiče (na web nepatří); bez něj se sešit založit nedá, takže se neregistrují roboti ani cizí lidé. Adresa vznikne z přezdívky bez diakritiky (`Anička Nováková` → `/u/anicka-novakova`, při shodě `-2`). Holka a kluk ze starší verze PIN nemají a nastaví si ho při prvním otevření po nasazení (do té doby to může udělat kdokoli s jejich adresou, proto to udělej hned). Po 5 špatných PINech za sebou je minutová pauza. PIN jde změnit ve Výsledcích (starý + nový); zapomenutý PIN nastaví správce.
+
+**Bez sešitu.** Příklady, nápověda, postup, rozbor chyby i efekty fungují, body se počítají jen do zavření prohlížeče (server je drží v session) a nic se neukládá: žádné odměny, nálepky, opakování chyb, žebříček ani zásoba pro offline.
+
+**Správa** (`/admin`, `admin.php`) pro rodiče a učitele: třídy a jejich kódy (nový kód zneplatní starý, děti zůstanou), děti po třídách, u dítěte nový PIN, přejmenování, přesun do třídy, odhlášení ze všech zařízení, smazání sešitu (i s body a nálepkami, nevratné), přehled pro rodiče a souhrn za třídu (co třídě nejde). Chrání ji HTTP basic auth s heslem z `data/config.php` (viz Nasazení). Bez hesla se správa neotevře.
 
 **Úloha, úroveň a obtížnost.** Appka otevře poslední úlohu dítěte. Tlačítko s názvem úlohy v záhlaví otevře seznam úloh (a přepnutí dítěte a výsledky). Pod záhlavím je jeden řádek: vlevo úrovně jako symboly (`·`, `:`, `· :`, `123`, `−5`, `2,5`, „zkrátit“, `+ −`, `XII→12`, „vše“), vpravo obtížnost jako ikony pírko, kámen, činka (v Náhodném mixu navíc „Vše“). Přepnutí hned načte nový příklad. Každé dítě má u každé úlohy zapamatovanou úroveň a obtížnost (v prohlížeči).
 
@@ -90,7 +96,7 @@ Když přijde víc odměn najednou, hraje animace té nejvzácnější a texty s
 
 **Vypršelý příklad.** Když příklad leží otevřený déle, než server drží session, appka po odeslání místo chyby načte nový příklad a napíše „Předchozí příklad vypršel, tady je nový.“
 
-**Výsledky.** Porovnání obou dětí (dnes, tento týden, celkem, dnes vyřešeno, série dní) a přehled pro rodiče: úspěšnost napoprvé podle tématu a obtížnosti a příklady, které se za posledních 30 dní nejčastěji nedařily. Tlačítko „Smazat body“ (s potvrzením) vynuluje body a sérii v řadě jednoho dítěte. Vyřešené příklady, denní cíl, série dní a přehled pro rodiče zůstanou. Vrátit to nejde.
+**Výsledky.** Moje body (dnes, tento týden, celkem, dnes vyřešeno, série dní, čas v appce), přejmenování, změna PINu, odhlášení a „Smazat body“ (s potvrzením vynuluje body a sérii v řadě; vyřešené příklady, denní cíl, série dní a přehled pro rodiče zůstanou, vrátit to nejde). **Žebříček** se záložkami „moje třída“ / „všichni“ a dnes / tento týden / celkem: ve „dnes“ a „týden“ jen děti s body, v „celkem“ všichni, vlastní řádek vždy a zvýrazněný. Klepnutí na dítě otevře jeho veřejnou kartu (body, série dní, album). **Přehled pro rodiče** (úspěšnost napoprvé podle tématu a obtížnosti, příklady, které se za posledních 30 dní nejčastěji nedařily) vidí jen dítě u sebe a správce u všech.
 
 **Nápověda po krocích.** Když dítě neví, klikne na „Nápověda“ a uvidí první krok (třeba „Kolikrát se 8 vejde do 66?“). Každé další kliknutí odkryje další krok. Poslední krok nikdy neprozradí výsledek, ten musí dítě dopočítat samo.
 
@@ -102,7 +108,15 @@ Když přijde víc odměn najednou, hraje animace té nejvzácnější a texty s
 
 ## Nasazení na hosting
 
-Stačí běžný webhosting s **PHP 8.1 nebo novějším** a rozšířením `pdo_sqlite`. Instalace není potřeba: databáze `data/matika-v2.sqlite` se založí sama při prvním použití. Složka `data/` musí být pro PHP zapisovatelná. Pro adresy `/holka` a `/kluk` je potřeba Apache s `mod_rewrite` (bez něj zbytek appky funguje).
+Stačí běžný webhosting s **PHP 8.1 nebo novějším** a rozšířením `pdo_sqlite`. Instalace není potřeba: databáze `data/matika-v2.sqlite` se založí sama při prvním použití. Složka `data/` musí být pro PHP zapisovatelná. Pro adresy dětí (`/u/anicka`, `/holka`, `/kluk`) je potřeba Apache s `mod_rewrite` (bez něj zbytek appky funguje). Ikony v barvě dítěte kreslí rozšíření `gd` (bez něj se použije modrá ikona z repa).
+
+Správa (`/admin`) potřebuje heslo v souboru `data/config.php` na serveru (není v repu, nasazení ho nepřepisuje):
+
+```php
+<?php return ['admin_password' => 'tajne-heslo'];
+```
+
+Po nasazení na web se stávajícími daty: holka a kluk zůstanou (body, nálepky, adresy i nainstalované ikony), databáze se sama převede (`db_migrate_users`), a při prvním otevření si každý nastaví PIN. Ve správě pak založ třídy a kódy pro nové sešity.
 
 1. **Stáhni appku.** Na GitHubu: Code → Download ZIP a rozbal.
 2. **Nahraj soubory přes FTP** do kořene webu nebo do podsložky (třeba `/matika`). Nahraj všechno včetně skrytého `.htaccess`.
@@ -146,8 +160,9 @@ Ve vývojovém Docker kontejneru (`docker-compose.yml`, image `vibecode` s PHP) 
 
 ## Jak to funguje
 
-* `index.php` + `app.js` + `paper.js` + `style.css` – jedna stránka, obrazovky se přepínají v JS. `index.php` pozná dítě z adresy (`/holka`, `/kluk`). Efekty za správnou odpověď jsou v `app.js` (objekt `EFFECTS`, Web Animations API, bez knihovny); nový efekt = nová položka v `EFFECTS`.
-* `api.php` – JSON API (`state`, `next`, `hint`, `answer`, `reveal`, `stats`, `rename`, `reset`, pro offline `pool` a `sync`). Každý požadavek nese `user` (1 holka, 2 kluk). Příklady generuje a kontroluje server, rozpracovaný příklad drží v PHP session zvlášť pro každé dítě. `answer` vrací jen správně/špatně a rozbor chyby, správný výsledek s postupem dá až `reveal`. Opakované odeslání hotového příkladu vrátí 409, body se nepřičtou dvakrát.
+* `index.php` + `app.js` + `paper.js` + `style.css` – jedna stránka, obrazovky se přepínají v JS. `index.php` pozná dítě z adresy (`/u/<přezdívka>`, `/holka`, `/kluk`; `/u/` je o složku hlouběji, relativní cesty řeší `<base>`). Efekty za správnou odpověď jsou v `app.js` (objekt `EFFECTS`, Web Animations API, bez knihovny); nový efekt = nová položka v `EFFECTS`.
+* `api.php` – JSON API (`state`, `register`, `login`, `logout`, `pin`, `next`, `hint`, `answer`, `reveal`, `stats`, `card`, `rename`, `reset`, pro offline `pool` a `sync`, `time`). Každý požadavek nese `user` (id dítěte, 0 = bez sešitu); server ověří, že je dítě na zařízení přihlášené (`lib/auth.php`: tokeny v cookie `matika_sesity`, v databázi jen hash, tabulka `tokens`), jinak 401 a klient ukáže přihlášení (fronta offline výsledků zůstane). Příklady generuje a kontroluje server, rozpracovaný příklad drží v PHP session zvlášť pro každé dítě. `answer` vrací jen správně/špatně a rozbor chyby, správný výsledek s postupem dá až `reveal`. Opakované odeslání hotového příkladu vrátí 409, body se nepřičtou dvakrát.
+* `lib/auth.php` – sešity (registrace s kódem třídy, PIN s hashem a zámkem, tokeny zařízení, smazání), třídy a kódy; `admin.php` – správa (čisté PHP, HTTP basic auth, heslo z `data/config.php`).
 * `lib/game.php` – body, série, denní cíl, opakování chyb, statistiky. `lib/db.php` – SQLite (tabulky `users`, `results`, `review`, `issued`, `stickers` se založí samy).
 * `lib/generators.php` – generátory příkladů podle obtížnosti a kontrola odpovědí.
 * `lib/explain.php` – nápověda po krocích, postup řešení a rozbor typických chyb.
@@ -158,9 +173,9 @@ Ve vývojovém Docker kontejneru (`docker-compose.yml`, image `vibecode` s PHP) 
 * `gamekit.js` – společný základ her na plátně (plátno, barvy z CSS, velikost podle displeje); `snake.js`, `pexeso.js`, `g2048.js`, `breakout.js`, `flappy.js` – hry se stejným rozhraním (`create`, `start`, `stop`, `reset`, `turn`, `running`, `over`); rozcestník, limity a obrazovka hry jsou v `app.js` (`GAMES`).
 * `rewards.js` – animace a texty odměn, popisy nálepek alba; `lib/rewards.php` – které odměny dítě dostalo a album (tabulka `stickers`).
 * `offline.js` – zásoba příkladů, kontrola odpovědi v telefonu (přepis `check_answer` z PHP) a fronta výsledků (když se výsledek neuloží ani po uvolnění místa, appka to řekne, potichu se nic neztratí); `usage.js` – čas v appce; `sw.js` – service worker, díky kterému se stránka otevře bez internetu (stránky nejdřív ze sítě, skripty, styly a písma z cache). `lib/offline.php` – vydávání zásoby (`pool`, tabulka `issued`) a dodatečné započtení výsledků (`sync`). Shodu kontroly odpovědi v PHP a JS hlídá `php tests/parity_cases.php | node tests/parity.js` (běží i před nasazením).
-* `manifest.php` – manifest pro přidání na plochu, pro `/holka` a `/kluk` zvlášť (vlastní ikona, barva, název podle přezdívky a vlastní `scope`).
+* `manifest.php` – manifest pro přidání na plochu, pro každé dítě zvlášť (ikona a barva z `icon.php`, název podle přezdívky, vlastní `scope`: `./holka`, `./kluk`, `./u/<přezdívka>`).
 * `fonts/` – písma Atkinson Hyperlegible a Patrick Hand (woff2, latin a latin-ext).
 * `data/` – databáze (z nahrávání vyřazená, chrání ji `.htaccess` a `index.html`).
 * `tests/` – testy bez frameworku, `php tests/run.php`.
 
-Appka nikoho nepřihlašuje. Kdokoli s adresou může cvičit za kterékoli dítě, měnit přezdívky a mazat body. Kdo to nechce, dá před web HTTP basic auth na úrovni web serveru.
+Přihlášení je jen PIN (4 až 6 číslic) s brzdou proti hádání; chrání sešity před spolužáky, ne před útočníkem. Web je veřejný, žebříček vidí každé přihlášené dítě, proto přezdívky místo jmen a žádné e-maily. Heslo správce je mimo repo v `data/config.php`.

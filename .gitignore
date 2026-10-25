@@ -4,6 +4,8 @@
 *.sqlite-wal
 *.sqlite-shm
 config.local.php
+# heslo správce a další nastavení serveru (admin.php, lib/db.php config())
+data/config.php
 
 # Runtime Claude Code (auth, credentials, transkripty) — NIKDY necommituj
 .claude-runtime/
