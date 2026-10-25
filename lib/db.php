@@ -33,6 +33,9 @@ function db_open(string $dsn): PDO
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
     $pdo->exec('PRAGMA busy_timeout = 3000');   // víc dětí na víc zařízeních najednou
+    // WAL: čtení (žebříček, stav) neblokuje zápis odpovědí a naopak; v paměti
+    // (testy) ho SQLite nemá a vrátí „memory“, to nevadí
+    $pdo->exec('PRAGMA journal_mode = WAL');
     // třídy: každá má registrační kód, podle něj se nové dítě zařadí
     $pdo->exec('CREATE TABLE IF NOT EXISTS classes (
         id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, code TEXT NOT NULL UNIQUE)');

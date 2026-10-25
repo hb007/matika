@@ -108,7 +108,7 @@ Když přijde víc odměn najednou, hraje animace té nejvzácnější a texty s
 
 ## Nasazení na hosting
 
-Stačí běžný webhosting s **PHP 8.1 nebo novějším** a rozšířením `pdo_sqlite`. Instalace není potřeba: databáze `data/matika-v2.sqlite` se založí sama při prvním použití. Složka `data/` musí být pro PHP zapisovatelná. Do `data/sessions/` si appka ukládá PHP session (rozpracovaný příklad, přihlášení správce), ne do systémové složky hostingu, která bývá nezapisovatelná nebo se uklízí. Pro adresy dětí (`/u/anicka`, `/holka`, `/kluk`) je potřeba Apache s `mod_rewrite` (bez něj zbytek appky funguje). Ikony v barvě dítěte kreslí rozšíření `gd` (bez něj se použije modrá ikona z repa).
+Stačí běžný webhosting s **PHP 8.1 nebo novějším** a rozšířením `pdo_sqlite`. Instalace není potřeba: databáze `data/matika-v2.sqlite` se založí sama při prvním použití. Složka `data/` musí být pro PHP zapisovatelná. Databáze běží v režimu WAL (vedle `matika-v2.sqlite` jsou soubory `-wal` a `-shm`, patří k ní; při ručním zálohování kopíruj všechny tři, nebo nejdřív `PRAGMA wal_checkpoint`). Do `data/sessions/` si appka ukládá PHP session (rozpracovaný příklad, přihlášení správce), ne do systémové složky hostingu, která bývá nezapisovatelná nebo se uklízí. Pro adresy dětí (`/u/anicka`, `/holka`, `/kluk`) je potřeba Apache s `mod_rewrite` (bez něj zbytek appky funguje). Ikony v barvě dítěte kreslí rozšíření `gd` (bez něj se použije modrá ikona z repa).
 
 Správa (`/admin`) potřebuje heslo v souboru `data/config.php` na serveru (není v repu, nasazení ho nepřepisuje):
 

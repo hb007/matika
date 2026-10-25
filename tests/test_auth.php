@@ -180,3 +180,12 @@ foreach (['/' => '/', '/novy/' => '/novy/', '/novy/api.php' => '/novy/', '/novy/
     check(app_path() === $want, "app_path($uri) = $want, je " . app_path());
 }
 unset($_SERVER['REQUEST_URI']);
+
+// WAL na souborové databázi (v paměti ho SQLite neumí)
+$f = sys_get_temp_dir() . '/matika-test-' . bin2hex(random_bytes(4)) . '.sqlite';
+$fdb = db_open('sqlite:' . $f);
+check(strtolower((string) $fdb->query('PRAGMA journal_mode')->fetchColumn()) === 'wal', 'souborova databaze bezi ve WAL');
+$fdb = null;
+foreach (glob("$f*") as $x) {
+    unlink($x);
+}
