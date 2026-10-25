@@ -149,7 +149,9 @@
     alert(/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
       ? `Ikonu${who} přidáš v Safari: klepni dole na Sdílet (čtvereček se šipkou) a zvol Přidat na plochu.`
       : `Ikonu${who} přidáš v nabídce prohlížeče (tři tečky): Přidat na plochu nebo Nainstalovat aplikaci.\n\n`
-        + `Když je tam jen Otevřít v aplikaci, otevři tuhle adresu v prohlížeči (ne v aplikaci jiného dítěte) a zkus to znovu:\n${location.origin + location.pathname}`);
+        + 'Když je tam jen Otevřít v aplikaci, je v telefonu starší ikona Matiky, která zabírá i tuhle adresu. '
+        + 'Ikonu Matiky na ploše dlouze podrž, zvol Odinstalovat (body ani přihlášení se neztratí) a pak přidej každé dítě znovu ze stránky v Chromu:\n'
+        + `${location.origin + location.pathname}`);
   }));
 
   // Úvodní obrazovka: na zařízení bez účtu uvítání s „Zkusit hned“ (nováček
