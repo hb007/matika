@@ -17,3 +17,4 @@ Poučení z oprav a korekcí, která platí i pro další práci na projektu.
 
 * Bez `scope` v manifestu je výchozí rozsah složka adresy, tady `/` pro kořen, `/holka` i `/kluk`. Kořenová aplikace pak zahrnuje i ostatní adresy a Android nabízel jen ji („instaluje se jen kořen“).
 * Každá aplikace potřebuje vlastní, nepřekrývající se `scope` (`./holka`, `./kluk`) a kořen bez manifestu. Kontrola: DevTools Protocol `Page.getAppManifest` a `Page.getInstallabilityErrors` přes Playwright.
+* `scope` se porovnává jako začátek adresy (řetězec): `/u/ana` zabírá i `/u/anicka` a `/u/ana-2`, druhé dítě pak nejde přidat na plochu (prohlížeč nabízí jen „Otevřít v aplikaci“). Proto adresy `/u/<jméno>/` s lomítkem, `scope` i `start_url` s lomítkem, `id` beze změny (nainstalované aplikace zůstanou tytéž) a stará adresa bez lomítka přesměruje (2026-10-25).

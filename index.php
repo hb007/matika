@@ -4,11 +4,18 @@
 header('Cache-Control: no-cache');
 $v = fn(string $f): string => $f . '?v=' . filemtime(__DIR__ . '/' . $f);
 require __DIR__ . '/lib/db.php';
-// Adresa dítěte: /holka a /kluk (sešity ze starší verze), /u/<přezdívka> pro
+// Adresa dítěte: /holka a /kluk (sešity ze starší verze), /u/<přezdívka>/ pro
 // ostatní (přepis v .htaccess; lokální php -S sem pošle každou neexistující
 // adresu). Kořen „/“ je úvodní obrazovka s výběrem sešitu.
 $path = (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
-$slug = preg_match('~(?:^|/)(?:u/)?([a-z0-9-]+)$~', $path, $m) && !str_ends_with($path, '.php') ? $m[1] : '';
+$slug = preg_match('~(?:^|/)(?:u/([a-z0-9-]+)/|([a-z0-9-]+))$~', $path, $m) && !str_ends_with($path, '.php') ? ($m[1] ?: $m[2]) : '';
+// /u/anicka bez lomítka (starší odkazy a ikony): na /u/anicka/, kde je rozsah
+// aplikace na plochu jen pro tohle dítě (viz manifest.php)
+if (preg_match('~/u/[a-z0-9-]+$~', $path)) {
+    $q = (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_QUERY);
+    header('Location: ' . $path . '/' . ($q !== '' ? '?' . $q : ''), true, 301);
+    exit;
+}
 $kid = null;
 if ($slug !== '') {
     try {
@@ -68,6 +75,7 @@ $color = $kid ? (COLORS[$kid['color']] ?? COLORS['modra']) : null;
       <button type="button" class="task-item link-ink" data-games>Hry</button>
       <button type="button" class="task-item link-ink" data-theme-toggle>Motiv: podle telefonu</button>
       <button type="button" class="task-item link-ink" data-fx-toggle>Efekty: zapnuté</button>
+      <button type="button" class="task-item link-ink" data-install hidden>Přidat na plochu</button>
     </nav>
   </div>
   <div class="task">
@@ -83,6 +91,7 @@ $color = $kid ? (COLORS[$kid['color']] ?? COLORS['modra']) : null;
       <button type="button" class="task-item link-ink" data-games>Hry</button>
       <button type="button" class="task-item link-ink" data-theme-toggle>Motiv: podle telefonu</button>
       <button type="button" class="task-item link-ink" data-fx-toggle>Efekty: zapnuté</button>
+      <button type="button" class="task-item link-ink" data-install hidden>Přidat na plochu</button>
     </nav>
   </div>
 </header>

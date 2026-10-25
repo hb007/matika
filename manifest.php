@@ -4,7 +4,7 @@
 // Každé dítě má vlastní scope: se společným „/“ by Android nainstaloval jen
 // jednu aplikaci a ostatní adresy by se otevíraly v ní. Kořen „/“ vlastní
 // aplikaci nenabízí. Holka a kluk mají adresy ze starší verze (/holka, /kluk),
-// ať už nainstalované aplikace fungují dál; ostatní /u/<přezdívka>.
+// ať už nainstalované aplikace fungují dál; ostatní /u/<přezdívka>/.
 require __DIR__ . '/lib/db.php';
 
 $slug = preg_match('/^[a-z0-9-]{1,24}$/', $_GET['kdo'] ?? '') ? $_GET['kdo'] : '';
@@ -20,13 +20,17 @@ if (!$kid) {
     http_response_code(404);
     exit;
 }
-$path = in_array($slug, ['holka', 'kluk'], true) ? './' . $slug : './u/' . $slug;
+// Rozsah končí lomítkem: „/u/ana“ by jako začátek adresy zabral i /u/anicka
+// a druhé dítě by pak nešlo přidat na plochu. id zůstává bez lomítka, ať
+// nainstalované aplikace zůstanou tytéž.
+$path = in_array($slug, ['holka', 'kluk'], true) ? './' . $slug : './u/' . $slug . '/';
+$id = rtrim($path, '/');
 $color = COLORS[$kid['color']] ?? COLORS['modra'];
 $icon = 'icon.php?barva=' . $kid['color'];
 header('Content-Type: application/manifest+json; charset=utf-8');
 header('Cache-Control: no-cache');   // po přejmenování hned nový název
 echo json_encode([
-    'id' => $path,
+    'id' => $id,
     'name' => 'Matika ' . $kid['name'],
     'short_name' => 'Matika ' . $kid['name'],
     'start_url' => $path,

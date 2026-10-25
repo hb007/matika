@@ -219,7 +219,7 @@ function per_task_table(array $per, bool $kids = false): string
 <?php if ($page === 'dite' && ($kid = user_rows($db, [$id])[0] ?? null)): ?>
   <?php $st = user_stats($db, $id, $today); $u = users_state($db, $today, [$id])[0]; ?>
   <h2><span class="kid" data-color="<?= $h($kid['color']) ?>"><?= $h($kid['name']) ?></span>
-    <small>(<?= $h($kid['class_name'] ?: 'bez třídy') ?>, adresa <a class="link" href="<?= in_array($kid['slug'], ['holka', 'kluk'], true) ? $h($kid['slug']) : 'u/' . $h($kid['slug']) ?>">/<?= in_array($kid['slug'], ['holka', 'kluk'], true) ? '' : 'u/' ?><?= $h($kid['slug']) ?></a>)</small></h2>
+    <small>(<?= $h($kid['class_name'] ?: 'bez třídy') ?>, adresa <a class="link" href="<?= in_array($kid['slug'], ['holka', 'kluk'], true) ? $h($kid['slug']) : 'u/' . $h($kid['slug']) . '/' ?>">/<?= in_array($kid['slug'], ['holka', 'kluk'], true) ? '' : 'u/' ?><?= $h($kid['slug']) ?></a>)</small></h2>
   <p>Dnes <?= $u['today'] ?> b., týden <?= $u['week'] ?> b., celkem <?= $u['total'] ?> b., dnes vyřešeno <?= $u['solved_today'] ?> z <?= GOAL ?>, dní v řadě se splněným cílem: <?= $u['days'] ?: '–' ?>,
     dnes v appce <?= intdiv($u['time_today'], 60000) ?> min. Účet založený <?= $h($kid['created'] ?: 'před zavedením účtů') ?>.<?= $kid['has_pin'] ? '' : ' <b>Ještě nemá PIN</b> (nastaví si ho při prvním přihlášení, nebo ho nastav tady).' ?></p>
   <form method="post" class="inline"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="pin"><input type="hidden" name="id" value="<?= $id ?>"><input type="hidden" name="back" value="<?= $self ?>?p=dite&amp;id=<?= $id ?>">

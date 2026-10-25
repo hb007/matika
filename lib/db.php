@@ -184,7 +184,7 @@ function kid_name(PDO $db, string $slug): string
 function app_path(): string
 {
     $uri = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
-    $dir = preg_replace('~/(u/)?[^/]*$~', '/', $uri);
+    $dir = preg_replace('~/(u/[^/]*/?|[^/]*)$~', '/', $uri);
     return $dir === '' || $dir === null || $dir[0] !== '/' ? '/' : $dir;
 }
 

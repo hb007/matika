@@ -91,7 +91,7 @@
   }
 
   // Adresa stránky dítěte: holka a kluk mají adresy ze starší verze, ostatní /u/<přezdívka>.
-  const kidHref = (u) => (u.slug === 'holka' || u.slug === 'kluk' ? u.slug : 'u/' + u.slug);
+  const kidHref = (u) => (u.slug === 'holka' || u.slug === 'kluk' ? u.slug : 'u/' + u.slug + '/');
   const isGuest = () => state.user === 0;
   // děti se sešitem (bez řádku „bez sešitu“), třeba pro sync a čas v appce
   const realUsers = () => state.users.filter((u) => u.id);
@@ -126,7 +126,31 @@
     $('task-other').innerHTML = other;
     $('me-other').innerHTML = other;
     document.querySelectorAll('[data-stats]').forEach((b) => { b.hidden = isGuest(); });
+    // ikona na plochu jen na vlastní stránce dítěte a ne uvnitř už nainstalované aplikace
+    const inApp = window.matchMedia && matchMedia('(display-mode: standalone)').matches;
+    document.querySelectorAll('[data-install]').forEach((b) => { b.hidden = inApp || !state.page || state.page.id !== me.id; });
   }
+
+  // Přidat na plochu: Chrome a Edge nabídnou instalaci samy (beforeinstallprompt),
+  // jinde (Safari na iPhonu, nabídka „Otevřít v aplikaci“) appka poradí postup.
+  let installEvt = null;
+  window.addEventListener('beforeinstallprompt', (e) => { installEvt = e; });
+  window.addEventListener('appinstalled', () => { installEvt = null; });
+  document.querySelectorAll('[data-install]').forEach((b) => b.addEventListener('click', async () => {
+    closeTaskMenu();
+    if (installEvt) {
+      const evt = installEvt;
+      installEvt = null;
+      evt.prompt();
+      return;
+    }
+    const me = state.users.find((u) => u.id === state.user);
+    const who = me ? ` pro ${me.name}` : '';
+    alert(/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+      ? `Ikonu${who} přidáš v Safari: klepni dole na Sdílet (čtvereček se šipkou) a zvol Přidat na plochu.`
+      : `Ikonu${who} přidáš v nabídce prohlížeče (tři tečky): Přidat na plochu nebo Nainstalovat aplikaci.\n\n`
+        + `Když je tam jen Otevřít v aplikaci, otevři tuhle adresu v prohlížeči (ne v aplikaci jiného dítěte) a zkus to znovu:\n${location.origin + location.pathname}`);
+  }));
 
   // Úvodní obrazovka: na zařízení bez účtu uvítání s „Zkusit hned“ (nováček
   // neví, co je sešit, tak nejdřív počítá); jinak desky dětí přihlášených na

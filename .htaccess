@@ -6,6 +6,6 @@ DirectoryIndex index.php
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteRule ^(holka|kluk)$ index.php [L]
-    RewriteRule ^u/[a-z0-9-]+$ index.php [L]
+    RewriteRule ^u/[a-z0-9-]+/?$ index.php [L]
     RewriteRule ^admin$ admin.php [L]
 </IfModule>
