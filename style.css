@@ -40,18 +40,18 @@
 }
 /* barva dítěte (paleta v lib/db.php COLORS; stejné klíče posílá server): na <body>
    i na jednotlivých prvcích se jménem, štítkem nebo deskami sešitu */
-[data-color=ruzova] { --kid: #d6336c; --kid-bg: #d6336c; }
-[data-color=petrolejova] { --kid: #0c7c8c; --kid-bg: #0c7c8c; }
-[data-color=cervena] { --kid: #c92a2a; --kid-bg: #c92a2a; }
-[data-color=oranzova] { --kid: #d9480f; --kid-bg: #d9480f; }
-[data-color=zlata] { --kid: #a37a00; --kid-bg: #a37a00; }
-[data-color=zelena] { --kid: #2b8a3e; --kid-bg: #2b8a3e; }
-[data-color=limetkova] { --kid: #5c940d; --kid-bg: #5c940d; }
-[data-color=modra] { --kid: #1f45b5; --kid-bg: #1f45b5; }
-[data-color=fialova] { --kid: #7048e8; --kid-bg: #7048e8; }
-[data-color=purpurova] { --kid: #ae3ec9; --kid-bg: #ae3ec9; }
-[data-color=hneda] { --kid: #8b5a2b; --kid-bg: #8b5a2b; }
-[data-color=grafitova] { --kid: #495057; --kid-bg: #495057; }
+[data-color=ruzova] { --kid: #d6336c; --kid-bg: #d6336c; --kid-dot: #f7559a; }
+[data-color=petrolejova] { --kid: #0c7c8c; --kid-bg: #0c7c8c; --kid-dot: #15aabf; }
+[data-color=cervena] { --kid: #c92a2a; --kid-bg: #c92a2a; --kid-dot: #fa3a3a; }
+[data-color=oranzova] { --kid: #d9480f; --kid-bg: #d9480f; --kid-dot: #ff8c1a; }
+[data-color=zlata] { --kid: #a37a00; --kid-bg: #a37a00; --kid-dot: #ffd21f; }
+[data-color=zelena] { --kid: #2b8a3e; --kid-bg: #2b8a3e; --kid-dot: #37b24d; }
+[data-color=limetkova] { --kid: #5c940d; --kid-bg: #5c940d; --kid-dot: #94d82d; }
+[data-color=modra] { --kid: #1f45b5; --kid-bg: #1f45b5; --kid-dot: #3b82f6; }
+[data-color=fialova] { --kid: #7048e8; --kid-bg: #7048e8; --kid-dot: #7c4dff; }
+[data-color=purpurova] { --kid: #ae3ec9; --kid-bg: #ae3ec9; --kid-dot: #c44fe0; }
+[data-color=hneda] { --kid: #8b5a2b; --kid-bg: #8b5a2b; --kid-dot: #a0703f; }
+[data-color=grafitova] { --kid: #495057; --kid-bg: #495057; --kid-dot: #7d8590; }
 body[data-diff=lehke] { --hl: #8fd970; --hl-bg: #e8f8df; }
 body[data-diff=stredni] { --hl: #ffd84d; --hl-bg: #fff4bf; }
 body[data-diff=tezke] { --hl: #ffa94d; --hl-bg: #ffead2; }
@@ -214,7 +214,7 @@ body[data-diff] .top { border-bottom: 0; box-shadow: inset 0 -6px 0 var(--hl); p
 .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
 .swatch { position: relative; display: inline-flex; align-items: center; cursor: pointer; padding: 4px; border: 2px solid transparent; border-radius: 50%; }
 .swatch input { position: absolute; opacity: 0; width: 0; height: 0; }
-.swatch span { width: 32px; height: 32px; border-radius: 50%; background: var(--kid-bg, var(--kid)); box-shadow: inset 0 0 0 2px var(--sheet); }
+.swatch span { width: 32px; height: 32px; border-radius: 50%; background: var(--kid-dot, var(--kid)); box-shadow: inset 0 0 0 2px var(--sheet); }
 .swatch:has(input:checked) { border-color: var(--ink); background: var(--sheet); border-radius: 50%; }
 .swatch:has(input:focus-visible) { outline: 3px solid var(--pen); outline-offset: 2px; }
 .login-error { min-height: 1.4em; margin: 4px 0 10px; color: var(--danger); font-weight: 700; font-size: 16px; }
