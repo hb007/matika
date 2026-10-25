@@ -203,6 +203,67 @@ foreach (['Ela', 'žofie', 'a b', ''] as $bad) {
     check($threw, "adresa '$bad' odmitnuta (obsazena nebo neplatna)");
 }
 
+// převzetí dětí ze starší verze (soubor): jen děti a jejich data, ostatní zůstává
+$src = sys_get_temp_dir() . '/matika-live-' . bin2hex(random_bytes(4)) . '.sqlite';
+$o = new PDO('sqlite:' . $src);
+$o->exec("CREATE TABLE users (id INTEGER PRIMARY KEY, kind TEXT NOT NULL, name TEXT NOT NULL, streak INTEGER NOT NULL DEFAULT 0)");
+$o->exec("INSERT INTO users VALUES (1, 'holka', 'Terka', 3), (2, 'kluk', 'Kuba', 0)");
+$o->exec("CREATE TABLE results (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id), day TEXT NOT NULL, module TEXT NOT NULL, difficulty TEXT NOT NULL, question TEXT NOT NULL, answer TEXT NOT NULL, tries INTEGER NOT NULL, solved INTEGER NOT NULL, points INTEGER NOT NULL)");
+$o->exec("INSERT INTO results (user_id, day, module, difficulty, question, answer, tries, solved, points) VALUES (1, '$today', 'mala', 'lehke', '2 · 3', '6', 1, 1, 7), (2, '$today', 'mala', 'lehke', '2 · 4', '8', 2, 1, 1)");
+$o->exec("CREATE TABLE stickers (user_id INTEGER NOT NULL, kind TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 1, first_day TEXT NOT NULL, PRIMARY KEY (user_id, kind))");
+$o->exec("INSERT INTO stickers VALUES (1, 'sova', 2, '$today')");
+$o = null;
+$n = db_open('sqlite::memory:');   // čistá nová kopie: třída, zvací odkaz, cizí účet s id 1
+$ncid = add_class($n, '7.B');
+add_invite($n, 'odkaz', $ncid, $today);
+$x = register_user($n, 'Xenie', 'modra', '1234', $ncid, $today);
+check($x === 1, 'cizi ucet zabral id 1');
+$got = db_import_kids($n, $src);
+ksort($got);
+check($got === ['holka' => 1, 'kluk' => 1], 'prevzate deti a pocty vysledku');
+$holka = user_by_slug($n, 'holka');
+check($holka && $holka['id'] !== 1 && $holka['name'] === 'Terka' && $holka['color'] === 'ruzova' && !$holka['has_pin'], 'holka vznikla s novym id, bez PINu');
+check(user_by_slug($n, 'kluk')['id'] === 2 && users_state($n, $today, [2])[0]['total'] === 1, 'kluk s puvodnim id a body');
+check(users_state($n, $today, [$holka['id']])[0]['total'] === 7 && user_stickers($n, $holka['id'])['sova'] === 2 && get_streak($n, $holka['id']) === 3, 'body, nalepky a serie holky');
+check(count(classes($n)) === 1 && count(invites($n)) === 1 && user_by_slug($n, 'xenie')['id'] === 1, 'trida, odkaz a cizi ucet zustaly');
+// podruhé: přejmenovaná a s PINem zůstane, výsledky se nahradí (ne zdvojí)
+rename_user($n, $holka['id'], 'Ela');
+set_slug($n, $holka['id'], 'ela');
+set_pin($n, $holka['id'], '2222');
+$c = next_exercise($n, $holka['id'], 'mala', 'nasobeni', 'lehke');
+handle_answer($n, $c, $holka['id'], answer_str($c['ex']), $today);
+$holka2 = user_by_slug($n, 'holka');   // adresa už je ela → vznikne nová holka? ne: pozná se podle adresy, takže ano
+db_import_kids($n, $src);
+check(user_by_slug($n, 'ela')['name'] === 'Ela' && user_by_slug($n, 'ela')['has_pin'], 'prejmenovane dite zustava');
+check(users_state($n, $today, [2])[0]['total'] === 1 && (int) $n->query('SELECT COUNT(*) FROM results WHERE user_id = 2')->fetchColumn() === 1, 'opakovany prenos vysledky nezdvoji');
+check((new PDO('sqlite:' . $src))->query("SELECT kind FROM users WHERE id = 1")->fetchColumn() === 'holka', 'puvodni databaze beze zmeny');
+$n = null;
+foreach (glob("$src*") as $x) {
+    unlink($x);
+}
+
+// WAL na souborové databázi (v paměti ho SQLite neumí)
+$f = sys_get_temp_dir() . '/matika-test-' . bin2hex(random_bytes(4)) . '.sqlite';
+$fdb = db_open('sqlite:' . $f);
+check(strtolower((string) $fdb->query('PRAGMA journal_mode')->fetchColumn()) === 'wal', 'souborova databaze bezi ve WAL');
+$fdb = null;
+foreach (glob("$f*") as $x) {
+    unlink($x);
+}
+
+// adresa dítěte
+set_slug($db, $a, 'Ela');
+check(user_by_slug($db, 'ela')['id'] === $a, 'zmena adresy, mala pismena');
+foreach (['Ela', 'žofie', 'a b', ''] as $bad) {
+    $threw = false;
+    try {
+        set_slug($db, 1, $bad === 'Ela' ? 'ela' : $bad);
+    } catch (InvalidArgumentException $e) {
+        $threw = true;
+    }
+    check($threw, "adresa '$bad' odmitnuta (obsazena nebo neplatna)");
+}
+
 // převzetí databáze ze starší verze (soubor): kopie, převod, původní beze změny
 $src = sys_get_temp_dir() . '/matika-live-' . bin2hex(random_bytes(4)) . '.sqlite';
 $o = new PDO('sqlite:' . $src);

@@ -130,9 +130,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $msg = 'Přezdívka a adresa změněné.';
                 break;
             case 'import_live':
-                db_import(live_db_file());
-                $db = db();
-                $msg = 'Databáze převzatá z ostré appky. Zkontroluj děti níž a nastav jim přezdívky, adresy a PIN.';
+                $got = db_import_kids($db, live_db_file());
+                $msg = 'Převzaté děti z ostré appky: ' . implode(', ', array_map(fn($s, $n) => "$s ($n výsledků)", array_keys($got), $got)) . '. Zkontroluj jim přezdívky, adresy a PIN.';
                 break;
             case 'class_set':
                 $cid = (int) ($_POST['class_id'] ?? 0) ?: null;
@@ -287,8 +286,8 @@ function per_task_table(array $per, bool $kids = false): string
 
   <?php if (is_file(live_db_file()) && realpath(live_db_file()) !== realpath(DB_FILE)): ?>
   <h2>Převzít data z ostré appky</h2>
-  <p>O složku výš je databáze ostré appky (<code><?= $h(live_db_file()) ?></code>). Tlačítko ji zkopíruje sem a převede (body, nálepky, série, přehledy; holka a kluk bez PINu). <b>Zdejší data se přepíšou.</b> Ostré appky se to nedotkne.</p>
-  <form method="post" class="inline" onsubmit="return confirm('Přepsat zdejší databázi kopií z ostré appky?')"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="import_live">
+  <p>O složku výš je databáze ostré appky (<code><?= $h(live_db_file()) ?></code>). Tlačítko z ní přenese děti a jejich data (body, nálepky, série, opakování chyb, čas v appce). Dítě se pozná podle adresy (holka, kluk): když tu už je, nechá si přezdívku, adresu, PIN, barvu i třídu a <b>přepíšou se jen jeho výsledky</b>; jinak vznikne bez PINu. Třídy, zvací odkazy a ostatní účty zůstanou. Ostré appky se to nedotkne. Jde spustit opakovaně.</p>
+  <form method="post" class="inline" onsubmit="return confirm('Přenést děti z ostré appky? Jejich zdejší výsledky se nahradí.')"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="import_live">
     <button class="btn danger">Převzít data z ostré appky</button></form>
   <?php endif; ?>
 
