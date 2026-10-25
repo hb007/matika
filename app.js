@@ -203,8 +203,7 @@
     } else if (mode === 'other') {
       html = `<h1>Přihlásit se</h1><label class="field"><span>Přihlašovací jméno (nebo přezdívka)</span><input type="text" name="name" maxlength="20" autocomplete="username" autocapitalize="none" required></label>${pin('pin', 'PIN')}`;
     } else {
-      const swatches = Object.entries(state.colors).map(([k, name], i) =>
-        `<label class="swatch" data-color="${k}" title="${esc(name)}"><input type="radio" name="color" value="${k}" aria-label="${esc(name)}"${i === 0 ? ' checked' : ''}><span></span></label>`).join('');
+      const swatches = swatchesHtml();
       html = '<h1>Nový účet</h1>'
         + '<div class="guide"><p><b>Co kdo uvidí</b></p><ul>'
         + (state.board
@@ -238,6 +237,12 @@
       loginIn.addEventListener('input', () => { touched = loginIn.value !== ''; });
       nameIn.addEventListener('input', () => { if (!touched) loginIn.value = slugify(nameIn.value); });
     }
+  }
+
+  // Barevné tečky (registrace, změna barvy ve Výsledcích); bez cur je vybraná první.
+  function swatchesHtml(cur) {
+    return Object.entries(state.colors).map(([k, name], i) =>
+      `<label class="swatch" data-color="${k}" title="${esc(name)}"><input type="radio" name="color" value="${k}" aria-label="${esc(name)}"${(cur ? k === cur : i === 0) ? ' checked' : ''}><span></span></label>`).join('');
   }
 
   // Přezdívka → přihlašovací jméno, stejně jako slugify() v lib/auth.php.
@@ -1282,9 +1287,12 @@
       + row('Dní v řadě se splněným cílem', me.days || '–')
       + row('Dnes v appce (všechna zařízení)', Usage.minutes(Math.floor(Usage.ms(me.id) / 60000)));
     $('me-actions').innerHTML = '<button type="button" class="link rename">Přejmenovat</button>'
+      + '<button type="button" class="link color">Změnit barvu</button>'
       + '<button type="button" class="link pin">Změnit PIN</button>'
       + '<button type="button" class="link logout">Odhlásit z tohoto zařízení</button>'
       + '<button type="button" class="link reset">Smazat body</button>';
+    $('color-pick').hidden = true;
+    $('color-pick').innerHTML = `<fieldset class="field"><legend>Vyber si barvu</legend><div class="swatches">${swatchesHtml(me.color)}</div></fieldset>`;
     // zvací odkaz do mojí třídy (když ho správce založil): spolužák si s ním založí účet bez hesla
     const inv = s.invite ? new URL('./?pozvanka=' + s.invite, document.baseURI).href : '';
     $('invite').hidden = !inv;
@@ -1377,6 +1385,16 @@
       window.prompt('Zkopíruj odkaz:', b.dataset.copy);   // bez HTTPS nebo bez povolení schránky
     }
   });
+  // změna barvy: klepnutí na tečku rovnou uloží
+  $('color-pick').addEventListener('change', async (e) => {
+    if (e.target.name !== 'color') return;
+    try {
+      await api('color', { color: e.target.value });
+      loadStats();
+    } catch (err) {
+      alert(err.network ? 'Barvu jde změnit jen s internetem.' : err.message);
+    }
+  });
   $('invite').addEventListener('focusin', (e) => { if (e.target.matches('input')) e.target.select(); });
 
   document.querySelectorAll('[data-stats]').forEach((b) =>
@@ -1389,6 +1407,9 @@
       if (b.classList.contains('reset')) {
         if (!confirm(`Smazat všechny svoje body (${me.total})? Vrátit to nejde. Vyřešené příklady v přehledu a nálepky v albu zůstanou.`)) return;
         await api('reset');
+      } else if (b.classList.contains('color')) {
+        $('color-pick').hidden = !$('color-pick').hidden;
+        return;
       } else if (b.classList.contains('rename')) {
         const name = prompt('Přezdívka (1 až 20 znaků):', me.name);
         if (name === null) return;

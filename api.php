@@ -235,6 +235,15 @@ try {
             }
             out(state($today));
 
+        case 'color':
+            $uid = require_uid($in);
+            try {
+                set_color(db(), $uid, param($in, 'color'));
+            } catch (InvalidArgumentException $e) {
+                fail($e->getMessage());
+            }
+            out(state($today));
+
         case 'reset':
             $uid = require_uid($in);
             reset_points(db(), $uid);

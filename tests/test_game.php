@@ -93,6 +93,9 @@ foreach (['2026-10-10', '2026-10-11'] as $day) {
 check(users_state($db3, '2026-10-11')[0]['days'] === 2, 'dva dny se splnenym cilem');
 
 // přezdívky
+set_color($db, 1, 'zelena');
+check(user_rows($db, [1])[0]['color'] === 'zelena', 'zmena barvy');
+try { set_color($db, 1, 'neonova'); check(false, 'neznama barva'); } catch (InvalidArgumentException $e) { check(true, 'neznama barva odmitnuta'); }
 rename_user($db, 1, '  Ani  čka ');
 check(users_state($db, $today)[0]['name'] === 'Ani čka', 'prezdivka orezana');
 rename_user($db, 2, '<b>Tom</b>');

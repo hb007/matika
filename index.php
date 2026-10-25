@@ -201,6 +201,7 @@ $color = $kid ? (COLORS[$kid['color']] ?? COLORS['modra']) : null;
     <div class="screen-head"><h1>Výsledky</h1><button type="button" class="btn" data-go="back">Zpět k příkladům</button></div>
     <table class="table" id="compare"></table>
     <div class="me-actions" id="me-actions"></div>
+    <div class="color-pick" id="color-pick" hidden></div>
     <div class="invite" id="invite" hidden></div>
     <div id="board-wrap"<?= BOARD ? '' : ' hidden' ?>>
     <h2>Žebříček</h2>

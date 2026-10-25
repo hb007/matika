@@ -83,6 +83,15 @@ function rename_user(PDO $db, int $uid, string $name): void
     $db->prepare('UPDATE users SET name = ? WHERE id = ?')->execute([$name, $uid]);
 }
 
+function set_color(PDO $db, int $uid, string $color): void
+{
+    $color = clean_color($color);
+    if (!user_exists($db, $uid)) {
+        throw new InvalidArgumentException('Neznámý uživatel.');
+    }
+    $db->prepare('UPDATE users SET color = ? WHERE id = ?')->execute([$color, $uid]);
+}
+
 // Smaže body a sérii v řadě; vyřešené příklady (cíl, série dní, přehled pro rodiče) zůstanou.
 function reset_points(PDO $db, int $uid): void
 {
