@@ -204,7 +204,7 @@
       html = `<h1>Přihlásit se</h1><label class="field"><span>Přihlašovací jméno (nebo přezdívka)</span><input type="text" name="name" maxlength="20" autocomplete="username" autocapitalize="none" required></label>${pin('pin', 'PIN')}`;
     } else {
       const swatches = Object.entries(state.colors).map(([k, name], i) =>
-        `<label class="swatch" data-color="${k}"><input type="radio" name="color" value="${k}"${i === 0 ? ' checked' : ''}><span></span>${esc(name)}</label>`).join('');
+        `<label class="swatch" data-color="${k}" title="${esc(name)}"><input type="radio" name="color" value="${k}" aria-label="${esc(name)}"${i === 0 ? ' checked' : ''}><span></span></label>`).join('');
       html = '<h1>Nový účet</h1>'
         + '<div class="guide"><p><b>Co kdo uvidí</b></p><ul>'
         + (state.board

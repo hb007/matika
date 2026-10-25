@@ -9,17 +9,18 @@ const BOARD = false;
 // Paleta barev dítěte: klíč → název a odstíny (světlý motiv: text i pozadí
 // štítku; tmavý motiv: text, pozadí). Stejné klíče zná style.css ([data-color=…])
 // a icon.php (ikona na plochu). Holka a kluk ze starší verze mají růžovou a petrolejovou.
+// Pořadí v nabídce podle duhy, hnědá a grafitová na konci.
 const COLORS = [
-    'ruzova'      => ['name' => 'růžová',      'light' => '#d6336c', 'dark' => '#ff86b0', 'dark_bg' => '#c22d62'],
-    'petrolejova' => ['name' => 'petrolejová', 'light' => '#0c7c8c', 'dark' => '#46c7d8', 'dark_bg' => '#0b6f7d'],
     'cervena'     => ['name' => 'červená',     'light' => '#c92a2a', 'dark' => '#ff8787', 'dark_bg' => '#b02525'],
     'oranzova'    => ['name' => 'oranžová',    'light' => '#d9480f', 'dark' => '#ffa94d', 'dark_bg' => '#c0410d'],
     'zlata'       => ['name' => 'zlatá',       'light' => '#a37a00', 'dark' => '#ffd43b', 'dark_bg' => '#8c6900'],
-    'zelena'      => ['name' => 'zelená',      'light' => '#2b8a3e', 'dark' => '#69db7c', 'dark_bg' => '#2f7a3a'],
     'limetkova'   => ['name' => 'limetková',   'light' => '#5c940d', 'dark' => '#a9e34b', 'dark_bg' => '#4f7f0b'],
+    'zelena'      => ['name' => 'zelená',      'light' => '#2b8a3e', 'dark' => '#69db7c', 'dark_bg' => '#2f7a3a'],
+    'petrolejova' => ['name' => 'petrolejová', 'light' => '#0c7c8c', 'dark' => '#46c7d8', 'dark_bg' => '#0b6f7d'],
     'modra'       => ['name' => 'modrá',       'light' => '#1f45b5', 'dark' => '#8fadff', 'dark_bg' => '#3557c9'],
     'fialova'     => ['name' => 'fialová',     'light' => '#7048e8', 'dark' => '#b197fc', 'dark_bg' => '#5f3dc4'],
     'purpurova'   => ['name' => 'purpurová',   'light' => '#ae3ec9', 'dark' => '#e599f7', 'dark_bg' => '#9c36b5'],
+    'ruzova'      => ['name' => 'růžová',      'light' => '#d6336c', 'dark' => '#ff86b0', 'dark_bg' => '#c22d62'],
     'hneda'       => ['name' => 'hnědá',       'light' => '#8b5a2b', 'dark' => '#d9a066', 'dark_bg' => '#7a4e24'],
     'grafitova'   => ['name' => 'grafitová',   'light' => '#495057', 'dark' => '#ced4da', 'dark_bg' => '#3b4148'],
 ];
