@@ -1,6 +1,6 @@
 <?php
 // SQLite v data/ (složka zůstává v repu, viz tasks/lessons.md). Tabulky
-// a oba původní uživatele (holka, kluk) založí první požadavek sám.
+// založí první požadavek sám; databázi ze starší verze (holka a kluk) převede.
 
 // Paleta barev dítěte: klíč → název a odstíny (světlý motiv: text i pozadí
 // štítku; tmavý motiv: text, pozadí). Stejné klíče zná style.css ([data-color=…])
@@ -44,7 +44,6 @@ function db_open(string $dsn): PDO
         pin_hash TEXT, pin_fails INTEGER NOT NULL DEFAULT 0, pin_until INTEGER NOT NULL DEFAULT 0,
         streak INTEGER NOT NULL DEFAULT 0, created TEXT NOT NULL DEFAULT \'\')');
     db_migrate_users($pdo);
-    $pdo->exec("INSERT OR IGNORE INTO users (id, slug, name, color) VALUES (1, 'holka', 'Holka', 'ruzova'), (2, 'kluk', 'Kluk', 'petrolejova')");
     // zapamatovaná zařízení: cookie nese náhodný token, tady je jeho hash (lib/auth.php)
     $pdo->exec('CREATE TABLE IF NOT EXISTS tokens (
         hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), created INTEGER NOT NULL, used INTEGER NOT NULL)');
@@ -87,7 +86,10 @@ function db_open(string $dsn): PDO
 // Starší verze měla users (id, kind, name, streak) jen pro holku a kluka.
 // Tabulku přestavíme (SQLite neumí měnit sloupce): kind → slug, barva podle
 // dítěte, bez PINu (nastaví si ho při prvním přihlášení). Body a vše ostatní
-// zůstává, id se nemění.
+// zůstává, id se nemění. Nová tabulka vzniká vedle a stará se smaže, ne
+// naopak: přejmenování staré by v SQLite 3.26+ přepsalo i REFERENCES users
+// v ostatních tabulkách. Na čisté databázi se nic nezakládá (sešity vznikají
+// registrací), holka a kluk existují jen tam, kde byli předtím.
 function db_migrate_users(PDO $pdo): void
 {
     $cols = array_column($pdo->query('PRAGMA table_info(users)')->fetchAll(), 'name');
@@ -98,15 +100,15 @@ function db_migrate_users(PDO $pdo): void
     try {
         $cols = array_column($pdo->query('PRAGMA table_info(users)')->fetchAll(), 'name');
         if (in_array('kind', $cols, true)) {   // mezitím to neudělal jiný požadavek
-            $pdo->exec('ALTER TABLE users RENAME TO users_old');
-            $pdo->exec('CREATE TABLE users (
+            $pdo->exec('CREATE TABLE users_new (
                 id INTEGER PRIMARY KEY, slug TEXT NOT NULL UNIQUE, name TEXT NOT NULL,
                 color TEXT NOT NULL DEFAULT \'modra\', class_id INTEGER REFERENCES classes(id),
                 pin_hash TEXT, pin_fails INTEGER NOT NULL DEFAULT 0, pin_until INTEGER NOT NULL DEFAULT 0,
                 streak INTEGER NOT NULL DEFAULT 0, created TEXT NOT NULL DEFAULT \'\')');
-            $pdo->exec("INSERT INTO users (id, slug, name, color, streak)
-                SELECT id, kind, name, CASE kind WHEN 'holka' THEN 'ruzova' WHEN 'kluk' THEN 'petrolejova' ELSE 'modra' END, streak FROM users_old");
-            $pdo->exec('DROP TABLE users_old');
+            $pdo->exec("INSERT INTO users_new (id, slug, name, color, streak)
+                SELECT id, kind, name, CASE kind WHEN 'holka' THEN 'ruzova' WHEN 'kluk' THEN 'petrolejova' ELSE 'modra' END, streak FROM users");
+            $pdo->exec('DROP TABLE users');
+            $pdo->exec('ALTER TABLE users_new RENAME TO users');
         }
         $pdo->exec('COMMIT');
     } catch (PDOException $e) {

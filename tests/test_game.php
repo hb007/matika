@@ -11,7 +11,7 @@ check(day_streak(['2026-10-08', '2026-10-10'], '2026-10-11') === 1, 'mezera seri
 check(day_streak([], '2026-10-11') === 0, 'bez splnenych dnu');
 check(day_streak(['2026-03-28', '2026-03-29'], '2026-03-29') === 2, 'prechod na letni cas');
 
-$db = db_open('sqlite::memory:');
+$db = test_db();
 $today = '2026-10-11';
 check(count(users_state($db, $today)) === 2, 'dva uzivatele');
 check(user_exists($db, 1) && user_exists($db, 2) && !user_exists($db, 3), 'user_exists');
@@ -65,7 +65,7 @@ check($seen, 'chybny priklad se vratil');
 check(!next_exercise($db, 2, 'mala', 'nasobeni', 'lehke')['review'], 'fronta jednoho ditete neplati pro druhe');
 
 // bonus za 5 v řadě
-$db2 = db_open('sqlite::memory:');
+$db2 = test_db();
 $bonuses = 0;
 for ($i = 0; $i < 5; $i++) {
     $c = next_exercise($db2, 2, 'mala', 'nasobeni', 'lehke');
@@ -83,7 +83,7 @@ check((int) $db2->query('SELECT COUNT(*) FROM results WHERE solved = 0')->fetchC
 check(users_state($db2, $today)[1]['solved_today'] === 5, 'ukazany vysledek se nepocita do cile');
 
 // denní cíl a série dní
-$db3 = db_open('sqlite::memory:');
+$db3 = test_db();
 foreach (['2026-10-10', '2026-10-11'] as $day) {
     for ($i = 0; $i < GOAL; $i++) {
         $c = next_exercise($db3, 1, 'mala', 'nasobeni', 'lehke');

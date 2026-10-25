@@ -6,6 +6,14 @@ foreach (glob(__DIR__ . '/../lib/*.php') as $f) {
     require_once $f;
 }
 
+// Prázdná databáze s holkou a klukem jako ve starší verzi (nová instalace je žádné nezakládá).
+function test_db(): PDO
+{
+    $db = db_open('sqlite::memory:');
+    $db->exec("INSERT INTO users (id, slug, name, color) VALUES (1, 'holka', 'Holka', 'ruzova'), (2, 'kluk', 'Kluk', 'petrolejova')");
+    return $db;
+}
+
 $failed = 0;
 function check(bool $ok, string $what): void
 {

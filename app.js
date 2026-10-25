@@ -160,6 +160,10 @@
     state.user = null;
     clearTimeout(state.timer);
     state.ex = null;
+    state.lock = false;
+    $('feedback').hidden = true;
+    $('feedback').innerHTML = '';
+    renderKids(state.users);   // bez štítku a seznamu úloh v záhlaví
     if (u) showLogin(u.has_pin ? 'pin' : 'setup', u); else showWho();
   }
 
@@ -422,7 +426,13 @@
       for (const u of realUsers()) {
         const items = Offline.queue(u.id);
         if (!items.length && users) continue;   // prázdný sync stačí jednou jako test spojení
-        const r = await api('sync', { user: u.id, items });
+        let r;
+        try {
+          r = await api('sync', { user: u.id, items });
+        } catch (e) {
+          if (e.network) throw e;
+          continue;   // třeba vypršelé přihlášení jednoho dítěte (fronta zůstane), ostatní se pošlou
+        }
         Offline.forget(u.id, r.done);
         users = r.users;
       }
@@ -1101,6 +1111,7 @@
 
   // Enter po ukázání výsledku = další příklad
   document.addEventListener('keydown', (e) => {
+    if ($('screen-round').hidden) return;   // jinde (přihlášení, výsledky) má Enter svůj význam
     if (document.activeElement && document.activeElement.closest('#feedback button')) return;   // Enter stiskne tlačítko s fokusem
     if (e.key === 'Enter' && state.lock && !$('feedback').hidden && $('btn-next')) {
       e.preventDefault();

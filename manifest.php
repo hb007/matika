@@ -7,7 +7,7 @@
 // ať už nainstalované aplikace fungují dál; ostatní /u/<přezdívka>.
 require __DIR__ . '/lib/db.php';
 
-$slug = preg_match('/^[a-z0-9-]{1,20}$/', $_GET['kdo'] ?? '') ? $_GET['kdo'] : '';
+$slug = preg_match('/^[a-z0-9-]{1,24}$/', $_GET['kdo'] ?? '') ? $_GET['kdo'] : '';
 $kid = null;
 if ($slug !== '') {
     try {

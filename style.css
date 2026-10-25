@@ -133,6 +133,7 @@ body[data-diff] .top { border-bottom: 0; box-shadow: inset 0 -6px 0 var(--hl); p
   background: var(--sheet); border: 2px solid var(--kid); outline: 1px solid var(--kid); outline-offset: 2px;
   border-radius: 3px; padding: 4px 12px 9px; font-size: 15px;
 }
+.me > b { white-space: nowrap; }
 .me-name { font-family: var(--hand); font-size: 28px; line-height: 1; color: var(--kid); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 8em; }
 .me-days { color: var(--muted); font-size: 13px; white-space: nowrap; }
 .me-goal { position: absolute; left: 10px; right: 10px; bottom: 3px; height: 3px; background: var(--grid); }
@@ -379,9 +380,9 @@ body[data-diff] .top { border-bottom: 0; box-shadow: inset 0 -6px 0 var(--hl); p
 .board-row:last-child { border-bottom: 0; }
 .board-row.mine { background: var(--active-bg); }
 .board-row .rank { min-width: 2em; color: var(--muted); font-weight: 700; font-variant-numeric: tabular-nums; }
-.board-kid { background: none; border: 0; padding: 0; cursor: pointer; min-width: 0; text-align: left; }
-.board-kid .kid-name { font-size: 24px; line-height: 1.1; }
-.board-row b.num { margin-left: auto; font-variant-numeric: tabular-nums; }
+.board-kid { flex: 1 1 0; background: none; border: 0; padding: 0; cursor: pointer; min-width: 0; text-align: left; }
+.board-kid .kid-name { display: block; font-size: 24px; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-row b.num { margin-left: auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .card { background: var(--sheet); border: 2px solid var(--kid); border-radius: 6px; padding: 10px 14px; margin: 0 0 14px; }
 .card-head { display: flex; align-items: baseline; gap: 10px; }
 .card-head .kid-name { font-size: 30px; }

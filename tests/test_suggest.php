@@ -9,7 +9,7 @@ $play = function (PDO $db, int $uid, string $m, string $l, string $d, bool $firs
     handle_answer($db, $c, $uid, $c['ex']['kind'] === 'divrem' ? ['q' => (string) $c['ex']['a'][0], 'r' => (string) $c['ex']['a'][1]] : answer_str($c['ex']), '2026-10-11');
 };
 
-$db = db_open('sqlite::memory:');
+$db = test_db();
 for ($i = 0; $i < 9; $i++) {
     $play($db, 1, 'mala', 'nasobeni', 'stredni', true);
 }
@@ -20,13 +20,13 @@ check(suggest_difficulty($db, 1, 'velka', 'stredni') === null, 'jina uloha se ne
 check(suggest_difficulty($db, 2, 'mala', 'stredni') === null, 'jine dite se nepocita');
 check(suggest_difficulty($db, 1, 'mix', 'stredni') === null, 'v mixu se nenavrhuje');
 
-$db = db_open('sqlite::memory:');
+$db = test_db();
 for ($i = 0; $i < 10; $i++) {
     $play($db, 1, 'mala', 'nasobeni', 'tezke', true);
 }
 check(suggest_difficulty($db, 1, 'mala', 'tezke') === null, 'tezsi nez tezke neni');
 
-$db = db_open('sqlite::memory:');
+$db = test_db();
 for ($i = 0; $i < 10; $i++) {
     $play($db, 1, 'mala', 'nasobeni', 'stredni', $i < 4);   // 4 z 10 napoprvé
 }
@@ -36,14 +36,14 @@ for ($i = 0; $i < 5; $i++) {
 }
 check(suggest_difficulty($db, 1, 'mala', 'stredni') === null, 'poslednich 10 je 5 z 10, presne polovina neni pod polovinou');
 
-$db = db_open('sqlite::memory:');
+$db = test_db();
 for ($i = 0; $i < 10; $i++) {
     $play($db, 1, 'mala', 'nasobeni', 'lehke', false);
 }
 check(suggest_difficulty($db, 1, 'mala', 'lehke') === null, 'lehci nez lehke neni');
 
 // rozhraní: answer vrací návrh
-$db = db_open('sqlite::memory:');
+$db = test_db();
 for ($i = 0; $i < 9; $i++) {
     $play($db, 1, 'mala', 'nasobeni', 'stredni', true);
 }

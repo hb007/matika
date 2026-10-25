@@ -16,7 +16,7 @@ try {
 }
 check($threw, 'obtiznost vse jen v mixu');
 
-$db = db_open('sqlite::memory:');
+$db = test_db();
 $ok = true;
 for ($i = 0; $i < 30; $i++) {
     $c = next_exercise($db, 1, 'mix', 'vse', 'vse');

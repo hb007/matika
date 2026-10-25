@@ -8,7 +8,7 @@ $points = fn(PDO $db, int $uid) => (int) $db->query("SELECT COALESCE(SUM(points)
 $rows = fn(PDO $db) => (int) $db->query('SELECT COUNT(*) FROM results')->fetchColumn();
 
 // zásoba
-$db = db_open('sqlite::memory:');
+$db = test_db();
 $pool = issue_pool($db, 1, [
     ['module' => 'mala', 'level' => 'nasobeni', 'difficulty' => 'stredni', 'n' => 5],
     ['module' => 'zlomky', 'level' => 'scitani', 'difficulty' => 'tezke', 'n' => 3],
@@ -44,7 +44,7 @@ $big = issue_pool($db, 1, [['module' => 'mix', 'level' => 'vse', 'difficulty' =>
 check(count($big['mix|vse|vse']) === 30 && count($big['scitani|cela|tezke']) === 30, 'zasoba: velke ulohy dostanou vse');
 
 // správně napoprvé = stejné body jako online, podruhé se nezapočte
-$db = db_open('sqlite::memory:');
+$db = test_db();
 $pool = issue_pool($db, 1, [['module' => 'mala', 'level' => 'nasobeni', 'difficulty' => 'stredni', 'n' => 10]], $now);
 $p = $pool['mala|nasobeni|stredni'];
 $done = sync_results($db, 1, [['id' => $p[0]['id'], 'answers' => [$rightOf($p[0])], 'at' => $ms('2026-10-11 10:00')]], $now);
@@ -74,7 +74,7 @@ sync_results($db, 1, [['id' => $p[4]['id'], 'answers' => [$rightOf($p[4])], 'at'
 check($rows($db) === $before + 1, 'sync: vlastni dite ho pak zapocte');
 
 // den podle času řešení; budoucnost se ořízne na dnešek
-$db = db_open('sqlite::memory:');
+$db = test_db();
 $pool = issue_pool($db, 1, [['module' => 'mala', 'level' => 'nasobeni', 'difficulty' => 'lehke', 'n' => 3]], strtotime('2026-10-09 08:00'));
 $p = $pool['mala|nasobeni|lehke'];
 sync_results($db, 1, [
@@ -86,7 +86,7 @@ $days = $db->query('SELECT day FROM results ORDER BY id')->fetchAll(PDO::FETCH_C
 check($days === ['2026-10-09', '2026-10-10', '2026-10-11'], 'sync: den podle casu reseni, orezany na vydani a dnesek');
 
 // pořadí podle času: série a bonus za 5 v řadě jako online
-$db = db_open('sqlite::memory:');
+$db = test_db();
 $pool = issue_pool($db, 1, [['module' => 'mala', 'level' => 'nasobeni', 'difficulty' => 'lehke', 'n' => 6]], $now);
 $p = $pool['mala|nasobeni|lehke'];
 $items = [];

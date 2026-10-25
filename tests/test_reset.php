@@ -1,6 +1,6 @@
 <?php
 // Smazání bodů jednoho dítěte: body a série na nule, historie příkladů zůstane.
-$db = db_open('sqlite::memory:');
+$db = test_db();
 $today = '2026-10-11';
 foreach ([1, 2] as $uid) {
     for ($i = 0; $i < 3; $i++) {

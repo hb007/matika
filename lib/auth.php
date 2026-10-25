@@ -4,12 +4,14 @@
 // s náhodnými tokeny (v databázi jen jejich hash), pro každé přihlášené dítě
 // jeden, takže na sdíleném tabletu je přihlášených víc dětí najednou a každý
 // požadavek říká, za které dítě jde (api.php ověří, že je mezi přihlášenými).
-// Hádání PINu brzdí zámek: po PIN_FAILS špatných pokusech PIN_LOCK sekund pauza.
+// Hádání PINu brzdí zámek: po PIN_FAILS špatných pokusech PIN_LOCK sekund pauza,
+// s každou další pěticí dvakrát delší (až PIN_LOCK_MAX); správný PIN počítadlo vynuluje.
 
 const PIN_MIN = 4;
 const PIN_MAX = 6;
 const PIN_FAILS = 5;
 const PIN_LOCK = 60;
+const PIN_LOCK_MAX = 3600;
 const TOKEN_COOKIE = 'matika_sesity';
 const TOKEN_DAYS = 400;      // cookie i token v databázi (prohlížeče delší nedovolí)
 const TOKENS_MAX = 12;       // nejvíc přihlášených dětí na jednom zařízení
@@ -45,7 +47,7 @@ function slugify(string $name): string
         'ý' => 'y', 'ž' => 'z', 'ß' => 'ss', 'ł' => 'l', 'ą' => 'a', 'ę' => 'e', 'ś' => 's', 'ź' => 'z', 'ż' => 'z', 'ć' => 'c', 'ń' => 'n'];
     $s = strtr(mb_strtolower($name), $map);
     $s = trim((string) preg_replace('/[^a-z0-9]+/', '-', $s), '-');
-    return $s === '' ? 'dite' : substr($s, 0, NAME_MAX);
+    return $s === '' ? 'dite' : rtrim(substr($s, 0, NAME_MAX - 4), '-');   // místo na „-123“ při shodě
 }
 
 function class_by_code(PDO $db, string $code): ?array
@@ -68,21 +70,34 @@ function register_user(PDO $db, string $name, string $color, string $pin, string
         throw new InvalidArgumentException('Kód třídy nesedí. Zeptej se, kdo ti ho dal.');
     }
     $base = slugify($name);
-    $slug = $base;
-    for ($i = 2; user_by_slug($db, $slug); $i++) {
-        $slug = "$base-$i";
+    $hash = password_hash($pin, PASSWORD_DEFAULT);
+    $ins = $db->prepare('INSERT INTO users (slug, name, color, class_id, pin_hash, created) VALUES (?, ?, ?, ?, ?, ?)');
+    for ($i = 1; $i < 1000; $i++) {
+        $slug = $i === 1 ? $base : "$base-$i";
+        if (user_by_slug($db, $slug)) {
+            continue;
+        }
+        try {
+            $ins->execute([$slug, $name, $color, $class['id'], $hash, $today]);
+            return (int) $db->lastInsertId();
+        } catch (PDOException $e) {
+            if (!str_contains($e->getMessage(), 'UNIQUE')) {   // dvě registrace téhož jména naráz: další číslo
+                throw $e;
+            }
+        }
     }
-    $db->prepare('INSERT INTO users (slug, name, color, class_id, pin_hash, created) VALUES (?, ?, ?, ?, ?, ?)')
-        ->execute([$slug, $name, $color, $class['id'], password_hash($pin, PASSWORD_DEFAULT), $today]);
-    return (int) $db->lastInsertId();
+    throw new InvalidArgumentException('Takhle se jmenuje moc dětí, zkus jinou přezdívku.');
 }
 
 // Ověří PIN. Při zámku nebo špatném PINu vyhodí výjimku s hláškou pro dítě.
+// Pokus se započte dřív, než se PIN ověří (jedním UPDATE, takže souběžné
+// požadavky počítadlo nepřeskočí), a při zámku se nepočítá vůbec.
 function check_pin(PDO $db, int $uid, string $pin, int $now): void
 {
-    $st = $db->prepare('SELECT pin_hash, pin_fails, pin_until FROM users WHERE id = ?');
+    $st = $db->prepare('SELECT pin_hash, pin_until FROM users WHERE id = ?');
     $st->execute([$uid]);
     $u = $st->fetch();
+    $st->closeCursor();   // otevřený kurzor by při zápisu dalšího požadavku zamkl databázi
     if (!$u) {
         throw new InvalidArgumentException('Neznámé dítě.');
     }
@@ -92,19 +107,34 @@ function check_pin(PDO $db, int $uid, string $pin, int $now): void
     if ($u['pin_hash'] === null) {
         throw new InvalidArgumentException('Tenhle sešit ještě nemá PIN.');
     }
-    if (!password_verify($pin, $u['pin_hash'])) {
-        $fails = (int) $u['pin_fails'] + 1;
-        $until = $fails >= PIN_FAILS ? $now + PIN_LOCK : 0;
-        $db->prepare('UPDATE users SET pin_fails = ?, pin_until = ? WHERE id = ?')->execute([$until ? 0 : $fails, $until, $uid]);
-        throw new InvalidArgumentException($until ? 'Moc špatných pokusů. Zkus to za minutu.' : 'Špatný PIN.');
+    $up = $db->prepare('UPDATE users SET pin_fails = pin_fails + 1 WHERE id = ? AND pin_until <= ?');
+    $up->execute([$uid, $now]);
+    if ($up->rowCount() === 0) {
+        throw new InvalidArgumentException('Moc špatných pokusů. Zkus to za chvíli.');
     }
-    $db->prepare('UPDATE users SET pin_fails = 0, pin_until = 0 WHERE id = ?')->execute([$uid]);
+    if (password_verify($pin, $u['pin_hash'])) {
+        $db->prepare('UPDATE users SET pin_fails = 0, pin_until = 0 WHERE id = ?')->execute([$uid]);
+        return;
+    }
+    $st = $db->prepare('SELECT pin_fails FROM users WHERE id = ?');
+    $st->execute([$uid]);
+    $fails = (int) $st->fetchColumn();
+    $st->closeCursor();
+    if ($fails % PIN_FAILS === 0) {
+        $lock = min(PIN_LOCK_MAX, PIN_LOCK * 2 ** (intdiv($fails, PIN_FAILS) - 1));
+        $db->prepare('UPDATE users SET pin_until = ? WHERE id = ?')->execute([$now + $lock, $uid]);
+        throw new InvalidArgumentException($lock <= PIN_LOCK ? 'Moc špatných pokusů. Zkus to za minutu.' : 'Moc špatných pokusů. Zkus to za ' . intdiv($lock, 60) . ' minut.');
+    }
+    throw new InvalidArgumentException('Špatný PIN.');
 }
 
-function set_pin(PDO $db, int $uid, string $pin): void
+// Nový PIN odhlásí ostatní zařízení (kdo PIN uhodl, nezůstane přihlášený);
+// $keep je token tohoto zařízení, který zůstane.
+function set_pin(PDO $db, int $uid, string $pin, ?string $keep = null): void
 {
     $db->prepare('UPDATE users SET pin_hash = ?, pin_fails = 0, pin_until = 0 WHERE id = ?')
         ->execute([password_hash(clean_pin($pin), PASSWORD_DEFAULT), $uid]);
+    $db->prepare('DELETE FROM tokens WHERE user_id = ? AND hash <> ?')->execute([$uid, $keep === null ? '' : token_hash($keep)]);
 }
 
 // Sešit ze starší verze (holka, kluk) PIN nemá: první přihlášení si ho nastaví.

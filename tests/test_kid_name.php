@@ -1,6 +1,6 @@
 <?php
 // Dítě podle adresy (slug) a přezdívka pro název aplikace na ploše.
-$db = db_open('sqlite::memory:');
+$db = test_db();
 check(kid_name($db, 'holka') === 'Holka' && kid_name($db, 'kluk') === 'Kluk', 'vychozi prezdivky');
 rename_user($db, 1, 'Anička');
 check(kid_name($db, 'holka') === 'Anička', 'nazev podle nastavene prezdivky');

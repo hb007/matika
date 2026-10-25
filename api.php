@@ -103,7 +103,7 @@ function require_uid(array $in, bool $allowGuest = false): int
     return $uid;
 }
 
-// Rozpracovaný příklad dítěte; session ze starší verze (jiné klíče) neplatí.
+// Rozpracovaný příklad dítěte.
 function require_ex(int $uid): void
 {
     if (!isset($_SESSION['cur'][$uid]['ex'])) {
@@ -139,7 +139,8 @@ function state(string $today, string $slug = ''): array
 $action = $_GET['action'] ?? '';
 $in = body();
 $today = date('Y-m-d');
-session_start(['cookie_httponly' => true, 'cookie_samesite' => 'Lax']);
+// vlastní název session podle cesty: dvě kopie appky na jednom webu (třeba ostrá a zkušební) si nepletou příklady
+session_start(['name' => 'matika_' . substr(md5(cookie_path()), 0, 8), 'cookie_path' => cookie_path(), 'cookie_httponly' => true, 'cookie_samesite' => 'Lax']);
 
 try {
     $logged = logged_users(db(), $tokens, $now);
@@ -161,9 +162,14 @@ try {
             // podle id (sešit z úvodní obrazovky) nebo přezdívky (jiné dítě)
             $u = (int) param($in, 'target') ? (user_rows(db(), [(int) param($in, 'target')])[0] ?? null) : null;
             if (!$u && param($in, 'name') !== '') {
-                $st = db()->prepare('SELECT id FROM users WHERE lower(name) = lower(?) ORDER BY id');
-                $st->execute([trim(param($in, 'name'))]);
-                $ids = $st->fetchAll(PDO::FETCH_COLUMN);
+                // porovnání bez ohledu na velikost písmen i u háčků (lower() v SQLite umí jen ASCII)
+                $want = mb_strtolower(trim(param($in, 'name')));
+                $ids = [];
+                foreach (db()->query('SELECT id, name FROM users ORDER BY id')->fetchAll() as $row) {
+                    if (mb_strtolower($row['name']) === $want) {
+                        $ids[] = (int) $row['id'];
+                    }
+                }
                 if (count($ids) > 1) {
                     fail('Takhle se jmenuje víc dětí. Otevři svou adresu (třeba /u/anicka-2).');
                 }
@@ -175,7 +181,7 @@ try {
             try {
                 if (!$u['has_pin']) {
                     // sešit ze starší verze: první přihlášení si PIN nastaví
-                    set_pin(db(), $u['id'], param($in, 'pin'));
+                    set_pin(db(), $u['id'], param($in, 'pin'));   // zároveň odhlásí případná jiná zařízení
                 } else {
                     check_pin(db(), $u['id'], param($in, 'pin'), $now);
                 }
@@ -194,7 +200,7 @@ try {
             $uid = require_uid($in);
             try {
                 check_pin(db(), $uid, param($in, 'old'), $now);
-                set_pin(db(), $uid, param($in, 'pin'));
+                set_pin(db(), $uid, param($in, 'pin'), $logged[$uid]);
             } catch (InvalidArgumentException $e) {
                 fail($e->getMessage());
             }

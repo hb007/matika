@@ -19,14 +19,23 @@ if ($password === '') {
         . 'Na serveru vytvoř soubor <code>data/config.php</code> s obsahem <code>&lt;?php return [\'admin_password\' =&gt; \'tajne-heslo\'];</code></p>';
     exit;
 }
-if (!hash_equals($password, (string) ($_SERVER['PHP_AUTH_PW'] ?? ''))) {
+// heslo z basic auth; pod CGI/FastCGI ho PHP nedostane do PHP_AUTH_PW, jen
+// jako hlavičku Authorization (předává ji .htaccess)
+$given = (string) ($_SERVER['PHP_AUTH_PW'] ?? '');
+foreach (['HTTP_AUTHORIZATION', 'REDIRECT_HTTP_AUTHORIZATION'] as $k) {
+    if ($given === '' && preg_match('/^Basic\s+(\S+)$/i', (string) ($_SERVER[$k] ?? ''), $m)) {
+        $given = (string) substr((string) base64_decode($m[1], true), strpos((string) base64_decode($m[1], true), ':') + 1);
+    }
+}
+if (!hash_equals($password, $given)) {
     header('WWW-Authenticate: Basic realm="Matika – správa", charset="UTF-8"');
     http_response_code(401);
     echo 'Je potřeba heslo správce.';
     exit;
 }
 
-session_start(['cookie_httponly' => true, 'cookie_samesite' => 'Lax']);
+$path = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/\\') . '/';
+session_start(['name' => 'matika_' . substr(md5($path), 0, 8), 'cookie_path' => $path, 'cookie_httponly' => true, 'cookie_samesite' => 'Lax']);
 $csrf = $_SESSION['admin_csrf'] ??= bin2hex(random_bytes(16));
 $today = date('Y-m-d');
 $db = db();
@@ -174,7 +183,7 @@ function per_task_table(array $per, bool $kids = false): string
     </select></label> <button class="btn">Přesunout</button></form><br>
   <form method="post" class="inline"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="logout_all"><input type="hidden" name="id" value="<?= $id ?>"><input type="hidden" name="back" value="<?= $self ?>?p=dite&amp;id=<?= $id ?>">
     <button class="btn">Odhlásit ze všech zařízení</button></form>
-  <form method="post" class="inline" onsubmit="return confirm('Opravdu smazat sešit <?= $h($kid['name']) ?> i se všemi body a nálepkami? Vrátit to nejde.')"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="delete"><input type="hidden" name="id" value="<?= $id ?>">
+  <form method="post" class="inline" onsubmit="return confirm('Opravdu smazat tenhle sešit i se všemi body a nálepkami? Vrátit to nejde.')"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="delete"><input type="hidden" name="id" value="<?= $id ?>">
     <button class="btn danger">Smazat sešit</button></form>
   <h3>Úspěšnost napoprvé</h3>
   <?= per_task_table($st['per_task']) ?>

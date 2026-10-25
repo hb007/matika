@@ -1,7 +1,7 @@
 <?php
 // Sešity: registrace s kódem třídy, PIN a zámek, tokeny zařízení, žebříček,
 // migrace ze starší verze, bez sešitu (GUEST), smazání.
-$db = db_open('sqlite::memory:');
+$db = test_db();
 $today = '2026-10-11';
 $now = 1760000000;
 
@@ -37,7 +37,7 @@ $u = user_by_slug($db, 'anicka-novakova');
 check($u && $u['id'] === $a && $u['color'] === 'zelena' && $u['class_id'] === $cid && $u['has_pin'], 'registrace: slug bez diakritiky, trida, PIN');
 $b = register_user($db, 'Anička Nováková', 'modra', '5678', 'ABC123 ', $today);
 check(user_by_slug($db, 'anicka-novakova-2')['id'] === $b, 'stejna prezdivka: slug s cislem');
-check(slugify('  Ťom?! ') === 'tom' && slugify('???') === 'dite' && slugify('Žofie-Lída') === 'zofie-lida', 'slugify');
+check(slugify('  Ťom?! ') === 'tom' && slugify('???') === 'dite' && slugify('Žofie-Lída') === 'zofie-lida' && strlen(slugify(str_repeat('a', 30))) === 16, 'slugify');
 check(user_rows($db, [$a])[0]['class_name'] === '6.A', 'nazev tridy u ditete');
 
 // PIN: spatny, zamek po 5, spravny po zamku
@@ -53,6 +53,13 @@ for ($i = 0; $i < 5; $i++) {
 check(count($msgs) === 5 && $msgs[0] === 'Špatný PIN.' && str_contains($msgs[4], 'minutu'), 'po 5 spatnych PINech zamek');
 $threw = false;
 try {
+    check_pin($db, $a, '0000', $now + 10);
+} catch (InvalidArgumentException $e) {
+    $threw = true;
+}
+check($threw && (int) $db->query("SELECT pin_fails FROM users WHERE id = $a")->fetchColumn() === 5, 'v zamku se pokus nepocita');
+$threw = false;
+try {
     check_pin($db, $a, '1234', $now + 10);
 } catch (InvalidArgumentException $e) {
     $threw = true;
@@ -60,8 +67,32 @@ try {
 check($threw, 'v zamku neprojde ani spravny PIN');
 check_pin($db, $a, '1234', $now + PIN_LOCK + 1);
 check(true, 'po zamku spravny PIN projde');
-set_pin($db, $a, '9999');
-check_pin($db, $a, '9999', $now + PIN_LOCK + 2);
+// po správném PINu počítadlo od nuly: pětice chyb = minuta; další pětice po zámku = 2 minuty
+$t = $now + PIN_LOCK + 2;
+for ($i = 0; $i < 5; $i++) {
+    try {
+        check_pin($db, $a, '0000', $t);
+    } catch (InvalidArgumentException $e) {
+        $msg = $e->getMessage();
+    }
+}
+check(str_contains($msg, 'minutu') && (int) $db->query("SELECT pin_until FROM users WHERE id = $a")->fetchColumn() === $t + PIN_LOCK, 'prvni zamek minuta');
+$t += PIN_LOCK + 1;
+for ($i = 0; $i < 5; $i++) {
+    try {
+        check_pin($db, $a, '0000', $t);
+    } catch (InvalidArgumentException $e) {
+        $msg = $e->getMessage();
+    }
+}
+check(str_contains($msg, '2 minut') && (int) $db->query("SELECT pin_until FROM users WHERE id = $a")->fetchColumn() === $t + 2 * PIN_LOCK, 'druhy zamek 2 minuty, pocitadlo se nenuluje');
+check_pin($db, $a, '1234', $t + 2 * PIN_LOCK + 1);
+check((int) $db->query("SELECT pin_fails FROM users WHERE id = $a")->fetchColumn() === 0, 'spravny PIN vynuluje pocitadlo');
+$tk = issue_token($db, $a, $now);
+$to = issue_token($db, $a, $now);
+set_pin($db, $a, '9999', $tk);
+check(logged_users($db, [$tk, $to], $now) === [$a => $tk], 'novy PIN odhlasi ostatni zarizeni');
+check_pin($db, $a, '9999', $t + 2 * PIN_LOCK + 2);
 check(!has_pin($db, 1) && has_pin($db, $a), 'holka bez PINu, novy sesit s PINem');
 $threw = false;
 try {
@@ -121,7 +152,7 @@ check(user_by_slug($db, 'anicka-novakova-2') === null && (int) $db->query("SELEC
 $old = new PDO('sqlite::memory:');
 $old->exec("CREATE TABLE users (id INTEGER PRIMARY KEY, kind TEXT NOT NULL, name TEXT NOT NULL, streak INTEGER NOT NULL DEFAULT 0)");
 $old->exec("INSERT INTO users VALUES (1, 'holka', 'Terka', 7), (2, 'kluk', 'Kuba', 0)");
-$old->exec("CREATE TABLE results (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, day TEXT NOT NULL, module TEXT NOT NULL, difficulty TEXT NOT NULL, question TEXT NOT NULL, answer TEXT NOT NULL, tries INTEGER NOT NULL, solved INTEGER NOT NULL, points INTEGER NOT NULL)");
+$old->exec("CREATE TABLE results (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id), day TEXT NOT NULL, module TEXT NOT NULL, difficulty TEXT NOT NULL, question TEXT NOT NULL, answer TEXT NOT NULL, tries INTEGER NOT NULL, solved INTEGER NOT NULL, points INTEGER NOT NULL)");
 $old->exec("INSERT INTO results (user_id, day, module, difficulty, question, answer, tries, solved, points) VALUES (1, '$today', 'mala', 'lehke', '2 · 3', '6', 1, 1, 1)");
 db_migrate_users($old);
 $cols = array_column($old->query('PRAGMA table_info(users)')->fetchAll(PDO::FETCH_ASSOC), 'name');
@@ -129,5 +160,10 @@ check(in_array('slug', $cols, true) && !in_array('kind', $cols, true), 'migrace:
 $row = $old->query("SELECT slug, name, color, streak, pin_hash FROM users WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
 check($row === ['slug' => 'holka', 'name' => 'Terka', 'color' => 'ruzova', 'streak' => 7, 'pin_hash' => null], 'migrace: holka s prezdivkou, barvou, serii, bez PINu');
 check((int) $old->query('SELECT COUNT(*) FROM results')->fetchColumn() === 1, 'migrace: vysledky zustaly');
+check(str_contains($old->query("SELECT sql FROM sqlite_master WHERE name = 'results'")->fetchColumn(), 'REFERENCES users(id)'), 'migrace: cizi klice dal ukazuji na users');
+$old->exec('PRAGMA foreign_keys = ON');
+$old->exec("INSERT INTO results (user_id, day, module, difficulty, question, answer, tries, solved, points) VALUES (2, '$today', 'mala', 'lehke', '2 · 4', '8', 1, 1, 1)");
+check(true, 'migrace: zapis s kontrolou cizich klicu projde');
+check(count(users_state(db_open('sqlite::memory:'), $today)) === 0, 'cista databaze: zadne deti');
 db_migrate_users($old);
 check(true, 'migrace podruhe nic nedela');

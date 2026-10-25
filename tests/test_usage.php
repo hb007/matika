@@ -1,6 +1,6 @@
 <?php
 // Čas v appce: celkové součty po zařízeních, součet přes zařízení, ochrana proti nesmyslům.
-$db = db_open('sqlite::memory:');
+$db = test_db();
 $today = '2026-10-11';
 $d1 = 'aaaaaaaaaaaaaaaa';
 $d2 = 'bbbbbbbbbbbbbbbb';
