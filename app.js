@@ -207,7 +207,9 @@
         `<label class="swatch" data-color="${k}"><input type="radio" name="color" value="${k}"${i === 0 ? ' checked' : ''}><span></span>${esc(name)}</label>`).join('');
       html = '<h1>Nový účet</h1>'
         + '<div class="guide"><p><b>Co kdo uvidí</b></p><ul>'
-        + '<li><span aria-hidden="true">👀</span> <b>Ostatní děti s účtem:</b> tvoji přezdívku, barvu, třídu, body a nálepky.</li>'
+        + (state.board
+          ? '<li><span aria-hidden="true">👀</span> <b>Ostatní děti s účtem:</b> tvoji přezdívku, barvu, třídu, body a nálepky.</li>'
+          : '<li><span aria-hidden="true">👀</span> <b>Ostatní děti</b> tvoje body ani nálepky nevidí. Nikdo tu nesoutěží, cvičíš pro sebe.</li>')
         + '<li><span aria-hidden="true">🔒</span> <b>Jen ty</b> (a kdo je přihlášený na tvém telefonu): přihlašovací jméno, co ti jde a nejde a kolik času jsi v appce.</li>'
         + '<li><span aria-hidden="true">🧑‍🏫</span> <b>Správce appky</b> (učitel, rodič): všechno o tvém účtu kromě PINu.</li>'
         + '<li><span aria-hidden="true">🤫</span> <b>PIN nevidí nikdo</b>, ani správce. Nikomu ho neříkej. Když ho zapomeneš, správce ti nastaví nový.</li>'
@@ -753,7 +755,7 @@
       if (r.note) extra.push(esc(r.note));
       // bez účtu: po pár příkladech (a při splnění cíle) nabídnout účet, ať body nepropadnou
       if (isGuest() && (me.solved_today === 5 || me.solved_today === state.goal)) {
-        extra.push(`Máš ${me.today} bodů jen do zavření appky. <a class="link" href="./?ucet">Založ si účet</a> a body, nálepky i žebříček ti zůstanou.`);
+        extra.push(`Máš ${me.today} bodů jen do zavření appky. <a class="link" href="./?ucet">Založ si účet</a> a body${state.board ? ', nálepky i žebříček' : ' i nálepky'} ti zůstanou.`);
       }
       fb.innerHTML = `<div class="praise">${tick}<span class="hand">${pick(['Výborně!', 'Správně!', 'Přesně tak!', 'Paráda!', 'Trefa!', 'Super!'])}</span>`
         + `<span class="stamp">+${r.points + (r.bonus || 0)}</span></div>`
@@ -1290,10 +1292,14 @@
       ? `<p><b>Pozvi spolužáky${me.class_name ? ` do třídy ${esc(me.class_name)}` : ''}.</b> Kdo otevře tenhle odkaz, založí si účet a bude rovnou ve tvé třídě.</p>`
         + `<div class="invite-row"><input type="text" readonly value="${esc(inv)}" aria-label="Zvací odkaz"><button type="button" class="btn invite-copy" data-copy="${esc(inv)}">Zkopírovat</button></div>`
       : '';
+    // žebříček jde vypnout na serveru (BOARD v lib/db.php), pak chybí i jeho nadpis
     board = s.board;
-    if (!board.class) boardTab.scope = 'all';
+    $('board-wrap').hidden = !board;
     $('card').hidden = true;
-    renderBoard();
+    if (board) {
+      if (!board.class) boardTab.scope = 'all';
+      renderBoard();
+    }
     // album: získané nálepky (kolikrát), nezískané šedě s tím, jak je dostat
     $('album').innerHTML = renderAlbum(s.stats.stickers || {});
     const st = s.stats;
@@ -1434,7 +1440,7 @@
       // dítě z adresy: přihlášené na zařízení → rovnou cvičit, jinak PIN (nebo nastavení PINu)
       const page = s.page && s.page.slug === slug ? s.page : null;
       const me = page && s.users.find((u) => u.id === page.id);
-      Object.assign(state, { modules: s.modules, diffs: s.difficulties, goal: s.goal, colors: s.colors || {}, pin: s.pin || state.pin, page, user: me ? me.id : null });
+      Object.assign(state, { modules: s.modules, diffs: s.difficulties, goal: s.goal, board: s.board !== false, colors: s.colors || {}, pin: s.pin || state.pin, page, user: me ? me.id : null });
       renderKids(s.users);
       if (me) openLast();
       else if (page) showLogin(page.has_pin ? 'pin' : 'setup', page);

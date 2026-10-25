@@ -97,7 +97,7 @@ $color = $kid ? (COLORS[$kid['color']] ?? COLORS['modra']) : null;
     <div id="welcome" hidden>
       <h1>Pojď si zacvičit matiku</h1>
       <p class="lead">Pro 2. stupeň: násobilka, zlomky, desetinná čísla, procenta, rovnice, římské číslice a další. Příklad za příkladem, s nápovědou po krocích.</p>
-      <p class="lead">S účtem sbíráš body a nálepky, soutěžíš se třídou a za splněný denní cíl máš hry.</p>
+      <p class="lead">S účtem sbíráš body a nálepky<?= BOARD ? ', soutěžíš se třídou' : '' ?> a za splněný denní cíl máš hry.</p>
       <div class="who-more">
         <button type="button" class="btn big" data-login="guest">Zkusit hned</button>
         <span class="who-note">bez účtu, body se neukládají</span>
@@ -202,11 +202,13 @@ $color = $kid ? (COLORS[$kid['color']] ?? COLORS['modra']) : null;
     <table class="table" id="compare"></table>
     <div class="me-actions" id="me-actions"></div>
     <div class="invite" id="invite" hidden></div>
+    <div id="board-wrap"<?= BOARD ? '' : ' hidden' ?>>
     <h2>Žebříček</h2>
     <div class="tabs" id="board-scope" role="tablist" aria-label="Kdo"></div>
     <div class="tabs" id="board-range" role="tablist" aria-label="Období"></div>
     <div id="board"></div>
     <div id="card" class="card" hidden></div>
+    </div>
     <h2>Album nálepek</h2>
     <div id="album"></div>
     <h2>Přehled pro rodiče</h2>

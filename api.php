@@ -132,7 +132,7 @@ function state(string $today, string $slug = ''): array
     $users[] = guest_state($today);
     $page = $slug !== '' ? user_by_slug(db(), $slug) : null;
     return ['modules' => MODULES, 'difficulties' => DIFFICULTIES, 'goal' => GOAL, 'stickers' => STICKERS,
-            'colors' => array_map(fn($c) => $c['name'], COLORS), 'pin' => ['min' => PIN_MIN, 'max' => PIN_MAX],
+            'colors' => array_map(fn($c) => $c['name'], COLORS), 'pin' => ['min' => PIN_MIN, 'max' => PIN_MAX], 'board' => BOARD,
             'users' => $users, 'page' => $page ? $page + ['logged' => isset($logged[$page['id']])] : null];
 }
 
@@ -317,7 +317,7 @@ try {
             $uid = require_uid($in);
             $me = user_rows(db(), [$uid])[0];
             out(['users' => state($today)['users'], 'stats' => user_stats(db(), $uid, $today),
-                 'board' => ['all' => leaderboard(db(), $today, null),
+                 'board' => !BOARD ? null : ['all' => leaderboard(db(), $today, null),
                              'class' => $me['class_id'] === null ? null : leaderboard(db(), $today, $me['class_id']),
                              'class_name' => $me['class_name']],
                  'invite' => class_invite(db(), $me['class_id'])]);
@@ -325,6 +325,9 @@ try {
         case 'card':
             // veřejná karta jiného dítěte (klepnutí v žebříčku)
             require_uid($in, true);
+            if (!BOARD) {
+                fail('Žebříček je vypnutý.', 404);
+            }
             $card = user_card(db(), (int) param($in, 'target'), $today);
             $card ? out($card) : fail('Takový účet tu není.', 404);
 

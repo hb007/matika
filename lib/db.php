@@ -2,6 +2,10 @@
 // SQLite v data/ (složka zůstává v repu, viz tasks/lessons.md). Tabulky
 // založí první požadavek sám; databázi ze starší verze (holka a kluk) převede.
 
+// Žebříček ve Výsledcích (body ostatních dětí, jejich karty). Dočasně vypnutý:
+// děti nemají mezi sebou soutěžit. Zapnutí: true.
+const BOARD = false;
+
 // Paleta barev dítěte: klíč → název a odstíny (světlý motiv: text i pozadí
 // štítku; tmavý motiv: text, pozadí). Stejné klíče zná style.css ([data-color=…])
 // a icon.php (ikona na plochu). Holka a kluk ze starší verze mají růžovou a petrolejovou.
