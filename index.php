@@ -198,9 +198,10 @@ $color = $kid ? (COLORS[$kid['color']] ?? COLORS['modra']) : null;
 
   <!-- výsledky: moje body, žebříček třídy a všech, album, přehled pro rodiče -->
   <section id="screen-stats" class="screen" hidden>
-    <h1>Výsledky</h1>
+    <div class="screen-head"><h1>Výsledky</h1><button type="button" class="btn" data-go="back">Zpět k příkladům</button></div>
     <table class="table" id="compare"></table>
     <div class="me-actions" id="me-actions"></div>
+    <div class="invite" id="invite" hidden></div>
     <h2>Žebříček</h2>
     <div class="tabs" id="board-scope" role="tablist" aria-label="Kdo"></div>
     <div class="tabs" id="board-range" role="tablist" aria-label="Období"></div>

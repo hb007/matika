@@ -307,7 +307,7 @@ function user_card(PDO $db, int $uid, string $today): ?array
     if (!$u) {
         return null;
     }
-    unset($u['streak'], $u['time_today'], $u['has_pin'], $u['created']);
+    unset($u['streak'], $u['time_today'], $u['has_pin'], $u['created'], $u['slug']);   // přihlašovací jméno jen pro dítě samo
     return $u + ['stickers' => user_stickers($db, $uid)];
 }
 

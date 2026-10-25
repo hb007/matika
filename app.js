@@ -205,7 +205,14 @@
     } else {
       const swatches = Object.entries(state.colors).map(([k, name], i) =>
         `<label class="swatch" data-color="${k}"><input type="radio" name="color" value="${k}"${i === 0 ? ' checked' : ''}><span></span>${esc(name)}</label>`).join('');
-      html = `<h1>Nový účet</h1><label class="field"><span>Přezdívka (zobrazuje se ostatním; ne celé jméno, web je veřejný)</span><input type="text" name="name" maxlength="20" autocomplete="off" required></label>`
+      html = '<h1>Nový účet</h1>'
+        + '<div class="guide"><p><b>Co kdo uvidí</b></p><ul>'
+        + '<li><span aria-hidden="true">👀</span> <b>Ostatní děti s účtem:</b> tvoji přezdívku, barvu, třídu, body a nálepky.</li>'
+        + '<li><span aria-hidden="true">🔒</span> <b>Jen ty</b> (a kdo je přihlášený na tvém telefonu): přihlašovací jméno, co ti jde a nejde a kolik času jsi v appce.</li>'
+        + '<li><span aria-hidden="true">🧑‍🏫</span> <b>Správce appky</b> (učitel, rodič): všechno o tvém účtu kromě PINu.</li>'
+        + '<li><span aria-hidden="true">🤫</span> <b>PIN nevidí nikdo</b>, ani správce. Nikomu ho neříkej. Když ho zapomeneš, správce ti nastaví nový.</li>'
+        + '</ul><p>Přezdívku si vymysli, nepiš celé jméno ani příjmení.</p></div>'
+        + `<label class="field"><span>Přezdívka (zobrazuje se ostatním; ne celé jméno, web je veřejný)</span><input type="text" name="name" maxlength="20" autocomplete="off" required></label>`
         + '<label class="field"><span>Přihlašovací jméno (jen písmena bez háčků, číslice a pomlčka; je to i tvoje adresa)</span><input type="text" name="login" maxlength="20" autocomplete="username" autocapitalize="none" spellcheck="false" pattern="[a-z0-9-]{1,20}" required></label>'
         + `<fieldset class="field"><legend>Barva</legend><div class="swatches">${swatches}</div></fieldset>`
         + pin('pin', `PIN (${state.pin.min} až ${state.pin.max} číslic, zapamatuj si ho)`) + pin('pin2', 'PIN ještě jednou')
@@ -1276,6 +1283,13 @@
       + '<button type="button" class="link pin">Změnit PIN</button>'
       + '<button type="button" class="link logout">Odhlásit z tohoto zařízení</button>'
       + '<button type="button" class="link reset">Smazat body</button>';
+    // zvací odkaz do mojí třídy (když ho správce založil): spolužák si s ním založí účet bez hesla
+    const inv = s.invite ? new URL('./?pozvanka=' + s.invite, document.baseURI).href : '';
+    $('invite').hidden = !inv;
+    $('invite').innerHTML = inv
+      ? `<p><b>Pozvi spolužáky${me.class_name ? ` do třídy ${esc(me.class_name)}` : ''}.</b> Kdo otevře tenhle odkaz, založí si účet a bude rovnou ve tvé třídě.</p>`
+        + `<div class="invite-row"><input type="text" readonly value="${esc(inv)}" aria-label="Zvací odkaz"><button type="button" class="btn invite-copy" data-copy="${esc(inv)}">Zkopírovat</button></div>`
+      : '';
     board = s.board;
     if (!board.class) boardTab.scope = 'all';
     $('card').hidden = true;
@@ -1347,6 +1361,17 @@
     card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   });
   $('card').addEventListener('click', (e) => { if (e.target.closest('.card-close')) $('card').hidden = true; });
+  $('invite').addEventListener('click', async (e) => {
+    const b = e.target.closest('.invite-copy');
+    if (!b) return;
+    try {
+      await navigator.clipboard.writeText(b.dataset.copy);
+      b.textContent = 'Zkopírováno';
+    } catch (err) {
+      window.prompt('Zkopíruj odkaz:', b.dataset.copy);   // bez HTTPS nebo bez povolení schránky
+    }
+  });
+  $('invite').addEventListener('focusin', (e) => { if (e.target.matches('input')) e.target.select(); });
 
   document.querySelectorAll('[data-stats]').forEach((b) =>
     b.addEventListener('click', () => { clearTimeout(state.timer); state.ex = null; loadStats(); }));

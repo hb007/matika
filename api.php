@@ -319,7 +319,8 @@ try {
             out(['users' => state($today)['users'], 'stats' => user_stats(db(), $uid, $today),
                  'board' => ['all' => leaderboard(db(), $today, null),
                              'class' => $me['class_id'] === null ? null : leaderboard(db(), $today, $me['class_id']),
-                             'class_name' => $me['class_name']]]);
+                             'class_name' => $me['class_name']],
+                 'invite' => class_invite(db(), $me['class_id'])]);
 
         case 'card':
             // veřejná karta jiného dítěte (klepnutí v žebříčku)

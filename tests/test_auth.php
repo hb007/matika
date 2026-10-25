@@ -141,7 +141,7 @@ check(count($all) === 4 && $all[0]['id'] === $a && $all[0]['total'] === 9 && $al
 $cls = leaderboard($db, $today, $cid);
 check(count($cls) === 2 && !in_array(1, array_column($cls, 'id'), true), 'zebricek tridy bez holky');
 $card = user_card($db, $a, $today);
-check($card['name'] === 'Anička Nováková' && $card['total'] === 9 && isset($card['stickers']) && !isset($card['streak']), 'verejna karta');
+check($card['name'] === 'Anička Nováková' && $card['total'] === 9 && isset($card['stickers']) && !isset($card['streak']) && !isset($card['slug']), 'verejna karta bez prihlasovaciho jmena');
 check(user_card($db, 999, $today) === null, 'karta neznameho: null');
 check(class_stats($db, $cid)[0]['kids'] === 1 && class_stats($db, null)[0]['n'] === 1, 'prehled za tridu a bez tridy');
 

@@ -196,6 +196,12 @@ body[data-diff] .top { border-bottom: 0; box-shadow: inset 0 -6px 0 var(--hl); p
 /* ---------- přihlášení: PIN, jiné dítě, nový sešit ---------- */
 .login { max-width: 420px; }
 .login-who { margin: 0 0 16px; }
+.guide { background: var(--sheet); border: 2px solid var(--line); border-radius: 6px; padding: 10px 14px; margin: 0 0 18px; font-size: 15px; }
+.guide p { margin: 0 0 6px; }
+.guide p:last-child { margin: 8px 0 0; }
+.guide ul { list-style: none; margin: 0; padding: 0; }
+.guide li { margin: 0 0 6px; padding-left: 28px; text-indent: -28px; }
+.guide li > span:first-child { display: inline-block; width: 28px; text-indent: 0; }
 .login-who .kid-name { font-size: 38px; line-height: 1.05; }
 .field { display: block; margin: 0 0 14px; border: 0; padding: 0; }
 .field > span, .field legend { display: block; font-size: 15px; font-weight: 700; color: var(--muted); margin-bottom: 4px; padding: 0; }
@@ -377,6 +383,12 @@ body[data-diff] .top { border-bottom: 0; box-shadow: inset 0 -6px 0 var(--hl); p
 .me-actions { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: -4px 0 8px; }
 .me-actions .link { font-size: 15px; }
 .me-actions .reset { color: var(--danger); font-size: 15px; }
+.invite { background: var(--sheet); border: 2px solid var(--line); border-radius: 6px; padding: 10px 14px; margin: 4px 0 14px; max-width: 560px; }
+.invite p { margin: 0 0 8px; font-size: 15px; }
+.invite-row { display: flex; gap: 8px; }
+.invite-row input { flex: 1; min-width: 0; font: inherit; font-size: 14px; padding: 6px 8px; border: 2px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--ink); }
+.screen-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.screen-head h1 { margin-right: auto; }
 .class-name { font-size: 14px; color: var(--muted); font-weight: 700; margin-left: 6px; }
 .tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 8px; }
 .tab { border: 2px solid transparent; border-radius: 4px; background: none; color: var(--muted); font-size: 15px; font-weight: 700; padding: 6px 10px; cursor: pointer; }

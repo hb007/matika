@@ -285,6 +285,18 @@ function invites(PDO $db): array
         LEFT JOIN classes c ON c.id = i.class_id ORDER BY i.id')->fetchAll();
 }
 
+// Zvací odkaz do třídy pro děti ve Výsledcích (první založený), nebo null.
+function class_invite(PDO $db, ?int $classId): ?string
+{
+    if ($classId === null) {
+        return null;
+    }
+    $st = $db->prepare('SELECT token FROM invites WHERE class_id = ? ORDER BY id LIMIT 1');
+    $st->execute([$classId]);
+    $t = $st->fetchColumn();
+    return $t === false ? null : (string) $t;
+}
+
 function classes(PDO $db): array
 {
     return $db->query('SELECT c.id, c.name, c.code, COUNT(u.id) AS kids FROM classes c LEFT JOIN users u ON u.class_id = c.id
