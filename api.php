@@ -139,8 +139,7 @@ function state(string $today, string $slug = ''): array
 $action = $_GET['action'] ?? '';
 $in = body();
 $today = date('Y-m-d');
-// vlastní název session podle cesty: dvě kopie appky na jednom webu (třeba ostrá a zkušební) si nepletou příklady
-session_start(['name' => 'matika_' . substr(md5(cookie_path()), 0, 8), 'cookie_path' => cookie_path(), 'cookie_httponly' => true, 'cookie_samesite' => 'Lax']);
+session_start(session_options());   // název podle cesty, úložiště v data/sessions (lib/db.php)
 
 try {
     $logged = logged_users(db(), $tokens, $now);

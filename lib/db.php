@@ -133,6 +133,22 @@ function kid_name(PDO $db, string $slug): string
     return user_by_slug($db, $slug)['name'] ?? '';
 }
 
+// Volby pro session_start: název podle cesty (dvě kopie appky na jednom webu
+// si nepletou session) a ukládání do data/sessions, ne do systémové složky
+// hostingu (ta bývá nezapisovatelná nebo se uklízí, a session se pak neudrží).
+function session_options(): array
+{
+    $path = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/\\') . '/';
+    $opts = ['name' => 'matika_' . substr(md5($path), 0, 8), 'cookie_path' => $path, 'cookie_httponly' => true, 'cookie_samesite' => 'Lax'];
+    $dir = __DIR__ . '/../data/sessions';
+    if (is_dir($dir) || @mkdir($dir, 0700)) {
+        if (is_writable($dir)) {
+            $opts['save_path'] = $dir;
+        }
+    }
+    return $opts;
+}
+
 // Nastavení mimo repo: data/config.php vrací pole, třeba ['admin_password' => '…'].
 function config(): array
 {

@@ -19,8 +19,7 @@ if ($password === '') {
         . 'Na serveru vytvoř soubor <code>data/config.php</code> s obsahem <code>&lt;?php return [\'admin_password\' =&gt; \'tajne-heslo\'];</code></p>';
     exit;
 }
-$path = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/\\') . '/';
-session_start(['name' => 'matika_' . substr(md5($path), 0, 8), 'cookie_path' => $path, 'cookie_httponly' => true, 'cookie_samesite' => 'Lax']);
+session_start(session_options());   // název podle cesty, úložiště v data/sessions (lib/db.php)
 $self = basename($_SERVER['SCRIPT_NAME']);
 $h = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES);
 
@@ -37,10 +36,9 @@ if (empty($_SESSION['admin_ok']) && isset($_POST['password'])) {
     if (($_SESSION['admin_until'] ?? 0) > time()) {
         $loginError = 'Moc pokusů, zkus to za minutu.';
     } elseif (hash_equals($password, (string) $_POST['password'])) {
-        session_regenerate_id(true);
         $_SESSION['admin_ok'] = true;
         $_SESSION['admin_fails'] = 0;
-        header('Location: ' . $self);
+        header('Location: ' . $self . '?prihlaseno=1');
         exit;
     } else {
         sleep(1);
@@ -53,11 +51,18 @@ if (empty($_SESSION['admin_ok']) && isset($_POST['password'])) {
     }
 }
 if (empty($_SESSION['admin_ok'])) {
+    // proč to nešlo, když heslo sedělo: session se neuložila, nebo formulář nedorazil
+    if (isset($_GET['prihlaseno'])) {
+        $loginError = 'Heslo sedělo, ale přihlášení se neudrželo: server neuložil session (složka ' . $h(ini_get('session.save_path') ?: 'výchozí')
+            . ') nebo prohlížeč nepřijal cookie „' . $h(session_name()) . '“.';
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['password'])) {
+        $loginError = 'Formulář nedorazil (server POST přesměroval). Otevři přímo admin.php.';
+    }
     http_response_code($loginError !== '' ? 403 : 200);
     echo '<!doctype html><html lang="cs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">'
         . '<title>Matika – správa</title><link rel="stylesheet" href="style.css"></head><body style="max-width:420px;margin:0 auto;padding:16px">'
         . '<h1 style="font-family:var(--hand);font-weight:400;color:var(--pen)">Matika – správa</h1>'
-        . '<form method="post" class="login"><label class="field"><span>Heslo správce</span><input type="password" name="password" autocomplete="current-password" autofocus required></label>'
+        . '<form method="post" action="' . $h($self) . '" class="login"><label class="field"><span>Heslo správce</span><input type="password" name="password" autocomplete="current-password" autofocus required></label>'
         . ($loginError !== '' ? '<p class="login-error">' . $h($loginError) . '</p>' : '')
         . '<div class="login-actions"><button class="btn">Přihlásit</button><a href="./" class="ghostbtn btn-link">Zpět do appky</a></div></form></body></html>';
     exit;

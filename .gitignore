@@ -28,3 +28,5 @@ data/config.php
 
 # Scratch (konvence projektů ze skillu zaloz-projekt) - smí se kdykoli smazat
 .working/
+# session PHP (lib/db.php session_options)
+data/sessions/
