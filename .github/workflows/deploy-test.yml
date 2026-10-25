@@ -1,0 +1,64 @@
+# Zkušební nasazení větve se sešity do samostatné složky na hostingu, vedle
+# ostré appky (ta jede dál z main beze změny, viz deploy.yml). Stejné FTP
+# secrets, jiná cílová složka:
+#   Variables (nepovinné): FTP_DIR_TEST  složka na serveru, končí lomítkem;
+#                          výchozí je <FTP_DIR>novy/, tedy třeba https://web/novy/
+# Složka má vlastní databázi (data/ se založí sama) a vlastní data/config.php
+# s heslem správce (vytvoř ručně na serveru). Appka v podsložce funguje:
+# cookie, <base> i service worker berou cestu podle umístění.
+
+name: Zkušební nasazení (sešity)
+
+on:
+  push:
+    branches: [claude/simple-login-system-iv8ai3]
+  workflow_dispatch:
+
+concurrency:
+  group: ftp-deploy-test
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      HAS_FTP: ${{ secrets.FTP_SERVER != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Kontrola syntaxe PHP
+        run: |
+          php -v | head -1
+          find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
+
+      - name: Testy
+        run: php tests/run.php
+
+      - name: Shoda kontroly odpovědí (server a offline v telefonu)
+        run: php tests/parity_cases.php | node tests/parity.js
+
+      - name: FTP není nastavené
+        if: env.HAS_FTP != 'true'
+        run: echo "::warning::Chybí secrets FTP_SERVER, FTP_USERNAME a FTP_PASSWORD. Nic se nenahrálo."
+
+      - name: Nahrání na FTP do zkušební složky
+        if: env.HAS_FTP == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
+          server-dir: ${{ vars.FTP_DIR_TEST || format('{0}novy/', vars.FTP_DIR || './') }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+            .github/**
+            README.md
+            CLAUDE.md
+            docs/**
+            tasks/**
+            docker-compose*.yml
+            tests/**
+            data/*.sqlite*
+            data/config.php
