@@ -44,6 +44,10 @@ function db_open(string $dsn): PDO
         pin_hash TEXT, pin_fails INTEGER NOT NULL DEFAULT 0, pin_until INTEGER NOT NULL DEFAULT 0,
         streak INTEGER NOT NULL DEFAULT 0, created TEXT NOT NULL DEFAULT \'\')');
     db_migrate_users($pdo);
+    // zvací odkazy: ?pozvanka=<token> otevře registraci bez hesla, volitelně rovnou do třídy
+    $pdo->exec('CREATE TABLE IF NOT EXISTS invites (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, token TEXT NOT NULL UNIQUE, label TEXT NOT NULL,
+        class_id INTEGER REFERENCES classes(id), created TEXT NOT NULL, uses INTEGER NOT NULL DEFAULT 0)');
     // zapamatovaná zařízení: cookie nese náhodný token, tady je jeho hash (lib/auth.php)
     $pdo->exec('CREATE TABLE IF NOT EXISTS tokens (
         hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), created INTEGER NOT NULL, used INTEGER NOT NULL)');

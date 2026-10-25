@@ -155,6 +155,18 @@
     openLast();
   }
 
+  // Zvací odkaz: ověřit na serveru a otevřít registraci bez hesla.
+  async function openInvite(token) {
+    try {
+      invite = { token, ...(await api('invite', { user: null, token })) };
+      showLogin('register');
+    } catch (e) {
+      invite = null;
+      showWho();
+      alert(e.network ? 'Zvací odkaz jde použít jen s internetem.' : e.message);
+    }
+  }
+
   // Server dítě nezná jako přihlášené (vypršelo, odhlášené jinde): u aktivního
   // dítěte ukázat přihlášení (fronta offline výsledků zůstane), jiné jen vyřadit.
   function onUnauthorized(uid) {
@@ -174,6 +186,8 @@
   // ---------- přihlášení ----------
   // mode: pin (sešit z adresy, zná PIN), setup (sešit ze starší verze bez PINu),
   // other (jiné dítě: přezdívka + PIN), register (nový sešit)
+  // invite: zvací odkaz (?pozvanka=…) místo hesla pro založení účtu
+  let invite = null;
   function showLogin(mode, user) {
     const f = $('form-login');
     f.dataset.mode = mode;
@@ -194,8 +208,10 @@
       html = `<h1>Nový účet</h1><label class="field"><span>Přezdívka (ne celé jméno, web je veřejný)</span><input type="text" name="name" maxlength="20" autocomplete="off" required></label>`
         + `<fieldset class="field"><legend>Barva</legend><div class="swatches">${swatches}</div></fieldset>`
         + pin('pin', `PIN (${state.pin.min} až ${state.pin.max} číslic, zapamatuj si ho)`) + pin('pin2', 'PIN ještě jednou')
-        + '<label class="field"><span>Kód třídy (dostaneš od učitele nebo rodičů)</span><input type="text" name="code" autocomplete="off" autocapitalize="characters" maxlength="12" required></label>'
-        + '<p class="who-note">Nemáš kód? <button type="button" class="link" data-login="guest">Zkus to zatím bez účtu</button>, body se jen neuloží.</p>';
+        + (invite
+          ? `<p class="who-note">Zvací odkaz${invite.class_name ? ` do třídy <b>${esc(invite.class_name)}</b>` : ''} (${esc(invite.label)}).</p>`
+          : '<label class="field"><span>Heslo pro založení účtu (zná ho administrátor, rodiče, …)</span><input type="text" name="code" autocomplete="off" autocapitalize="characters" maxlength="12" required></label>'
+          + '<p class="who-note">Neznáš heslo? <button type="button" class="link" data-login="guest">Zkus to zatím bez účtu</button>, body se jen neuloží.</p>');
     }
     f.innerHTML = html + '<p class="login-error" id="login-error" role="alert"></p>'
       + `<div class="login-actions"><button type="submit" class="btn">${mode === 'register' ? 'Založit účet' : mode === 'setup' ? 'Nastavit' : 'Přihlásit se'}</button>`
@@ -217,7 +233,7 @@
     let r;
     try {
       r = f.dataset.mode === 'register'
-        ? await api('register', { user: null, name: d.name, color: d.color, pin: d.pin, code: d.code })
+        ? await api('register', { user: null, name: d.name, color: d.color, pin: d.pin, code: d.code || '', invite: invite ? invite.token : '' })
         : await api('login', { user: null, target: Number(f.dataset.user) || 0, name: d.name || '', pin: d.pin });
     } catch (ex) {
       err.textContent = ex.network ? 'Přihlásit se jde jen s internetem.' : ex.message;
@@ -1381,6 +1397,7 @@
       if (me) openLast();
       else if (page) showLogin(page.has_pin ? 'pin' : 'setup', page);
       else if (location.search === '?ucet') showLogin('register');   // z nabídky hostovi po pár příkladech
+      else if (/^\?pozvanka=/.test(location.search)) await openInvite(decodeURIComponent(location.search.slice(10)));
       else showWho();
       if (!state.offline) trySync();   // výsledky z minula a doplnění zásoby
     } catch (e) {

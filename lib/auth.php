@@ -58,17 +58,15 @@ function class_by_code(PDO $db, string $code): ?array
     return $c ? ['id' => (int) $c['id'], 'name' => $c['name'], 'code' => $c['code']] : null;
 }
 
-// Nový sešit. Vrací id dítěte. Kód třídy musí sedět (ochrana před roboty
-// a cizími lidmi; děti ho dostanou od učitele nebo rodiče).
-function register_user(PDO $db, string $name, string $color, string $pin, string $code, string $today): int
+// Nový účet. Vrací id dítěte. Kdo smí zakládat, hlídá volající: heslo třídy
+// (class_by_code) nebo zvací odkaz (invite_by_token), jinak by se registrovali
+// roboti a cizí lidé. $classId null = bez třídy.
+function register_user(PDO $db, string $name, string $color, string $pin, ?int $classId, string $today): int
 {
     $name = clean_name($name);
     $color = clean_color($color);
     $pin = clean_pin($pin);
-    $class = class_by_code($db, $code);
-    if (!$class) {
-        throw new InvalidArgumentException('Kód třídy nesedí. Zeptej se, kdo ti ho dal.');
-    }
+    $class = ['id' => $classId];
     $base = slugify($name);
     $hash = password_hash($pin, PASSWORD_DEFAULT);
     $ins = $db->prepare('INSERT INTO users (slug, name, color, class_id, pin_hash, created) VALUES (?, ?, ?, ?, ?, ?)');
@@ -224,6 +222,37 @@ function add_class(PDO $db, string $name, string $code = ''): int
     }
     $db->prepare('INSERT INTO classes (name, code) VALUES (?, ?)')->execute([$name, $code]);
     return (int) $db->lastInsertId();
+}
+
+// ---------- zvací odkazy ----------
+// Trvalý odkaz …/?pozvanka=<token>: registrace bez hesla třídy, dítě padne do
+// třídy odkazu (nebo zůstane bez třídy). Správce odkazy zakládá, upravuje a maže.
+
+function invite_by_token(PDO $db, string $token): ?array
+{
+    if (!preg_match('/^[a-z0-9]{10,24}$/', $token)) {
+        return null;
+    }
+    $st = $db->prepare('SELECT i.id, i.token, i.label, i.class_id, i.uses, c.name AS class_name FROM invites i
+        LEFT JOIN classes c ON c.id = i.class_id WHERE i.token = ?');
+    $st->execute([$token]);
+    $i = $st->fetch();
+    return $i ? ['id' => (int) $i['id'], 'token' => $i['token'], 'label' => $i['label'], 'uses' => (int) $i['uses'],
+                 'class_id' => $i['class_id'] === null ? null : (int) $i['class_id'], 'class_name' => $i['class_name'] ?? ''] : null;
+}
+
+function add_invite(PDO $db, string $label, ?int $classId, string $today): string
+{
+    $token = strtolower(class_code()) . strtolower(class_code());   // 12 znaků bez 0/O/1/I
+    $db->prepare('INSERT INTO invites (token, label, class_id, created) VALUES (?, ?, ?, ?)')
+        ->execute([$token, clean_name($label), $classId, $today]);
+    return $token;
+}
+
+function invites(PDO $db): array
+{
+    return $db->query('SELECT i.id, i.token, i.label, i.class_id, i.created, i.uses, c.name AS class_name FROM invites i
+        LEFT JOIN classes c ON c.id = i.class_id ORDER BY i.id')->fetchAll();
 }
 
 function classes(PDO $db): array

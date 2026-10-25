@@ -102,6 +102,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $db->prepare('DELETE FROM classes WHERE id = ?')->execute([$id]);
                 $msg = 'Třída smazaná, děti zůstaly bez třídy.';
                 break;
+            case 'add_invite':
+                $token = add_invite($db, (string) ($_POST['label'] ?? ''), (int) ($_POST['class_id'] ?? 0) ?: null, $today);
+                $msg = 'Zvací odkaz založený.';
+                break;
+            case 'invite_edit':
+                $db->prepare('UPDATE invites SET label = ?, class_id = ? WHERE id = ?')
+                    ->execute([clean_name((string) ($_POST['label'] ?? '')), (int) ($_POST['class_id'] ?? 0) ?: null, $id]);
+                $msg = 'Zvací odkaz upravený.';
+                break;
+            case 'invite_delete':
+                $db->prepare('DELETE FROM invites WHERE id = ?')->execute([$id]);
+                $msg = 'Zvací odkaz smazaný, už nejde použít. Založené účty zůstávají.';
+                break;
             case 'pin':
                 if (!user_exists($db, $id)) {
                     throw new InvalidArgumentException('Neznámé dítě.');
@@ -226,11 +239,11 @@ function per_task_table(array $per, bool $kids = false): string
   <?php $cls = null; foreach ($classes as $c) { if ((int) $c['id'] === $id) { $cls = $c; } } ?>
   <h2><?= $cls ? $h($cls['name']) : 'Bez třídy' ?></h2>
   <?php if ($cls): ?>
-  <p>Kód třídy pro nové účty: <code><?= $h($cls['code']) ?></code></p>
+  <p>Heslo třídy pro založení účtu: <code><?= $h($cls['code']) ?></code></p>
   <form method="post" class="inline"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="class_rename"><input type="hidden" name="id" value="<?= $id ?>"><input type="hidden" name="back" value="<?= $self ?>?p=trida&amp;id=<?= $id ?>">
     <label>Název <input type="text" name="name" value="<?= $h($cls['name']) ?>" maxlength="<?= NAME_MAX ?>" required></label> <button class="btn">Přejmenovat</button></form>
-  <form method="post" class="inline" onsubmit="return confirm('Vygenerovat nový kód? Starý přestane platit.')"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="class_code"><input type="hidden" name="id" value="<?= $id ?>"><input type="hidden" name="back" value="<?= $self ?>?p=trida&amp;id=<?= $id ?>">
-    <button class="btn">Nový kód</button></form>
+  <form method="post" class="inline" onsubmit="return confirm('Vygenerovat nové heslo třídy? Staré přestane platit.')"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="class_code"><input type="hidden" name="id" value="<?= $id ?>"><input type="hidden" name="back" value="<?= $self ?>?p=trida&amp;id=<?= $id ?>">
+    <button class="btn">Nové heslo</button></form>
   <form method="post" class="inline" onsubmit="return confirm('Smazat třídu? Děti zůstanou, jen bez třídy.')"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="class_delete"><input type="hidden" name="id" value="<?= $id ?>">
     <button class="btn danger">Smazat třídu</button></form>
   <?php endif; ?>
@@ -244,8 +257,8 @@ function per_task_table(array $per, bool $kids = false): string
 
 <?php else: ?>
   <h2>Třídy</h2>
-  <p>Účet si dítě založí v appce („Založit účet“) s kódem své třídy. Kód mu dej osobně, na web nepatří.</p>
-  <table class="table"><tr><th>Třída</th><th>Kód</th><th class="num">Dětí</th></tr>
+  <p>Účet si dítě založí v appce („Založit účet“) s heslem své třídy, nebo přes zvací odkaz níž. Heslo mu dej osobně, na web nepatří.</p>
+  <table class="table"><tr><th>Třída</th><th>Heslo pro založení účtu</th><th class="num">Dětí</th></tr>
   <?php foreach ($classes as $c): ?>
     <tr><td><a class="link" href="<?= $self ?>?p=trida&amp;id=<?= $c['id'] ?>"><?= $h($c['name']) ?></a></td><td><code><?= $h($c['code']) ?></code></td><td class="num"><?= $c['kids'] ?></td></tr>
   <?php endforeach; ?>
@@ -253,8 +266,33 @@ function per_task_table(array $per, bool $kids = false): string
   </table>
   <form method="post" class="inline"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="add_class">
     <label>Nová třída <input type="text" name="name" placeholder="6.A" maxlength="<?= NAME_MAX ?>" required></label>
-    <label>Kód (nepovinný, jinak náhodný) <input type="text" name="code" pattern="[A-Za-z0-9]{4,12}" maxlength="12"></label>
+    <label>Heslo (nepovinné, jinak náhodné) <input type="text" name="code" pattern="[A-Za-z0-9]{4,12}" maxlength="12"></label>
     <button class="btn">Založit třídu</button></form>
+
+  <h2>Zvací odkazy</h2>
+  <p>Kdo odkaz otevře, založí si účet bez hesla, rovnou ve vybrané třídě (nebo bez třídy). Odkaz platí, dokud ho nesmažeš; smazání založené účty nezruší.</p>
+  <?php $base = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '') . app_path(); ?>
+  <?php $classSelect = function (?int $cur) use ($classes, $h): string {
+      $o = '<option value="0">bez třídy</option>';
+      foreach ($classes as $c) {
+          $o .= '<option value="' . $c['id'] . '"' . ((int) $c['id'] === $cur ? ' selected' : '') . '>' . $h($c['name']) . '</option>';
+      }
+      return "<select name=\"class_id\">$o</select>";
+  }; ?>
+  <?php $inv = invites($db); if ($inv): ?>
+  <table class="table"><tr><th>Odkaz</th><th>Popisek a třída</th><th class="num">Použito</th><th></th></tr>
+  <?php foreach ($inv as $i): ?>
+    <tr><td><code><?= $h($base) ?>?pozvanka=<?= $h($i['token']) ?></code></td>
+    <td><form method="post" class="inline"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="invite_edit"><input type="hidden" name="id" value="<?= $i['id'] ?>">
+      <input type="text" name="label" value="<?= $h($i['label']) ?>" maxlength="<?= NAME_MAX ?>" required> <?= $classSelect($i['class_id'] === null ? null : (int) $i['class_id']) ?> <button class="btn">Uložit</button></form></td>
+    <td class="num"><?= (int) $i['uses'] ?>×</td>
+    <td><form method="post" class="inline" onsubmit="return confirm('Smazat zvací odkaz? Přestane fungovat.')"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="invite_delete"><input type="hidden" name="id" value="<?= $i['id'] ?>"><button class="link danger">Smazat</button></form></td></tr>
+  <?php endforeach; ?></table>
+  <?php endif; ?>
+  <form method="post" class="inline"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="add_invite">
+    <label>Nový zvací odkaz: popisek <input type="text" name="label" placeholder="rodiče 6.A" maxlength="<?= NAME_MAX ?>" required></label>
+    <label>Třída <?= $classSelect(null) ?></label>
+    <button class="btn">Založit odkaz</button></form>
 
   <h2>Děti</h2>
   <?php foreach ([null, ...$classes] as $c): $cid = $c ? (int) $c['id'] : 0; if (empty($byClass[$cid])) { continue; } ?>

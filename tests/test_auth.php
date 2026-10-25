@@ -16,29 +16,34 @@ try {
 }
 check($threw !== '', 'stejny kod dvakrat nejde');
 check(preg_match('/^[A-Z2-9]{6}$/', class_code()) === 1, 'nahodny kod: 6 znaku bez 0/O/1/I');
-$threw = '';
-try {
-    register_user($db, 'Anička', 'zelena', '1234', 'XXXX', $today);
-} catch (InvalidArgumentException $e) {
-    $threw = $e->getMessage();
-}
-check(str_contains($threw, 'Kód'), 'registrace se spatnym kodem selze');
+check(class_by_code($db, 'XXXX') === null, 'spatne heslo tridy: null');
 foreach ([['', 'zelena', '1234'], ['Anička', 'neon', '1234'], ['Anička', 'zelena', '12'], ['Anička', 'zelena', '12345678'], ['Anička', 'zelena', 'abcd']] as [$n, $c, $p]) {
     $threw = false;
     try {
-        register_user($db, $n, $c, $p, 'ABC123', $today);
+        register_user($db, $n, $c, $p, $cid, $today);
     } catch (InvalidArgumentException $e) {
         $threw = true;
     }
     check($threw, "registrace odmitne spatny vstup ($n, $c, $p)");
 }
-$a = register_user($db, 'Anička Nováková', 'zelena', '1234', 'abc123', $today);
+$a = register_user($db, 'Anička Nováková', 'zelena', '1234', $cid, $today);
 $u = user_by_slug($db, 'anicka-novakova');
 check($u && $u['id'] === $a && $u['color'] === 'zelena' && $u['class_id'] === $cid && $u['has_pin'], 'registrace: slug bez diakritiky, trida, PIN');
-$b = register_user($db, 'Anička Nováková', 'modra', '5678', 'ABC123 ', $today);
+$b = register_user($db, 'Anička Nováková', 'modra', '5678', $cid, $today);
 check(user_by_slug($db, 'anicka-novakova-2')['id'] === $b, 'stejna prezdivka: slug s cislem');
 check(slugify('  Ťom?! ') === 'tom' && slugify('???') === 'dite' && slugify('Žofie-Lída') === 'zofie-lida' && strlen(slugify(str_repeat('a', 30))) === 16, 'slugify');
 check(user_rows($db, [$a])[0]['class_name'] === '6.A', 'nazev tridy u ditete');
+
+// zvací odkazy
+$tok = add_invite($db, 'rodiče 6.A', $cid, $today);
+$tok2 = add_invite($db, 'bez třídy', null, $today);
+check(preg_match('/^[a-z2-9]{12}$/', $tok) === 1 && $tok !== $tok2, 'token odkazu');
+$i = invite_by_token($db, $tok);
+check($i['class_id'] === $cid && $i['class_name'] === '6.A' && $i['label'] === 'rodiče 6.A' && $i['uses'] === 0, 'odkaz s tridou');
+check(invite_by_token($db, $tok2)['class_id'] === null && invite_by_token($db, 'nic') === null && invite_by_token($db, "x' OR 1=1") === null, 'odkaz bez tridy, neplatny');
+$c2 = register_user($db, 'Pozvaný', 'modra', '1234', invite_by_token($db, $tok2)['class_id'], $today);
+check(user_by_slug($db, 'pozvany')['class_id'] === null && count(invites($db)) === 2, 'ucet bez tridy pres odkaz');
+delete_user($db, $c2);
 
 // PIN: spatny, zamek po 5, spravny po zamku
 check_pin($db, $a, '1234', $now);

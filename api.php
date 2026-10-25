@@ -149,10 +149,22 @@ try {
 
         case 'register':
             // nový sešit: přezdívka, barva, PIN a kód třídy; rovnou přihlásí
+            // kdo smí zakládat: zvací odkaz (pozvanka), nebo heslo třídy (code)
+            $invite = param($in, 'invite') !== '' ? invite_by_token(db(), param($in, 'invite')) : null;
+            if (param($in, 'invite') !== '' && !$invite) {
+                fail('Zvací odkaz už neplatí. Zeptej se, kdo ti ho poslal.');
+            }
+            $class = $invite ? null : class_by_code(db(), param($in, 'code'));
+            if (!$invite && !$class) {
+                fail('Heslo pro založení účtu nesedí. Zeptej se, kdo ti ho dal.');
+            }
             try {
-                $uid = register_user(db(), param($in, 'name'), param($in, 'color'), param($in, 'pin'), param($in, 'code'), $today);
+                $uid = register_user(db(), param($in, 'name'), param($in, 'color'), param($in, 'pin'), $invite ? $invite['class_id'] : $class['id'], $today);
             } catch (InvalidArgumentException $e) {
                 fail($e->getMessage());
+            }
+            if ($invite) {
+                db()->prepare('UPDATE invites SET uses = uses + 1 WHERE id = ?')->execute([$invite['id']]);
             }
             log_in($uid);
             out(state($today) + ['user' => user_rows(db(), [$uid])[0]]);
@@ -189,6 +201,11 @@ try {
             }
             log_in($u['id']);
             out(state($today) + ['user' => user_rows(db(), [$u['id']])[0]]);
+
+        case 'invite':
+            // co otevírá zvací odkaz (popisek, třída); neplatný = 404
+            $invite = invite_by_token(db(), param($in, 'token'));
+            $invite ? out(['label' => $invite['label'], 'class_name' => $invite['class_name']]) : fail('Zvací odkaz už neplatí. Zeptej se, kdo ti ho poslal.', 404);
 
         case 'logout':
             log_out((int) param($in, 'user'));
