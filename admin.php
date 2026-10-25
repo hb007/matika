@@ -129,10 +129,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $msg = 'Přezdívka a adresa změněné.';
                 break;
-            case 'import_live':
-                $got = db_import_kids($db, live_db_file());
-                $msg = 'Převzaté děti z ostré appky: ' . implode(', ', array_map(fn($s, $n) => "$s ($n výsledků)", array_keys($got), $got)) . '. Zkontroluj jim přezdívky, adresy a PIN.';
-                break;
             case 'class_set':
                 $cid = (int) ($_POST['class_id'] ?? 0) ?: null;
                 $db->prepare('UPDATE users SET class_id = ? WHERE id = ?')->execute([$cid, $id]);
@@ -160,12 +156,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Location: ' . (preg_match('~^[\w.?=&-]*$~', $back) ? $back : $self));
     exit;
 }
-// ostrá appka o složku výš (zkušební kopie běží v podsložce, třeba /novy/)
-function live_db_file(): string
-{
-    return dirname(__DIR__) . '/data/matika-v2.sqlite';
-}
-
 $msg = (string) ($_SESSION['admin_msg'] ?? '');
 unset($_SESSION['admin_msg']);
 
@@ -285,13 +275,6 @@ function per_task_table(array $per, bool $kids = false): string
     <label>Nová třída <input type="text" name="name" placeholder="6.A" maxlength="<?= NAME_MAX ?>" required></label>
     <label>Heslo (nepovinné, jinak náhodné) <input type="text" name="code" pattern="[A-Za-z0-9]{4,12}" maxlength="12"></label>
     <button class="btn">Založit třídu</button></form>
-
-  <?php if (is_file(live_db_file()) && realpath(live_db_file()) !== realpath(DB_FILE)): ?>
-  <h2>Převzít data z ostré appky</h2>
-  <p>O složku výš je databáze ostré appky (<code><?= $h(live_db_file()) ?></code>). Tlačítko z ní přenese děti a jejich data (body, nálepky, série, opakování chyb, čas v appce). Dítě se pozná podle adresy (holka, kluk): když tu už je, nechá si přezdívku, adresu, PIN, barvu i třídu a <b>přepíšou se jen jeho výsledky</b>; jinak vznikne bez PINu. Třídy, zvací odkazy a ostatní účty zůstanou. Ostré appky se to nedotkne. Jde spustit opakovaně.</p>
-  <form method="post" class="inline" onsubmit="return confirm('Přenést děti z ostré appky? Jejich zdejší výsledky se nahradí.')"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="import_live">
-    <button class="btn danger">Převzít data z ostré appky</button></form>
-  <?php endif; ?>
 
   <h2>Zvací odkazy</h2>
   <p>Kdo odkaz otevře, založí si účet bez hesla, rovnou ve vybrané třídě (nebo bez třídy). Odkaz platí, dokud ho nesmažeš; smazání založené účty nezruší.</p>

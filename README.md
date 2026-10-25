@@ -118,7 +118,7 @@ Správa (`/admin`) potřebuje heslo v souboru `data/config.php` na serveru (nen�
 
 Po nasazení na web se stávajícími daty: holka a kluk zůstanou (body, nálepky, adresy i nainstalované ikony), databáze se sama převede (`db_migrate_users`), a při prvním otevření si každý nastaví PIN. Čistá instalace žádné děti nezakládá, sešity vznikají jen registrací. Ve správě pak založ třídy a kódy pro nové sešity.
 
-Zkušební kopie v podsložce umí ve správě „Převzít data z ostré appky“: zkopíruje databázi o složku výš (`VACUUM INTO`, ostré se nedotkne), převede ji a přepíše zdejší data. Ve správě u dítěte jde změnit i adresa (`/u/<slug>`); změna adresy holky nebo kluka vypne starou `/holka`, `/kluk` a ikonu na ploše z ní. Zkušební kopie vedle ostré appky: workflow `deploy-test.yml` nahrává větev se sešity do složky `<FTP_DIR>novy/` (nebo `FTP_DIR_TEST`), s vlastní databází a vlastním `data/config.php`. Obě kopie na jednom webu si nepletou session ani cookies (název podle cesty).
+Ve správě u dítěte jde změnit i adresa (`/u/<slug>`); změna adresy holky nebo kluka vypne starou `/holka`, `/kluk` a ikonu na ploše z ní. Zkušební kopie vedle ostré appky: workflow `deploy-test.yml` nahrává větev se sešity do složky `<FTP_DIR>novy/` (nebo `FTP_DIR_TEST`), s vlastní databází a vlastním `data/config.php`. Obě kopie na jednom webu si nepletou session ani cookies (název podle cesty).
 
 1. **Stáhni appku.** Na GitHubu: Code → Download ZIP a rozbal.
 2. **Nahraj soubory přes FTP** do kořene webu nebo do podsložky (třeba `/matika`). Nahraj všechno včetně skrytého `.htaccess`.
