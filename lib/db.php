@@ -191,10 +191,15 @@ function app_path(): string
 // Volby pro session_start: název podle cesty (dvě kopie appky na jednom webu
 // si nepletou session) a ukládání do data/sessions, ne do systémové složky
 // hostingu (ta bývá nezapisovatelná nebo se uklízí, a session se pak neudrží).
+// Soubory session drží ADMIN_DAYS, jinak by PHP přihlášení správce smazalo
+// po 24 minutách nečinnosti (výchozí gc_maxlifetime).
+const ADMIN_DAYS = 30;   // přihlášení do správy od poslední návštěvy
+
 function session_options(): array
 {
     $path = app_path();
-    $opts = ['name' => 'matika_' . substr(md5($path), 0, 8), 'cookie_path' => $path, 'cookie_httponly' => true, 'cookie_samesite' => 'Lax'];
+    $opts = ['name' => 'matika_' . substr(md5($path), 0, 8), 'cookie_path' => $path, 'cookie_httponly' => true, 'cookie_samesite' => 'Lax',
+             'gc_maxlifetime' => ADMIN_DAYS * 86400];
     $dir = __DIR__ . '/../data/sessions';
     if (is_dir($dir) || @mkdir($dir, 0700)) {
         if (is_writable($dir)) {

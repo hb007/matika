@@ -26,6 +26,22 @@ $h = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES);
 // Přihlášení formulářem (ne HTTP basic auth: některé hostingy pod CGI/FastCGI
 // hlavičku WWW-Authenticate zahodí a prohlížeč se na heslo nezeptá).
 // Špatné heslo brzdí vteřinová pauza a po 5 pokusech minuta zámek v session.
+// Přihlášení platí ADMIN_DAYS od poslední návštěvy: admin_ok je čas návštěvy
+// a cookie session se při každé návštěvě prodlouží (jinak by zmizela se
+// zavřením prohlížeče, což mobil dělá často).
+$adminCookie = function (): void {
+    $p = session_get_cookie_params();
+    setcookie(session_name(), session_id(), ['expires' => time() + ADMIN_DAYS * 86400, 'path' => $p['path'],
+        'secure' => $p['secure'], 'httponly' => true, 'samesite' => 'Lax']);
+};
+if (!empty($_SESSION['admin_ok'])) {
+    if ($_SESSION['admin_ok'] !== true && time() - (int) $_SESSION['admin_ok'] > ADMIN_DAYS * 86400) {
+        unset($_SESSION['admin_ok']);
+    } else {
+        $_SESSION['admin_ok'] = time();
+        $adminCookie();
+    }
+}
 if (($_POST['do'] ?? '') === 'odhlasit') {
     unset($_SESSION['admin_ok']);
     header('Location: ' . $self);
@@ -36,8 +52,10 @@ if (empty($_SESSION['admin_ok']) && isset($_POST['password'])) {
     if (($_SESSION['admin_until'] ?? 0) > time()) {
         $loginError = 'Moc pokusů, zkus to za minutu.';
     } elseif (hash_equals($password, (string) $_POST['password'])) {
-        $_SESSION['admin_ok'] = true;
+        session_regenerate_id(true);   // nové id po přihlášení (proti podstrčené session)
+        $_SESSION['admin_ok'] = time();
         $_SESSION['admin_fails'] = 0;
+        $adminCookie();
         header('Location: ' . $self . '?prihlaseno=1');
         exit;
     } else {
