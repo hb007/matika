@@ -3,7 +3,7 @@
 // třídy, smazání), přehled pro rodiče u každého dítěte a za třídu. Chrání ji
 // heslo z data/config.php (mimo repo), přihlášení formulářem do session:
 //   <?php return ['admin_password' => 'tajne-heslo'];
-// Bez hesla v configu správa nejde otevřít. Stránka je čisté PHP bez JS.
+// Bez hesla v configu správa nejde otevřít. Stránka je čisté PHP, JS jen na kopírování odkazu.
 declare(strict_types=1);
 
 foreach (['generators', 'explain', 'db', 'auth', 'game', 'rewards', 'usage'] as $f) {
@@ -216,6 +216,8 @@ function per_task_table(array $per, bool $kids = false): string
 .admin code { background: var(--fn-bg); padding: 2px 6px; border-radius: 4px; font-size: 17px; letter-spacing: 1px; }
 .admin .table td { vertical-align: top; }
 .admin nav a { margin-right: 14px; }
+.admin .copy { vertical-align: middle; margin-left: 4px; padding: 4px 6px; border: 2px solid var(--line); border-radius: 6px; background: var(--sheet); color: var(--pen); cursor: pointer; }
+.admin .copy.done { border-color: var(--c-lehke); color: var(--c-lehke); }
 </style>
 </head>
 <body class="admin">
@@ -304,7 +306,8 @@ function per_task_table(array $per, bool $kids = false): string
   <?php $inv = invites($db); if ($inv): ?>
   <table class="table"><tr><th>Odkaz</th><th>Popisek a třída</th><th class="num">Použito</th><th></th></tr>
   <?php foreach ($inv as $i): ?>
-    <tr><td><code><?= $h($base) ?>?pozvanka=<?= $h($i['token']) ?></code></td>
+    <tr><td><code><?= $h($base) ?>?pozvanka=<?= $h($i['token']) ?></code>
+      <button type="button" class="copy" data-copy="<?= $h($base) ?>?pozvanka=<?= $h($i['token']) ?>" title="Zkopírovat odkaz" aria-label="Zkopírovat odkaz"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></td>
     <td><form method="post" class="inline"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="invite_edit"><input type="hidden" name="id" value="<?= $i['id'] ?>">
       <input type="text" name="label" value="<?= $h($i['label']) ?>" maxlength="<?= NAME_MAX ?>" required> <?= $classSelect($i['class_id'] === null ? null : (int) $i['class_id']) ?> <button class="btn">Uložit</button></form></td>
     <td class="num"><?= (int) $i['uses'] ?>×</td>
@@ -327,5 +330,21 @@ function per_task_table(array $per, bool $kids = false): string
     <?php endforeach; ?></table>
   <?php endforeach; ?>
 <?php endif; ?>
+<script>
+// zkopírování zvacího odkazu do schránky (jediný JS ve správě)
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-copy]');
+  if (!b) return;
+  try {
+    await navigator.clipboard.writeText(b.dataset.copy);
+  } catch (err) {
+    window.prompt('Zkopíruj odkaz:', b.dataset.copy);   // bez HTTPS nebo bez povolení schránky
+    return;
+  }
+  b.classList.add('done');
+  b.title = 'Zkopírováno';
+  setTimeout(() => { b.classList.remove('done'); b.title = 'Zkopírovat odkaz'; }, 1500);
+});
+</script>
 </body>
 </html>
