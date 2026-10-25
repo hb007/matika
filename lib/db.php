@@ -10,20 +10,21 @@ const BOARD = false;
 // štítku; tmavý motiv: text, pozadí). Stejné klíče zná style.css ([data-color=…])
 // a icon.php (ikona na plochu). Holka a kluk ze starší verze mají růžovou a petrolejovou.
 // Pořadí v nabídce podle duhy, hnědá a grafitová na konci. Tečky v nabídce mají
-// jasnější odstín (--kid-dot ve style.css), tady jsou čitelné odstíny pro text.
+// jasnější odstín (--kid-dot ve style.css), tady jsou čitelné odstíny pro text
+// (ve světlém motivu tmavší, v tmavém stejné jasné jako tečky).
 const COLORS = [
-    'cervena'     => ['name' => 'červená',     'light' => '#c92a2a', 'dark' => '#ff8787', 'dark_bg' => '#b02525'],
-    'oranzova'    => ['name' => 'oranžová',    'light' => '#d9480f', 'dark' => '#ffa94d', 'dark_bg' => '#c0410d'],
-    'zlata'       => ['name' => 'žlutá',       'light' => '#a37a00', 'dark' => '#ffd43b', 'dark_bg' => '#8c6900'],
-    'limetkova'   => ['name' => 'limetková',   'light' => '#5c940d', 'dark' => '#a9e34b', 'dark_bg' => '#4f7f0b'],
-    'zelena'      => ['name' => 'zelená',      'light' => '#2b8a3e', 'dark' => '#69db7c', 'dark_bg' => '#2f7a3a'],
-    'petrolejova' => ['name' => 'petrolejová', 'light' => '#0c7c8c', 'dark' => '#46c7d8', 'dark_bg' => '#0b6f7d'],
-    'modra'       => ['name' => 'modrá',       'light' => '#1f45b5', 'dark' => '#8fadff', 'dark_bg' => '#3557c9'],
-    'fialova'     => ['name' => 'fialová',     'light' => '#7048e8', 'dark' => '#b197fc', 'dark_bg' => '#5f3dc4'],
-    'purpurova'   => ['name' => 'purpurová',   'light' => '#ae3ec9', 'dark' => '#e599f7', 'dark_bg' => '#9c36b5'],
-    'ruzova'      => ['name' => 'růžová',      'light' => '#d6336c', 'dark' => '#ff86b0', 'dark_bg' => '#c22d62'],
-    'hneda'       => ['name' => 'hnědá',       'light' => '#8b5a2b', 'dark' => '#d9a066', 'dark_bg' => '#7a4e24'],
-    'grafitova'   => ['name' => 'grafitová',   'light' => '#495057', 'dark' => '#ced4da', 'dark_bg' => '#3b4148'],
+    'cervena'     => ['name' => 'červená',     'light' => '#c92a2a', 'dark' => '#fa3a3a', 'dark_bg' => '#b02525'],
+    'oranzova'    => ['name' => 'oranžová',    'light' => '#d9480f', 'dark' => '#ff8c1a', 'dark_bg' => '#c0410d'],
+    'zlata'       => ['name' => 'žlutá',       'light' => '#a37a00', 'dark' => '#ffd21f', 'dark_bg' => '#8c6900'],
+    'limetkova'   => ['name' => 'limetková',   'light' => '#5c940d', 'dark' => '#94d82d', 'dark_bg' => '#4f7f0b'],
+    'zelena'      => ['name' => 'zelená',      'light' => '#2b8a3e', 'dark' => '#37b24d', 'dark_bg' => '#2f7a3a'],
+    'petrolejova' => ['name' => 'petrolejová', 'light' => '#0c7c8c', 'dark' => '#15aabf', 'dark_bg' => '#0b6f7d'],
+    'modra'       => ['name' => 'modrá',       'light' => '#1f45b5', 'dark' => '#3b82f6', 'dark_bg' => '#3557c9'],
+    'fialova'     => ['name' => 'fialová',     'light' => '#7048e8', 'dark' => '#7c4dff', 'dark_bg' => '#5f3dc4'],
+    'purpurova'   => ['name' => 'purpurová',   'light' => '#ae3ec9', 'dark' => '#c44fe0', 'dark_bg' => '#9c36b5'],
+    'ruzova'      => ['name' => 'růžová',      'light' => '#d6336c', 'dark' => '#f7559a', 'dark_bg' => '#c22d62'],
+    'hneda'       => ['name' => 'hnědá',       'light' => '#8b5a2b', 'dark' => '#a0703f', 'dark_bg' => '#7a4e24'],
+    'grafitova'   => ['name' => 'grafitová',   'light' => '#495057', 'dark' => '#7d8590', 'dark_bg' => '#3b4148'],
 ];
 
 const DB_FILE = __DIR__ . '/../data/matika-v2.sqlite';
