@@ -20,10 +20,40 @@ const COLORS = [
     'grafitova'   => ['name' => 'grafitová',   'light' => '#495057', 'dark' => '#ced4da', 'dark_bg' => '#3b4148'],
 ];
 
-function db(): PDO
+const DB_FILE = __DIR__ . '/../data/matika-v2.sqlite';
+
+function db(bool $close = false): ?PDO
 {
     static $pdo = null;
-    return $pdo ??= db_open('sqlite:' . __DIR__ . '/../data/matika-v2.sqlite');
+    if ($close) {   // zavřít (třeba před výměnou souboru), další db() otevře znovu
+        $pdo = null;
+        return null;
+    }
+    return $pdo ??= db_open('sqlite:' . DB_FILE);
+}
+
+// Převzetí databáze z jiné kopie appky (třeba ostré vedle zkušební): SQLite
+// udělá konzistentní kopii (VACUUM INTO), ta nahradí vlastní databázi a při
+// otevření se převede (db_migrate_users). Vlastní data se přepíšou.
+function db_import(string $from): void
+{
+    if (!is_file($from) || !is_readable($from)) {
+        throw new InvalidArgumentException('Soubor s databází nenalezen: ' . $from);
+    }
+    $tmp = DB_FILE . '.import';
+    @unlink($tmp);
+    $src = new PDO('sqlite:' . $from, null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+    $src->exec('PRAGMA busy_timeout = 5000');
+    $src->exec('VACUUM INTO ' . $src->quote($tmp));
+    $src = null;
+    db(true);
+    foreach (['-wal', '-shm'] as $x) {
+        @unlink(DB_FILE . $x);
+    }
+    if (!rename($tmp, DB_FILE)) {
+        throw new InvalidArgumentException('Databázi se nepodařilo nahradit (práva ke složce data/?).');
+    }
+    db();   // otevře a převede
 }
 
 function db_open(string $dsn): PDO

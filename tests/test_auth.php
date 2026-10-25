@@ -189,3 +189,38 @@ $fdb = null;
 foreach (glob("$f*") as $x) {
     unlink($x);
 }
+
+// adresa dítěte
+set_slug($db, $a, 'Ela');
+check(user_by_slug($db, 'ela')['id'] === $a, 'zmena adresy, mala pismena');
+foreach (['Ela', 'žofie', 'a b', ''] as $bad) {
+    $threw = false;
+    try {
+        set_slug($db, 1, $bad === 'Ela' ? 'ela' : $bad);
+    } catch (InvalidArgumentException $e) {
+        $threw = true;
+    }
+    check($threw, "adresa '$bad' odmitnuta (obsazena nebo neplatna)");
+}
+
+// převzetí databáze ze starší verze (soubor): kopie, převod, původní beze změny
+$src = sys_get_temp_dir() . '/matika-live-' . bin2hex(random_bytes(4)) . '.sqlite';
+$o = new PDO('sqlite:' . $src);
+$o->exec("CREATE TABLE users (id INTEGER PRIMARY KEY, kind TEXT NOT NULL, name TEXT NOT NULL, streak INTEGER NOT NULL DEFAULT 0)");
+$o->exec("INSERT INTO users VALUES (1, 'holka', 'Terka', 3), (2, 'kluk', 'Kuba', 0)");
+$o->exec("CREATE TABLE results (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id), day TEXT NOT NULL, module TEXT NOT NULL, difficulty TEXT NOT NULL, question TEXT NOT NULL, answer TEXT NOT NULL, tries INTEGER NOT NULL, solved INTEGER NOT NULL, points INTEGER NOT NULL)");
+$o->exec("INSERT INTO results (user_id, day, module, difficulty, question, answer, tries, solved, points) VALUES (1, '$today', 'mala', 'lehke', '2 · 3', '6', 1, 1, 7)");
+$o = null;
+$dst = sys_get_temp_dir() . '/matika-dst-' . bin2hex(random_bytes(4)) . '.sqlite';
+$tmp = $dst . '.import';
+$s2 = new PDO('sqlite:' . $src);
+$s2->exec('VACUUM INTO ' . $s2->quote($tmp));
+$s2 = null;
+rename($tmp, $dst);
+$n = db_open('sqlite:' . $dst);
+check(users_state($n, $today, [1])[0]['total'] === 7 && user_by_slug($n, 'holka')['name'] === 'Terka', 'prevzata databaze: body a prezdivka po prevodu');
+check((new PDO('sqlite:' . $src))->query("SELECT kind FROM users WHERE id = 1")->fetchColumn() === 'holka', 'puvodni databaze beze zmeny');
+$n = null;
+foreach (array_merge(glob("$src*"), glob("$dst*")) as $x) {
+    unlink($x);
+}

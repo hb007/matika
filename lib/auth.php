@@ -135,6 +135,21 @@ function set_pin(PDO $db, int $uid, string $pin, ?string $keep = null): void
     $db->prepare('DELETE FROM tokens WHERE user_id = ? AND hash <> ?')->execute([$uid, $keep === null ? '' : token_hash($keep)]);
 }
 
+// Adresa dítěte (/u/<slug>): malá písmena, číslice, pomlčky. Změna adresy
+// holky nebo kluka vypne jejich starou adresu /holka, /kluk (i ikonu na ploše).
+function set_slug(PDO $db, int $uid, string $slug): void
+{
+    $slug = strtolower(trim($slug));
+    if (!preg_match('/^[a-z0-9-]{1,' . NAME_MAX . '}$/', $slug)) {
+        throw new InvalidArgumentException('Adresa: 1 až ' . NAME_MAX . ' malých písmen bez háčků, číslic a pomlček.');
+    }
+    $other = user_by_slug($db, $slug);
+    if ($other && $other['id'] !== $uid) {
+        throw new InvalidArgumentException('Tuhle adresu už má jiné dítě.');
+    }
+    $db->prepare('UPDATE users SET slug = ? WHERE id = ?')->execute([$slug, $uid]);
+}
+
 // Sešit ze starší verze (holka, kluk) PIN nemá: první přihlášení si ho nastaví.
 function has_pin(PDO $db, int $uid): bool
 {

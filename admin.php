@@ -124,7 +124,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
             case 'rename':
                 rename_user($db, $id, (string) ($_POST['name'] ?? ''));
-                $msg = 'Přezdívka změněná.';
+                if (trim((string) ($_POST['slug'] ?? '')) !== '') {
+                    set_slug($db, $id, (string) $_POST['slug']);
+                }
+                $msg = 'Přezdívka a adresa změněné.';
+                break;
+            case 'import_live':
+                db_import(live_db_file());
+                $db = db();
+                $msg = 'Databáze převzatá z ostré appky. Zkontroluj děti níž a nastav jim přezdívky, adresy a PIN.';
                 break;
             case 'class_set':
                 $cid = (int) ($_POST['class_id'] ?? 0) ?: null;
@@ -153,6 +161,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Location: ' . (preg_match('~^[\w.?=&-]*$~', $back) ? $back : $self));
     exit;
 }
+// ostrá appka o složku výš (zkušební kopie běží v podsložce, třeba /novy/)
+function live_db_file(): string
+{
+    return dirname(__DIR__) . '/data/matika-v2.sqlite';
+}
+
 $msg = (string) ($_SESSION['admin_msg'] ?? '');
 unset($_SESSION['admin_msg']);
 
@@ -220,7 +234,9 @@ function per_task_table(array $per, bool $kids = false): string
   <form method="post" class="inline"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="pin"><input type="hidden" name="id" value="<?= $id ?>"><input type="hidden" name="back" value="<?= $self ?>?p=dite&amp;id=<?= $id ?>">
     <label>Nový PIN (<?= PIN_MIN ?>–<?= PIN_MAX ?> číslic) <input type="text" name="pin" inputmode="numeric" pattern="\d{<?= PIN_MIN ?>,<?= PIN_MAX ?>}" required></label> <button class="btn">Nastavit PIN</button></form><br>
   <form method="post" class="inline"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="rename"><input type="hidden" name="id" value="<?= $id ?>"><input type="hidden" name="back" value="<?= $self ?>?p=dite&amp;id=<?= $id ?>">
-    <label>Přezdívka <input type="text" name="name" value="<?= $h($kid['name']) ?>" maxlength="<?= NAME_MAX ?>" required></label> <button class="btn">Přejmenovat</button></form><br>
+    <label>Přezdívka <input type="text" name="name" value="<?= $h($kid['name']) ?>" maxlength="<?= NAME_MAX ?>" required></label>
+    <label>Adresa /u/ <input type="text" name="slug" value="<?= $h($kid['slug']) ?>" pattern="[a-z0-9-]{1,<?= NAME_MAX ?>}" maxlength="<?= NAME_MAX ?>"></label> <button class="btn">Uložit</button>
+    <?= in_array($kid['slug'], ['holka', 'kluk'], true) ? '<small>Změna adresy vypne starou /' . $h($kid['slug']) . ' i ikonu na ploše z ní; po změně přidej na plochu znovu z nové adresy.</small>' : '' ?></form><br>
   <form method="post" class="inline"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="class_set"><input type="hidden" name="id" value="<?= $id ?>"><input type="hidden" name="back" value="<?= $self ?>?p=dite&amp;id=<?= $id ?>">
     <label>Třída <select name="class_id"><option value="0">bez třídy</option>
     <?php foreach ($classes as $c): ?><option value="<?= $c['id'] ?>"<?= (int) $c['id'] === $kid['class_id'] ? ' selected' : '' ?>><?= $h($c['name']) ?></option><?php endforeach; ?>
@@ -268,6 +284,13 @@ function per_task_table(array $per, bool $kids = false): string
     <label>Nová třída <input type="text" name="name" placeholder="6.A" maxlength="<?= NAME_MAX ?>" required></label>
     <label>Heslo (nepovinné, jinak náhodné) <input type="text" name="code" pattern="[A-Za-z0-9]{4,12}" maxlength="12"></label>
     <button class="btn">Založit třídu</button></form>
+
+  <?php if (is_file(live_db_file()) && realpath(live_db_file()) !== realpath(DB_FILE)): ?>
+  <h2>Převzít data z ostré appky</h2>
+  <p>O složku výš je databáze ostré appky (<code><?= $h(live_db_file()) ?></code>). Tlačítko ji zkopíruje sem a převede (body, nálepky, série, přehledy; holka a kluk bez PINu). <b>Zdejší data se přepíšou.</b> Ostré appky se to nedotkne.</p>
+  <form method="post" class="inline" onsubmit="return confirm('Přepsat zdejší databázi kopií z ostré appky?')"><input type="hidden" name="csrf" value="<?= $csrf ?>"><input type="hidden" name="do" value="import_live">
+    <button class="btn danger">Převzít data z ostré appky</button></form>
+  <?php endif; ?>
 
   <h2>Zvací odkazy</h2>
   <p>Kdo odkaz otevře, založí si účet bez hesla, rovnou ve vybrané třídě (nebo bez třídy). Odkaz platí, dokud ho nesmažeš; smazání založené účty nezruší.</p>
