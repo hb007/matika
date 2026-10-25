@@ -120,7 +120,7 @@
     document.title = `${me.name} – Matika`;
     // přepnutí dítěte je v seznamu úloh i pod štítkem se jménem
     const other = realUsers().filter((u) => u.id !== state.user).map((u) =>
-      `<a class="task-item" href="${kidHref(u)}">Přepnout na <span class="kid-name" data-color="${esc(u.color)}">${esc(u.name)}</span><b>${u.today} b.</b></a>`).join('')
+      `<a class="task-item" href="${kidHref(u)}" data-switch="${u.id}">Přepnout na <span class="kid-name" data-color="${esc(u.color)}">${esc(u.name)}</span><b>${u.today} b.</b></a>`).join('')
       + (isGuest() ? '<a class="task-item link-ink" href="./">Přihlásit se nebo založit účet</a>'
         : '<a class="task-item link-ink" href="./">Přihlásit jiné dítě</a>');
     $('task-other').innerHTML = other;
@@ -136,12 +136,25 @@
     $('welcome').hidden = kids.length > 0;
     $('who-known').hidden = !kids.length;
     $('who-pick').innerHTML = kids.map((u) =>
-      `<a class="cover" href="${kidHref(u)}" data-color="${esc(u.color)}"><span class="cover-label"><small>Jméno</small>`
+      `<a class="cover" href="${kidHref(u)}" data-switch="${u.id}" data-color="${esc(u.color)}"><span class="cover-label"><small>Jméno</small>`
       + `<span class="kid-name">${esc(u.name)}</span><small>${esc(u.class_name || 'Předmět: matika')}</small></span>`
       + `<span class="cover-note">Dnes ${u.today} bodů</span></a>`).join('');
     delete document.body.dataset.color;
     show('who');
   }
+  // Přepnutí na jiné dítě v appce chce jeho PIN, ať si sourozenci nelezou do
+  // účtů. Přímá adresa dítěte (/u/…, ikona na ploše) dál otevře účet bez PINu.
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('[data-switch]');
+    if (!a || e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+    const u = state.users.find((x) => x.id === Number(a.dataset.switch));
+    if (!u || !u.has_pin) return;   // bez PINu (sešit ze starší verze) rovnou
+    e.preventDefault();
+    closeTaskMenu();
+    clearTimeout(state.timer);
+    state.ex = null;
+    showLogin('pin', u);
+  });
   document.addEventListener('click', (e) => {
     const b = e.target.closest('[data-login]');
     if (!b) return;
