@@ -133,12 +133,24 @@ function kid_name(PDO $db, string $slug): string
     return user_by_slug($db, $slug)['name'] ?? '';
 }
 
+// Cesta appky na webu (třeba „/“ nebo „/novy/“), pro cookie, session a <base>.
+// Z REQUEST_URI, ne ze SCRIPT_NAME: některé hostingy (Wedos) dávají do
+// SCRIPT_NAME cestu na disku („/subdom/matika/novy/admin.php“) a cookie s takovou
+// cestou prohlížeč nikdy nepošle zpět. Odřízne se poslední část adresy: soubor
+// (api.php, admin.php), přezdívka (/holka) nebo /u/<přezdívka>.
+function app_path(): string
+{
+    $uri = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+    $dir = preg_replace('~/(u/)?[^/]*$~', '/', $uri);
+    return $dir === '' || $dir === null || $dir[0] !== '/' ? '/' : $dir;
+}
+
 // Volby pro session_start: název podle cesty (dvě kopie appky na jednom webu
 // si nepletou session) a ukládání do data/sessions, ne do systémové složky
 // hostingu (ta bývá nezapisovatelná nebo se uklízí, a session se pak neudrží).
 function session_options(): array
 {
-    $path = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/\\') . '/';
+    $path = app_path();
     $opts = ['name' => 'matika_' . substr(md5($path), 0, 8), 'cookie_path' => $path, 'cookie_httponly' => true, 'cookie_samesite' => 'Lax'];
     $dir = __DIR__ . '/../data/sessions';
     if (is_dir($dir) || @mkdir($dir, 0700)) {

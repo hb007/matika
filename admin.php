@@ -20,7 +20,7 @@ if ($password === '') {
     exit;
 }
 session_start(session_options());   // název podle cesty, úložiště v data/sessions (lib/db.php)
-$self = basename($_SERVER['SCRIPT_NAME']);
+$self = 'admin.php';
 $h = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES);
 
 // Přihlášení formulářem (ne HTTP basic auth: některé hostingy pod CGI/FastCGI

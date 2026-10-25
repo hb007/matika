@@ -52,7 +52,7 @@ $logged = [];   // [uid => token], naplní se po otevření databáze
 
 function cookie_path(): string
 {
-    return rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/\\') . '/';
+    return app_path();   // z REQUEST_URI, viz lib/db.php
 }
 
 function write_cookie(array $tokens): void

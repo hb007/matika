@@ -167,3 +167,11 @@ check(true, 'migrace: zapis s kontrolou cizich klicu projde');
 check(count(users_state(db_open('sqlite::memory:'), $today)) === 0, 'cista databaze: zadne deti');
 db_migrate_users($old);
 check(true, 'migrace podruhe nic nedela');
+
+// cesta appky z adresy (hosting může mít ve SCRIPT_NAME cestu na disku)
+foreach (['/' => '/', '/novy/' => '/novy/', '/novy/api.php' => '/novy/', '/novy/admin.php?p=x' => '/novy/', '/novy/holka' => '/novy/',
+          '/novy/u/anicka-2' => '/novy/', '/u/anicka' => '/', '/holka' => '/', '/api.php' => '/', '' => '/'] as $uri => $want) {
+    $_SERVER['REQUEST_URI'] = $uri;
+    check(app_path() === $want, "app_path($uri) = $want, je " . app_path());
+}
+unset($_SERVER['REQUEST_URI']);

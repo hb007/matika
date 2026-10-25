@@ -18,8 +18,8 @@ if ($slug !== '') {
     }
 }
 // cesta ke kořenu appky: /u/anicka je o složku hlouběji, relativní adresy
-// (app.js, api.php) proto jdou přes <base>
-$base = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/\\') . '/';
+// (app.js, api.php) proto jdou přes <base>; cesta z adresy, ne ze SCRIPT_NAME (lib/db.php)
+$base = app_path();
 $nick = $kid['name'] ?? '';
 $color = $kid ? (COLORS[$kid['color']] ?? COLORS['modra']) : null;
 ?>
