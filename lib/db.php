@@ -193,19 +193,20 @@ function app_path(): string
 // hostingu (ta bývá nezapisovatelná nebo se uklízí, a session se pak neudrží).
 // Soubory session drží ADMIN_DAYS, jinak by PHP přihlášení správce smazalo
 // po 24 minutách nečinnosti (výchozí gc_maxlifetime). Úklid starších souborů
-// zapínáme sami (zhruba každý stý požadavek): hostingy na Debianu/Ubuntu ho
-// mají vypnutý (gc_probability 0) a uklízí cronem jen systémovou složku.
+// v data/sessions zapínáme sami (zhruba každý stý požadavek): hostingy na
+// Debianu/Ubuntu ho mají vypnutý (gc_probability 0) a uklízí cronem jen
+// systémovou složku, kterou PHP často ani nesmí číst (úklid by tam hlásil chybu).
 const ADMIN_DAYS = 30;   // přihlášení do správy od poslední návštěvy
 
 function session_options(): array
 {
     $path = app_path();
     $opts = ['name' => 'matika_' . substr(md5($path), 0, 8), 'cookie_path' => $path, 'cookie_httponly' => true, 'cookie_samesite' => 'Lax',
-             'gc_maxlifetime' => ADMIN_DAYS * 86400, 'gc_probability' => 1, 'gc_divisor' => 100];
+             'gc_maxlifetime' => ADMIN_DAYS * 86400];
     $dir = __DIR__ . '/../data/sessions';
     if (is_dir($dir) || @mkdir($dir, 0700)) {
         if (is_writable($dir)) {
-            $opts['save_path'] = $dir;
+            $opts += ['save_path' => $dir, 'gc_probability' => 1, 'gc_divisor' => 100];
         }
     }
     return $opts;
