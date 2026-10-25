@@ -61,17 +61,32 @@ function class_by_code(PDO $db, string $code): ?array
 // Nový účet. Vrací id dítěte. Kdo smí zakládat, hlídá volající: heslo třídy
 // (class_by_code) nebo zvací odkaz (invite_by_token), jinak by se registrovali
 // roboti a cizí lidé. $classId null = bez třídy.
-function register_user(PDO $db, string $name, string $color, string $pin, ?int $classId, string $today): int
+// $login: přihlašovací jméno (zároveň adresa /u/<login>), jedinečné; prázdné =
+// odvodit z přezdívky (s číslem při shodě). Přezdívka jedinečná být nemusí
+// a může mít i emoji, přihlašuje se jménem.
+function register_user(PDO $db, string $name, string $color, string $pin, ?int $classId, string $today, string $login = ''): int
 {
     $name = clean_name($name);
     $color = clean_color($color);
     $pin = clean_pin($pin);
     $class = ['id' => $classId];
-    $base = slugify($name);
+    $login = strtolower(trim($login));
+    if ($login !== '') {
+        if (!preg_match('/^[a-z0-9-]{1,' . NAME_MAX . '}$/', $login)) {
+            throw new InvalidArgumentException('Přihlašovací jméno: 1 až ' . NAME_MAX . ' malých písmen bez háčků, číslic a pomlček.');
+        }
+        if (user_by_slug($db, $login)) {
+            throw new InvalidArgumentException("Přihlašovací jméno „{$login}“ už někdo má, zkus jiné.");
+        }
+    }
+    $base = $login !== '' ? $login : slugify($name);
     $hash = password_hash($pin, PASSWORD_DEFAULT);
     $ins = $db->prepare('INSERT INTO users (slug, name, color, class_id, pin_hash, created) VALUES (?, ?, ?, ?, ?, ?)');
     for ($i = 1; $i < 1000; $i++) {
         $slug = $i === 1 ? $base : "$base-$i";
+        if ($login !== '' && $i > 1) {
+            throw new InvalidArgumentException("Přihlašovací jméno „{$login}“ už někdo má, zkus jiné.");
+        }
         if (user_by_slug($db, $slug)) {
             continue;
         }

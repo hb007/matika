@@ -31,6 +31,18 @@ $u = user_by_slug($db, 'anicka-novakova');
 check($u && $u['id'] === $a && $u['color'] === 'zelena' && $u['class_id'] === $cid && $u['has_pin'], 'registrace: slug bez diakritiky, trida, PIN');
 $b = register_user($db, 'Anička Nováková', 'modra', '5678', $cid, $today);
 check(user_by_slug($db, 'anicka-novakova-2')['id'] === $b, 'stejna prezdivka: slug s cislem');
+$l = register_user($db, '🦄 Lili', 'fialova', '1234', $cid, $today, 'Lili');
+check(user_by_slug($db, 'lili')['id'] === $l && user_by_slug($db, 'lili')['name'] === '🦄 Lili', 'vlastni prihlasovaci jmeno, prezdivka s emoji');
+foreach (['lili', 'Žofie', 'a b'] as $badLogin) {
+    $threw = '';
+    try {
+        register_user($db, 'X', 'modra', '1234', $cid, $today, $badLogin);
+    } catch (InvalidArgumentException $e) {
+        $threw = $e->getMessage();
+    }
+    check(str_contains($threw, 'řihlašovací'), "prihlasovaci jmeno '$badLogin' odmitnuto");
+}
+delete_user($db, $l);
 check(slugify('  Ťom?! ') === 'tom' && slugify('???') === 'dite' && slugify('Žofie-Lída') === 'zofie-lida' && strlen(slugify(str_repeat('a', 30))) === 16, 'slugify');
 check(user_rows($db, [$a])[0]['class_name'] === '6.A', 'nazev tridy u ditete');
 

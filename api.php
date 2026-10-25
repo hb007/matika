@@ -159,7 +159,7 @@ try {
                 fail('Heslo pro založení účtu nesedí. Zeptej se, kdo ti ho dal.');
             }
             try {
-                $uid = register_user(db(), param($in, 'name'), param($in, 'color'), param($in, 'pin'), $invite ? $invite['class_id'] : $class['id'], $today);
+                $uid = register_user(db(), param($in, 'name'), param($in, 'color'), param($in, 'pin'), $invite ? $invite['class_id'] : $class['id'], $today, param($in, 'login'));
             } catch (InvalidArgumentException $e) {
                 fail($e->getMessage());
             }
@@ -170,8 +170,12 @@ try {
             out(state($today) + ['user' => user_rows(db(), [$uid])[0]]);
 
         case 'login':
-            // podle id (sešit z úvodní obrazovky) nebo přezdívky (jiné dítě)
+            // podle id (sešit z úvodní obrazovky), přihlašovacího jména (adresy), nebo přezdívky, když je jednoznačná
             $u = (int) param($in, 'target') ? (user_rows(db(), [(int) param($in, 'target')])[0] ?? null) : null;
+            if (!$u && param($in, 'name') !== '') {
+                $bySlug = user_by_slug(db(), strtolower(trim(param($in, 'name'))));
+                $u = $bySlug ? user_rows(db(), [$bySlug['id']])[0] : null;
+            }
             if (!$u && param($in, 'name') !== '') {
                 // porovnání bez ohledu na velikost písmen i u háčků (lower() v SQLite umí jen ASCII)
                 $want = mb_strtolower(trim(param($in, 'name')));
@@ -182,12 +186,12 @@ try {
                     }
                 }
                 if (count($ids) > 1) {
-                    fail('Takhle se jmenuje víc dětí. Otevři svou adresu (třeba /u/anicka-2).');
+                    fail('Takovou přezdívku má víc dětí. Napiš svoje přihlašovací jméno (je ve Výsledcích).');
                 }
                 $u = $ids ? user_rows(db(), [(int) $ids[0]])[0] : null;
             }
             if (!$u) {
-                fail('Takový účet tu není. Zkontroluj přezdívku.');
+                fail('Takový účet tu není. Zkontroluj přihlašovací jméno.');
             }
             try {
                 if (!$u['has_pin']) {

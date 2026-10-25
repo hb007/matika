@@ -201,11 +201,12 @@
       html = `<h1>Nastav si PIN</h1>${head}<p class="who-note">Účet je teď na PIN, ať ti do něj nikdo neleze. Vymysli si ${state.pin.min} až ${state.pin.max} číslic a zapamatuj si je.</p>`
         + pin('pin', 'Nový PIN') + pin('pin2', 'Ještě jednou');
     } else if (mode === 'other') {
-      html = `<h1>Přihlásit se</h1><label class="field"><span>Přezdívka</span><input type="text" name="name" maxlength="20" autocomplete="off" required></label>${pin('pin', 'PIN')}`;
+      html = `<h1>Přihlásit se</h1><label class="field"><span>Přihlašovací jméno (nebo přezdívka)</span><input type="text" name="name" maxlength="20" autocomplete="username" autocapitalize="none" required></label>${pin('pin', 'PIN')}`;
     } else {
       const swatches = Object.entries(state.colors).map(([k, name], i) =>
         `<label class="swatch" data-color="${k}"><input type="radio" name="color" value="${k}"${i === 0 ? ' checked' : ''}><span></span>${esc(name)}</label>`).join('');
-      html = `<h1>Nový účet</h1><label class="field"><span>Přezdívka (ne celé jméno, web je veřejný)</span><input type="text" name="name" maxlength="20" autocomplete="off" required></label>`
+      html = `<h1>Nový účet</h1><label class="field"><span>Přezdívka (zobrazuje se ostatním; ne celé jméno, web je veřejný)</span><input type="text" name="name" maxlength="20" autocomplete="off" required></label>`
+        + '<label class="field"><span>Přihlašovací jméno (jen písmena bez háčků, číslice a pomlčka; je to i tvoje adresa)</span><input type="text" name="login" maxlength="20" autocomplete="username" autocapitalize="none" spellcheck="false" pattern="[a-z0-9-]{1,20}" required></label>'
         + `<fieldset class="field"><legend>Barva</legend><div class="swatches">${swatches}</div></fieldset>`
         + pin('pin', `PIN (${state.pin.min} až ${state.pin.max} číslic, zapamatuj si ho)`) + pin('pin2', 'PIN ještě jednou')
         + (invite
@@ -220,6 +221,21 @@
     show('login');
     const first = f.querySelector('input:not([type=radio])');
     if (first) first.focus();
+    // přihlašovací jméno se předvyplní z přezdívky (bez háčků a emoji), dokud ho dítě samo nepřepíše
+    const nameIn = f.querySelector('input[name=name]');
+    const loginIn = f.querySelector('input[name=login]');
+    if (nameIn && loginIn) {
+      let touched = false;
+      loginIn.addEventListener('input', () => { touched = loginIn.value !== ''; });
+      nameIn.addEventListener('input', () => { if (!touched) loginIn.value = slugify(nameIn.value); });
+    }
+  }
+
+  // Přezdívka → přihlašovací jméno, stejně jako slugify() v lib/auth.php.
+  function slugify(s) {
+    const map = { 'ß': 'ss', 'ł': 'l' };
+    s = s.toLowerCase().replace(/[ßł]/g, (c) => map[c]).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return s.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 16).replace(/-+$/, '');
   }
 
   $('form-login').addEventListener('submit', async (e) => {
@@ -233,7 +249,7 @@
     let r;
     try {
       r = f.dataset.mode === 'register'
-        ? await api('register', { user: null, name: d.name, color: d.color, pin: d.pin, code: d.code || '', invite: invite ? invite.token : '' })
+        ? await api('register', { user: null, name: d.name, login: d.login || '', color: d.color, pin: d.pin, code: d.code || '', invite: invite ? invite.token : '' })
         : await api('login', { user: null, target: Number(f.dataset.user) || 0, name: d.name || '', pin: d.pin });
     } catch (ex) {
       err.textContent = ex.network ? 'Přihlásit se jde jen s internetem.' : ex.message;
@@ -1249,6 +1265,7 @@
     const row = (label, v) => `<tr><th>${label}</th><td class="num">${v}</td></tr>`;
     $('compare').innerHTML =
       `<tr><th colspan="2"><span class="kid-name" data-color="${esc(me.color)}">${esc(me.name)}</span>${me.class_name ? ` <span class="class-name">${esc(me.class_name)}</span>` : ''}</th></tr>`
+      + row('Přihlašovací jméno', esc(me.slug))
       + row('Dnes', me.today + ' b.')
       + row('Tento týden', me.week + ' b.')
       + row('Celkem', me.total + ' b.')
