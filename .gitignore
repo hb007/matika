@@ -30,3 +30,6 @@ data/config.php
 .working/
 # session PHP (lib/db.php session_options)
 data/sessions/
+
+# Docker pro Claude Code (izoluj-projekt, layout 2026-10-12)
+.config-docker/
