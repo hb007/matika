@@ -182,7 +182,7 @@ $color = $kid ? (COLORS[$kid['color']] ?? COLORS['modra']) : null;
     <p><button type="button" class="link" data-go="back">Zpět k příkladům</button></p>
   </section>
 
-  <!-- jedna hra (snake.js, pexeso.js, g2048.js, breakout.js, flappy.js) -->
+  <!-- jedna hra (snake.js, pexeso.js, g2048.js, breakout.js, flappy.js, pacman.js) -->
   <section id="screen-game" class="screen" hidden>
     <div class="game-head">
       <h1 id="game-title"></h1>
@@ -245,6 +245,7 @@ $color = $kid ? (COLORS[$kid['color']] ?? COLORS['modra']) : null;
 <script src="<?= $v('pexeso.js') ?>"></script>
 <script src="<?= $v('breakout.js') ?>"></script>
 <script src="<?= $v('flappy.js') ?>"></script>
+<script src="<?= $v('pacman.js') ?>"></script>
 <script src="<?= $v('app.js') ?>"></script>
 </body>
 </html>

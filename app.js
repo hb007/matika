@@ -965,6 +965,8 @@
       pad: ['left', 'right'], hold: true, make: (stage, cb) => window.Breakout.create(stage, cb) },
     ptacek: { title: 'Ptáček', icon: '🐤', label: 'Sloupy', how: 'Ťukej na plochu (nebo mezerník) a proleť mezerami mezi sloupy.',
       pad: [], make: (stage, cb) => window.Flappy.create(stage, cb) },
+    pacman: { title: 'Pacman', icon: '👻', label: 'Body', how: 'Sněz všechny tečky a vyhni se duchům. Po velké tečce můžeš duchy chvíli jíst. Táhni prstem nebo hraj šipkami.',
+      pad: ['up', 'left', 'down', 'right'], make: (stage, cb) => window.Pacman.create(stage, cb) },
   };
   let gameId = null;    // právě otevřená hra
 
