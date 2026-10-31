@@ -502,6 +502,7 @@ body[data-diff] .top { border-bottom: 0; box-shadow: inset 0 -6px 0 var(--hl); p
 /* rozcestník her */
 .games-info { color: var(--muted); font-size: 16px; font-weight: 700; margin: 0 0 12px; }
 #game-limit { text-align: center; margin: 8px 0 4px; }
+.game-pause { display: block; margin: 12px auto 0; min-width: 160px; }
 .games { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-bottom: 16px; }
 .game-card {
   display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 8px 12px;
