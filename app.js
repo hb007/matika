@@ -954,6 +954,10 @@
   // hlídá oddíl „čas v appce“ níž.
   const GAME_PLAYS = 3;
   const GAME_EXTRA_EVERY = 10;
+  // Každé kolo jde GAME_PAUSES× ručně pauznout; během pauzy se čas v appce
+  // nepočítá. Pauza při odchodu z appky / okna se do toho nepočítá.
+  const GAME_PAUSES = 3;
+  let pausesLeft = GAME_PAUSES;
   const GAMES = {
     had: { title: 'Had', icon: '🐍', label: 'Jablka', how: 'Táhni prstem po ploše, ťukej na šipky, nebo hraj šipkami na klávesnici.',
       pad: ['up', 'left', 'down', 'right'], make: (stage, cb) => { const c = document.createElement('canvas'); stage.appendChild(c); return window.Snake.create(c, cb); } },
@@ -1049,12 +1053,39 @@
     $('game-pad').hidden = !g.pad.length;
     $('game-pad').querySelectorAll('[data-dir]').forEach((b) => { b.hidden = !g.pad.includes(b.dataset.dir); });
     $('game-limit').textContent = gameStatus();
+    pausesLeft = GAME_PAUSES;
     show('game');
     game = g.make($('game-stage'), {
       onScore: (n) => { $('game-score').textContent = n; },
       onOver: (n) => gameOver(id, n),
     });
     gameOverlay(g.how, 'Hrát');
+    renderPause();
+  }
+  function renderPause() {
+    const b = $('game-pause');
+    b.disabled = !game || !game.running || pausesLeft <= 0;
+    b.textContent = pausesLeft > 0 ? `Pauza (zbývá ${pausesLeft})` : 'Pauzy vyčerpané';
+  }
+  // Pauza: hra stojí a čeká na ruční pokračování (tlačítko, Enter).
+  // manual = tlačítko / klávesa P (spotřebuje jednu z pauz kola).
+  function pauseGame(manual) {
+    if (!game || !game.running) return;
+    if (manual) {
+      if (pausesLeft <= 0) return;
+      pausesLeft--;
+    }
+    game.stop();
+    game.paused = true;
+    const left = pausesLeft === 0 ? 'Další pauza už v tomhle kole není.'
+      : `Zbývá ${pausesLeft} ${pausesLeft === 1 ? 'pauza' : 'pauzy'}.`;
+    gameOverlay(manual ? `Pauza, čas stojí. ${left}` : 'Pauza. Hra počká, až se vrátíš.', 'Pokračovat');
+    renderPause();
+    flushTimeWarn();
+  }
+  // stojí rozehraná hra v pauze (čas v appce se nepočítá)
+  function gamePaused() {
+    return !!(game && game.paused && !game.over && !game.running && !$('screen-game').hidden);
   }
   function gameOver(id, n) {
     const g = GAMES[id];
@@ -1068,6 +1099,7 @@
     $('game-limit').textContent = gameBlock() || gameStatus();
     const block = gameBlock();
     gameOverlay((record ? 'Nový rekord! ' : '') + `${g.label}: ${n}.` + (block ? ' ' + block : ''), block ? '' : 'Hrát znovu');
+    renderPause();
     flushTimeWarn();
   }
   // Start kola: spotřebuje jednu hru z denního limitu.
@@ -1080,11 +1112,13 @@
       const log = gameLog();
       log.plays++;
       saveLog(log);
+      pausesLeft = GAME_PAUSES;
       if (game.over) game.reset();
     }
     game.paused = false;
     $('game-overlay').hidden = true;
     game.start();
+    renderPause();
     renderGameButtons();
     $('game-limit').textContent = gameStatus();
   }
@@ -1096,13 +1130,14 @@
   $('btn-random-game').addEventListener('click', () => openGame(pick(Object.keys(GAMES))));
   $('btn-games-back').addEventListener('click', () => { if (game) game.stop(); openGames(); flushTimeWarn(); });
   $('game-start').addEventListener('click', gameGo);
+  $('game-pause').addEventListener('click', () => pauseGame(true));
   // první ťuknutí na plochu hru spustí (u ptáčka a cihel je to zároveň první akce)
-  $('game-stage').addEventListener('pointerdown', () => { if (game && !game.running && !$('game-overlay').hidden && !game.over && $('game-start').hidden === false) gameGo(); }, true);
+  $('game-stage').addEventListener('pointerdown', () => { if (game && !game.running && !game.paused && !$('game-overlay').hidden && !game.over && $('game-start').hidden === false) gameGo(); }, true);
   // šipky pod plochou; u cihel se pálka hýbe, dokud je tlačítko stisknuté
   $('game-pad').querySelectorAll('[data-dir]').forEach((b) => {
     b.addEventListener('pointerdown', (e) => {
       e.preventDefault();
-      if (!game || game.over) return;
+      if (!game || game.over || game.paused) return;   // z pauzy jen tlačítkem
       if (!game.running) gameGo();
       game.turn(b.dataset.dir);
     });
@@ -1113,33 +1148,33 @@
     const dir = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right' }[e.key];
     if (dir) {
       e.preventDefault();
-      if (game.over) return;
+      if (game.over || game.paused) return;   // z pauzy jen tlačítkem
       if (!game.running) gameGo();
       game.turn(dir);
+    } else if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+      e.preventDefault();
+      pauseGame(true);
     } else if (e.key === ' ' || e.key === 'Enter') {
       if (document.activeElement === $('game-start')) return;
       e.preventDefault();
       if (!game.running && !$('game-overlay').hidden && !$('game-start').hidden) gameGo();
-      else if (game.action) game.action();
+      else if (game.action && game.running) game.action();
     }
   });
   document.addEventListener('keyup', (e) => {
     if (game && game.release && ['ArrowLeft', 'ArrowRight', 'a', 'd'].includes(e.key)) game.release();
   });
-  // Pauza, když dítě odejde z appky (pokračování nespotřebuje další hru).
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden && game && game.running) {
-      game.stop();
-      game.paused = true;
-      gameOverlay('Pauza.', 'Pokračovat');
-      flushTimeWarn();
-    }
-  });
+  // Pauza, když dítě odejde z appky nebo z okna prohlížeče: hra se nevynuluje,
+  // počká na ruční „Pokračovat“ (nespotřebuje další hru ani ruční pauzu).
+  document.addEventListener('visibilitychange', () => { if (document.hidden) pauseGame(false); });
+  window.addEventListener('blur', () => pauseGame(false));
+  window.addEventListener('pagehide', () => pauseGame(false));
 
   // ---------- čas v appce (měření a odesílání: usage.js) ----------
   Usage.init({
     api, today, setOffline,
     users: realUsers, user: () => state.user, offline: () => state.offline,
+    idle: () => gamePaused(),
     bar(min) {
       const bar = $('time-bar');
       bar.hidden = min === null;

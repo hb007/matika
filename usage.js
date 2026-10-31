@@ -10,7 +10,7 @@ window.Usage = (() => {
   const REPEAT_MIN = 5;
   const FLUSH_MS = 30000;
   const key = (uid) => 'matika_usage_' + uid;
-  let deps = null;   // { api, today, users(), user(), offline(), setOffline(on), warn(min), bar(min|null) }
+  let deps = null;   // { api, today, users(), user(), offline(), idle(), setOffline(on), warn(min), bar(min|null) }
 
   // náhodné id zařízení, trvalé v prohlížeči
   const device = (() => {
@@ -81,7 +81,7 @@ window.Usage = (() => {
   let sinceFlush = 0;
   function tick() {
     const uid = deps.user();
-    if (document.hidden || !uid) return;
+    if (document.hidden || !uid || (deps.idle && deps.idle())) return;   // idle: hra v pauze
     const u = usage(uid);
     u.total[u.day] = (u.total[u.day] || 0) + 1000;
     const min = Math.floor(((u.server || 0) + unsent(u, u.day)) / 60000);

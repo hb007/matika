@@ -201,6 +201,7 @@ $color = $kid ? (COLORS[$kid['color']] ?? COLORS['modra']) : null;
       <button type="button" class="pad" data-dir="down" aria-label="Dolů" style="grid-area: down">▼</button>
       <button type="button" class="pad" data-dir="right" aria-label="Doprava" style="grid-area: right">▶</button>
     </div>
+    <button type="button" class="btn game-pause" id="game-pause" disabled>Pauza</button>
     <p class="games-info" id="game-limit"></p>
     <button type="button" class="link" id="btn-games-back">Zpět ke hrám</button>
   </section>
