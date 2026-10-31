@@ -3,7 +3,8 @@
 // Každé zařízení posílá svůj celkový čas za den (ne přírůstek) s vlastním
 // id, takže ztracená odpověď serveru nic nepřičte dvakrát. Žádný odpočet
 // a nic se nevypíná: po WARN_MIN minutách upozornění, pak každých REPEAT_MIN
-// minut znovu. Co se při něm stane (pauza hry, lišta), dodá app.js v init().
+// minut znovu. Co se při něm stane (lišta, u rozehrané hry až po jejím konci),
+// dodá app.js v init().
 window.Usage = (() => {
   const WARN_MIN = 10;
   const REPEAT_MIN = 5;

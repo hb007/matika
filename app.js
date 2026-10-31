@@ -1068,6 +1068,7 @@
     $('game-limit').textContent = gameBlock() || gameStatus();
     const block = gameBlock();
     gameOverlay((record ? 'Nový rekord! ' : '') + `${g.label}: ${n}.` + (block ? ' ' + block : ''), block ? '' : 'Hrát znovu');
+    flushTimeWarn();
   }
   // Start kola: spotřebuje jednu hru z denního limitu.
   function gameGo() {
@@ -1093,7 +1094,7 @@
     if (b) openGame(b.dataset.gameId);
   });
   $('btn-random-game').addEventListener('click', () => openGame(pick(Object.keys(GAMES))));
-  $('btn-games-back').addEventListener('click', () => { if (game) game.stop(); openGames(); });
+  $('btn-games-back').addEventListener('click', () => { if (game) game.stop(); openGames(); flushTimeWarn(); });
   $('game-start').addEventListener('click', gameGo);
   // první ťuknutí na plochu hru spustí (u ptáčka a cihel je to zároveň první akce)
   $('game-stage').addEventListener('pointerdown', () => { if (game && !game.running && !$('game-overlay').hidden && !game.over && $('game-start').hidden === false) gameGo(); }, true);
@@ -1131,6 +1132,7 @@
       game.stop();
       game.paused = true;
       gameOverlay('Pauza.', 'Pokračovat');
+      flushTimeWarn();
     }
   });
 
@@ -1144,17 +1146,23 @@
       if (min !== null) bar.textContent = `Dnes jsi v Matice už ${Usage.minutes(min)}. Dej si pauzu.`;
     },
     warn(min) {
-      if (game && game.running) {   // hra počká
-        game.stop();
-        game.paused = true;
-        gameOverlay('Pauza.', 'Pokračovat');
-      }
-      clearTimeout(state.timer);
-      $('time-warn-text').textContent = `Dnes jsi v Matice už ${Usage.minutes(min)}.`;
-      $('time-warn').hidden = false;
-      $('time-warn-ok').focus();
+      // rozehraná hra se nepřerušuje: upozornění počká na její konec
+      if (game && game.running && !$('screen-game').hidden) { warnLater = true; return; }
+      showTimeWarn(min);
     },
   });
+  let warnLater = false;
+  function showTimeWarn(min) {
+    warnLater = false;
+    clearTimeout(state.timer);
+    $('time-warn-text').textContent = `Dnes jsi v Matice už ${Usage.minutes(min)}.`;
+    $('time-warn').hidden = false;
+    $('time-warn-ok').focus();
+  }
+  // odložené upozornění po dohrání (nebo opuštění) hry
+  function flushTimeWarn() {
+    if (warnLater && state.user) showTimeWarn(Math.floor(Usage.ms(state.user) / 60000));
+  }
   $('time-warn-ok').addEventListener('click', () => {
     $('time-warn').hidden = true;
     if (state.ex && state.lock && !$('feedback').hidden && !$('btn-next')) next();   // po správné odpovědi pokračovat
