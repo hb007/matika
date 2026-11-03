@@ -971,6 +971,8 @@
       pad: [], make: (stage, cb) => window.Flappy.create(stage, cb) },
     pacman: { title: 'Pacman', icon: '👻', label: 'Body', how: 'Sněz všechny tečky a vyhni se duchům. Po velké tečce můžeš duchy chvíli jíst. Táhni prstem nebo hraj šipkami.',
       pad: ['up', 'left', 'down', 'right'], make: (stage, cb) => window.Pacman.create(stage, cb) },
+    slova: { title: 'Slova', icon: '🔤', label: 'Sekundy', low: true, how: 'V každém barevném poli je schované slovo. Táhni prstem po písmenech (nahoru, dolů, do stran) a projdi celé pole. Čím rychleji, tím lépe.',
+      pad: [], make: (stage, cb) => window.Slova.create(stage, cb) },
   };
   let gameId = null;    // právě otevřená hra
 
