@@ -10,12 +10,14 @@
 // po celém slově (nebo když ho dítě najde) začne další slovo.
 window.Slova = (() => {
   // velikost plochy → délky slov (víc stejných = častější) a nejvýš šedých políček
+  // fill = jaká část mřížky je ve slovech; zbytek jsou šedá prázdná políčka
+  // mezi slovy, ať se slova hledají snáz
   const SIZES = {
-    5: { lens: [3, 4, 4, 5, 5, 6], empty: 4 },
-    6: { lens: [4, 4, 5, 5, 6, 6, 7], empty: 5 },
-    7: { lens: [4, 5, 5, 6, 6, 7, 7, 8], empty: 6 },
-    8: { lens: [4, 5, 6, 6, 7, 7, 8, 8], empty: 7 },
-    9: { lens: [5, 5, 6, 6, 7, 7, 8], empty: 9 },
+    5: { lens: [3, 4, 4, 5, 5, 6], fill: 0.64 },
+    6: { lens: [4, 4, 5, 5, 6, 6, 7], fill: 0.62 },
+    7: { lens: [4, 5, 5, 6, 6, 7, 7, 8], fill: 0.6 },
+    8: { lens: [4, 5, 6, 6, 7, 7, 8, 8], fill: 0.6 },
+    9: { lens: [5, 5, 6, 6, 7, 7, 8], fill: 0.58 },
   };
   const HUES = [345, 75, 220, 190, 25, 140, 290, 50, 0, 165, 265, 110, 315, 205, 35, 245];
 
@@ -97,21 +99,25 @@ window.Slova = (() => {
     const cfg = SIZES[N];
     const BY_LEN = lang(langId).byLen;
     const old = new Set(recent);
+    const target = Math.round(N * N * cfg.fill);   // kolik políček má být ve slovech
     let best = null;
-    for (let attempt = 0; attempt < 300; attempt++) {
+    for (let attempt = 0; attempt < 200; attempt++) {
       const owner = new Array(N * N).fill(-1);   // -1 volné, -3 šedé, jinak číslo pole
       const regions = [];
       const used = new Set();
-      for (;;) {
+      let filled = 0;
+      while (filled < target) {
         const free = owner.map((o, c) => (o === -1 ? c : -1)).filter((c) => c >= 0);
         if (!free.length) break;
-        // začni u políčka s nejméně volnými sousedy (rohy, zákoutí)
-        const deg = (c) => nbrs(c, N).filter((d) => owner[d] === -1).length;
-        free.sort((a, b) => deg(a) - deg(b) + (Math.random() - 0.5) * 0.9);
-        const start = free[0];
+        // začni na náhodném volném políčku, přednostně takovém, které nesousedí
+        // s jiným slovem: slova jsou rozesetá a mezi nimi zůstávají mezery
+        const apart = free.filter((c) => nbrs(c, N).every((d) => owner[d] < 0));
+        const from = apart.length && Math.random() < 0.8 ? apart : free;
+        const start = from[rnd(from.length)];
         let placed = false;
-        // na konci zbývá málo místa: zkus i kratší slova
-        const lens = shuffle(cfg.lens.filter((n) => n <= free.length && BY_LEN[n])).concat([5, 4, 3].filter((n) => n <= free.length && BY_LEN[n]));
+        // ke konci kratší slova, ať se trefí počet políček ve slovech
+        const left = target - filled;
+        const lens = shuffle(cfg.lens.filter((n) => n <= left + 2 && BY_LEN[n])).concat([5, 4, 3].filter((n) => n <= left + 2 && BY_LEN[n]));
         for (const len of [...new Set(lens)]) {
           const path = walk(owner, start, len, N);
           if (!path) continue;
@@ -121,14 +127,16 @@ window.Slova = (() => {
           used.add(words[0]);
           path.forEach((c) => { owner[c] = regions.length; });
           regions.push({ word: words[0], path, size: len });
+          filled += len;
           placed = true;
           break;
         }
         if (!placed) owner[start] = -3;
       }
-      const empty = owner.filter((o) => o === -3).length;
-      if (!best || empty < best.empty) best = { owner, regions, empty };
-      if (empty <= cfg.empty && regions.length >= 4) break;
+      for (let c = 0; c < owner.length; c++) if (owner[c] === -1) owner[c] = -3;   // zbytek je prázdný
+      const miss = Math.abs(filled - target);
+      if (regions.length >= 3 && (!best || miss < best.miss)) best = { owner, regions, miss };
+      if (best && best.miss <= 1) break;
     }
     const letters = new Array(N * N).fill('');
     best.regions.forEach((r) => r.path.forEach((c, i) => { letters[c] = [...r.word][i]; }));
