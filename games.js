@@ -16,9 +16,9 @@ window.MatikaGames = {
     pad: [], make: (stage, cb) => window.Flappy.create(stage, cb) },
   pacman: { title: 'Pacman', icon: '👻', label: 'Body', how: 'Sněz všechny tečky a vyhni se duchům. Po velké tečce můžeš duchy chvíli jíst. Táhni prstem nebo hraj šipkami.',
     pad: ['up', 'left', 'down', 'right'], make: (stage, cb) => window.Pacman.create(stage, cb) },
-  slova: { title: 'Slova', icon: '🔤', label: 'Sekundy', low: true, noBest: true, how: 'V každém barevném poli je schované slovo. Táhni prstem po písmenech (nahoru, dolů, do stran) a projdi celé pole. Čím rychleji, tím lépe.',
+  slova: { title: 'Slova', icon: '🔤', label: 'Sekundy', low: true, noBest: true, how: 'Mřížka je celá poskládaná ze schovaných slov, pod ní vidíš jejich délky. Táhni prstem po sousedních písmenech (nahoru, dolů, do stran) a najdi je. Každé písmeno patří právě do jednoho slova.',
     pad: [], variants: [
-      ['size', [['5', '5 × 5'], ['6', '6 × 6'], ['7', '7 × 7']]],
+      ['size', [['7', '7 × 7'], ['8', '8 × 8'], ['9', '9 × 9'], ['10', '10 × 10']]],
       ['lang', [['cs', 'česky'], ['en', 'anglicky'], ['de', 'německy']]],
     ],
     make: (stage, cb, v) => window.Slova.create(stage, { ...cb, size: Number(v.size), lang: v.lang }) },
