@@ -551,8 +551,8 @@ body[data-diff] .top { border-bottom: 0; box-shadow: inset 0 -6px 0 var(--hl); p
 .slova-path.wrong { animation: slova-shake .4s; opacity: .55; }
 .slova-start { fill: none; stroke-width: .07; stroke-dasharray: none; filter: brightness(.75); }
 .slova-hinted circle { fill: none; stroke: var(--kid); stroke-width: .07; stroke-dasharray: .12 .08; }
+.slova-hinted circle.first { stroke-dasharray: none; }
 .slova-hinted polyline { fill: none; stroke: var(--kid); stroke-width: .06; stroke-dasharray: .1 .1; opacity: .7; }
-.slova-hinted.picked circle { stroke-dasharray: none; }
 .slova-letter { font-size: .5px; font-weight: 700; text-anchor: middle; dominant-baseline: central; fill: var(--ink); pointer-events: none; }
 .slova-letter.on { fill: #15171b; }
 .slova-words { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 10px; }
@@ -562,7 +562,6 @@ body[data-diff] .top { border-bottom: 0; box-shadow: inset 0 -6px 0 var(--hl); p
   font-style: normal; font-weight: 700; font-size: 17px; color: var(--ink); background: var(--active-bg);
   border: 2px solid var(--line);
 }
-.slova-word.hinted i { color: var(--kid); }
 .slova-word.done i { background: hsl(var(--h) 72% 52%); border-color: hsl(var(--h) 72% 52%); color: #15171b; }
 .slova-word b { color: var(--ok, #2b8a3e); font-size: 20px; margin-left: 2px; }
 .slova-hint { margin-bottom: 4px; }
