@@ -958,20 +958,7 @@
   // nepočítá. Pauza při odchodu z appky / okna se do toho nepočítá.
   const GAME_PAUSES = 3;
   let pausesLeft = GAME_PAUSES;
-  const GAMES = {
-    had: { title: 'Had', icon: '🐍', label: 'Jablka', how: 'Táhni prstem po ploše, ťukej na šipky, nebo hraj šipkami na klávesnici.',
-      pad: ['up', 'left', 'down', 'right'], make: (stage, cb) => { const c = document.createElement('canvas'); stage.appendChild(c); return window.Snake.create(c, cb); } },
-    pexeso: { title: 'Pexeso', icon: '🃏', label: 'Tahy', low: true, how: 'Najdi dvojice: příklad a jeho výsledek. Čím méně tahů, tím lépe.',
-      pad: [], make: (stage, cb) => window.Pexeso.create(stage, cb) },
-    g2048: { title: '2048', icon: '🔢', label: 'Body', how: 'Posouvej dlaždice tažením nebo šipkami. Stejná čísla se spojí.',
-      pad: ['up', 'left', 'down', 'right'], make: (stage, cb) => window.Game2048.create(stage, cb) },
-    cihly: { title: 'Cihly', icon: '🧱', label: 'Cihly', how: 'Táhni pálkou prstem nebo šipkami a ťuknutím vystřel míček. Máš 3 životy.',
-      pad: ['left', 'right'], hold: true, make: (stage, cb) => window.Breakout.create(stage, cb) },
-    ptacek: { title: 'Ptáček', icon: '🐤', label: 'Sloupy', how: 'Ťukej na plochu (nebo mezerník) a proleť mezerami mezi sloupy.',
-      pad: [], make: (stage, cb) => window.Flappy.create(stage, cb) },
-    pacman: { title: 'Pacman', icon: '👻', label: 'Body', how: 'Sněz všechny tečky a vyhni se duchům. Po velké tečce můžeš duchy chvíli jíst. Táhni prstem nebo hraj šipkami.',
-      pad: ['up', 'left', 'down', 'right'], make: (stage, cb) => window.Pacman.create(stage, cb) },
-  };
+  const GAMES = window.MatikaGames;   // seznam her: games.js
   let gameId = null;    // právě otevřená hra
 
   const today = () => {
@@ -1014,7 +1001,7 @@
         : block ? 'Hry (na dnes konec)' : `Hry (${gameStatus().replace('Zbývá ', 'zbývá ').replace('.', '')})`;
     });
   }
-  const bestKey = (id) => (id === 'had' ? 'matika_snake_' : `matika_best_${id}_`) + (state.user || 0);
+  const bestKey = (id) => (id === 'had' ? 'matika_snake_' : `matika_best_${id}_`) + (state.user || 0) + window.MatikaVariant.suffix(id);
   function bestOf(id) {
     try { return Number(localStorage.getItem(bestKey(id))) || 0; } catch (e) { return 0; }
   }
@@ -1026,12 +1013,16 @@
     $('games-info').textContent = block || gameStatus();
     $('games-list').innerHTML = Object.entries(GAMES).map(([id, g]) =>
       `<button type="button" class="game-card" data-game-id="${id}"${block ? ' disabled' : ''}><span class="game-icon">${g.icon}</span>`
-      + `<b>${g.title}</b><small>rekord ${bestOf(id) || '–'}</small></button>`).join('');
+      + `<b>${g.title}</b><small>rekord ${bestOf(id) || '–'}${g.variants ? ` (${window.MatikaVariant.label(id)})` : ''}</small></button>`).join('');
     $('btn-random-game').disabled = !!block;
     show('games');
   }
   function gameOverlay(msg, btn) {
     $('game-msg').textContent = msg;
+    // volba obtížnosti jen v úvodu a po konci kola, ne v pauze
+    const vars = btn && gameId && !(game && game.paused) ? window.MatikaVariant.html(gameId) : '';
+    $('game-variants').innerHTML = vars;
+    $('game-variants').hidden = !vars;
     $('game-start').textContent = btn;
     $('game-start').hidden = !btn;
     $('game-overlay').hidden = false;
@@ -1058,7 +1049,7 @@
     game = g.make($('game-stage'), {
       onScore: (n) => { $('game-score').textContent = n; },
       onOver: (n) => gameOver(id, n),
-    });
+    }, window.MatikaVariant.get(id));
     gameOverlay(g.how, 'Hrát');
     renderPause();
   }
@@ -1130,6 +1121,14 @@
   $('btn-random-game').addEventListener('click', () => openGame(pick(Object.keys(GAMES))));
   $('btn-games-back').addEventListener('click', () => { if (game) game.stop(); openGames(); flushTimeWarn(); });
   $('game-start').addEventListener('click', gameGo);
+  // jiná obtížnost: hra se založí znovu (kolo se počítá až po „Hrát“)
+  $('game-variants').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-variant]');
+    if (!b || !gameId || (game && game.running)) return;
+    const [k, v] = b.dataset.variant.split(':');
+    window.MatikaVariant.set(gameId, k, v);
+    openGame(gameId);
+  });
   $('game-pause').addEventListener('click', () => pauseGame(true));
   // první ťuknutí na plochu hru spustí (u ptáčka a cihel je to zároveň první akce)
   $('game-stage').addEventListener('pointerdown', () => { if (game && !game.running && !game.paused && !$('game-overlay').hidden && !game.over && $('game-start').hidden === false) gameGo(); }, true);
