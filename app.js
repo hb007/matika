@@ -1013,7 +1013,7 @@
     $('games-info').textContent = block || gameStatus();
     $('games-list').innerHTML = Object.entries(GAMES).map(([id, g]) =>
       `<button type="button" class="game-card" data-game-id="${id}"${block ? ' disabled' : ''}><span class="game-icon">${g.icon}</span>`
-      + `<b>${g.title}</b><small>rekord ${bestOf(id) || '–'}${g.variants ? ` (${window.MatikaVariant.label(id)})` : ''}</small></button>`).join('');
+      + `<b>${g.title}</b><small>${g.noBest ? (g.variants ? window.MatikaVariant.label(id) : '') : `rekord ${bestOf(id) || '–'}${g.variants ? ` (${window.MatikaVariant.label(id)})` : ''}`}</small></button>`).join('');
     $('btn-random-game').disabled = !!block;
     show('games');
   }
@@ -1041,6 +1041,7 @@
     $('game-score-label').textContent = g.label;
     $('game-score').textContent = '0';
     $('game-best').textContent = bestOf(id) || '–';
+    $('game-best-wrap').hidden = !!g.noBest;
     $('game-pad').hidden = !g.pad.length;
     $('game-pad').querySelectorAll('[data-dir]').forEach((b) => { b.hidden = !g.pad.includes(b.dataset.dir); });
     $('game-limit').textContent = gameStatus();
@@ -1081,7 +1082,7 @@
   function gameOver(id, n) {
     const g = GAMES[id];
     const best = bestOf(id);
-    const record = g.low ? n > 0 && (!best || n < best) : n > best;
+    const record = !g.noBest && (g.low ? n > 0 && (!best || n < best) : n > best);
     if (record) {
       try { localStorage.setItem(bestKey(id), String(n)); } catch (e) { /* bez úložiště */ }
       $('game-best').textContent = n;

@@ -2,7 +2,7 @@
 // šipky pod plochou a jak hru vytvořit. Používá app.js (hry jako odměna)
 // i hry.php (samostatná stránka se všemi hrami). variants = volby v úvodu hry
 // (velikost plochy, jazyk): [[klíč, [[hodnota, popisek], …]], …]; každá
-// kombinace má svůj rekord.
+// kombinace má svůj rekord. noBest = hra rekord nepočítá ani neukazuje.
 window.MatikaGames = {
   had: { title: 'Had', icon: '🐍', label: 'Jablka', how: 'Táhni prstem po ploše, ťukej na šipky, nebo hraj šipkami na klávesnici.',
     pad: ['up', 'left', 'down', 'right'], make: (stage, cb) => { const c = document.createElement('canvas'); stage.appendChild(c); return window.Snake.create(c, cb); } },
@@ -16,7 +16,7 @@ window.MatikaGames = {
     pad: [], make: (stage, cb) => window.Flappy.create(stage, cb) },
   pacman: { title: 'Pacman', icon: '👻', label: 'Body', how: 'Sněz všechny tečky a vyhni se duchům. Po velké tečce můžeš duchy chvíli jíst. Táhni prstem nebo hraj šipkami.',
     pad: ['up', 'left', 'down', 'right'], make: (stage, cb) => window.Pacman.create(stage, cb) },
-  slova: { title: 'Slova', icon: '🔤', label: 'Sekundy', low: true, how: 'V každém barevném poli je schované slovo. Táhni prstem po písmenech (nahoru, dolů, do stran) a projdi celé pole. Čím rychleji, tím lépe.',
+  slova: { title: 'Slova', icon: '🔤', label: 'Sekundy', low: true, noBest: true, how: 'V každém barevném poli je schované slovo. Táhni prstem po písmenech (nahoru, dolů, do stran) a projdi celé pole. Čím rychleji, tím lépe.',
     pad: [], variants: [
       ['size', [['5', '5 × 5'], ['6', '6 × 6'], ['7', '7 × 7']]],
       ['lang', [['cs', 'česky'], ['en', 'anglicky'], ['de', 'německy']]],

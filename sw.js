@@ -2,7 +2,7 @@
 // - stránky (/, /holka, /u/anicka …): nejdřív síť, bez sítě poslední uložená verze
 // - skripty, styly, písma, ikony: z cache (nové verze mají jinou adresu ?v=…)
 // - api.php se neukládá nikdy; bez sítě si příklady řeší appka sama (offline.js)
-const CACHE = 'matika-v2';
+const CACHE = 'matika-v3';
 const STATIC = [
   'fonts/atkinson-hyperlegible-400-latin.woff2', 'fonts/atkinson-hyperlegible-400-latin-ext.woff2',
   'fonts/atkinson-hyperlegible-700-latin.woff2', 'fonts/atkinson-hyperlegible-700-latin-ext.woff2',
@@ -77,7 +77,8 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin || url.pathname.endsWith('/api.php')) return;
-  if (url.pathname.endsWith('/admin.php')) return;   // správa se do cache neukládá
+  // správa a stránka s hrami (za heslem) se do cache neukládají
+  if (url.pathname.endsWith('/admin.php') || url.pathname.endsWith('/hry.php') || url.pathname.endsWith('/hry')) return;
   if (req.mode === 'navigate') e.respondWith(page(req));
   else if (url.pathname.endsWith('/manifest.php')) e.respondWith(fresh(req));
   else e.respondWith(asset(req));

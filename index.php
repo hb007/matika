@@ -186,7 +186,7 @@ $color = $kid ? (COLORS[$kid['color']] ?? COLORS['modra']) : null;
   <section id="screen-game" class="screen" hidden>
     <div class="game-head">
       <h1 id="game-title"></h1>
-      <span class="game-score"><span id="game-score-label"></span> <b id="game-score">0</b> · rekord <b id="game-best">0</b></span>
+      <span class="game-score"><span id="game-score-label"></span> <b id="game-score">0</b><span id="game-best-wrap"> · rekord <b id="game-best">0</b></span></span>
     </div>
     <div class="game-wrap">
       <div class="game-stage" id="game-stage" aria-label="Herní plocha"></div>
