@@ -58,7 +58,31 @@ window.SlovaWords = {
     BATERKA DÁLNICE SILNICE ZASTÁVKA PASAŽÉR LETUŠKA KAPITÁN NÁMOŘNÍK KORMIDLO PLACHTA HORIZONT SOUMRAK
     SVÍTÁNÍ DRUŽICE METEORIT TELESKOP BATERIE KRUŽÍTKO ÚHLOMĚR SČÍTÁNÍ ODČÍTÁNÍ NÁSOBENÍ JEDNOTKA DESÍTKA
     POLOMĚR HRANICE ČÍSLICE ZNAMÉNKO ZÁVORKA ROVNOST VÝPOČET
-  `,
+      ADRESA AMULET ANTÉNA ARÉNA ATLAS AUTOMAT BABIČKA BAČKORA BALÍČEK BALKON BAMBUS BANKA BARÁK BARIÉRA
+    BARVIČKA BATOH BAVLNA BEDNA BERUŠKA BIDLO BLÁZEN BLECHA BOUDA BOULE BRÁCHA BRANKA BRANKÁŘ BRÁZDA BROUK
+    BUBENÍK BUDOVA BUNDA CEDULE CHYBA CIRKUS CUKROVÍ ČEPEL ČERNICE ČERPADLO ČESNEK ČÍŠNÍK DÁLKA DATUM
+    DCERA DĚDEČEK DOLINA DOMOV DRÁHA DRUŽINA DUDLÍK GARÁŽ GAZELA GEPARD GORILA GRAMOFON HADICE HARFA
+    HÁZENÁ HEDVÁBÍ HERBÁŘ HLÍDKA HODINÁŘ HOKEJ HOLIČ HOMOLE HORNÍK HOSTINA HOUSKA HRABĚ HRANOLKY HRÁŠEK
+    HROCH HROZEN HŘIŠTĚ HUDBA HVOZD CHLAPEC CHMEL CHOMÁČ CHRÁM CHRŮST CHŘEST JASMÍN JEHLAN JEHNĚ JEŠTĚRKA
+    JEZDEC JÍZDA JOGURT KABINA KADEŘNÍK KAJAK KAKAO KALHOTY KAMNA KANÁREK KANOE KAPLE KAPSA KARAVAN KAVÁRNA
+    KAZETA KEČUP KLADIVO KLÁŠTER KLEŠTĚ KLIKA KLUZÁK KNEDLÍK KNOFLÍK KOČÁR KOLEČKO KOMETA KONÍK KOPAČKA
+    KORÁLEK KORMORÁN KOŠÍK KOTLÍK KOZEL KRÁLOVNA KRAJKA KRÁPNÍK KRASLICE KREJČÍ KŘÍŽOVKA KROUŽEK KŘEČEK
+    KŘEMEN KUFR KUKLA KULIČKA KUNA KUPOLE KUŘÁTKO KVÍTEK KYBLÍK LABUŤ LAKOMEC LASTURA LEDOVKA LEKTVAR
+    LEOPARD LEPIDLO LÉKAŘ LÉKÁRNA LIMETKA LINKA LOĎKA LOSOS LOUTNA LVÍČE LYŽAŘ MAJÁK MALÍČEK MAMUT MAŇÁSEK
+    MASKA MATRACE MEDVÍDEK MELODIE MĚŘÍTKO MINUTKA MISKA MLYNÁŘ MUŠKA MYSLIVNA NÁKUP NÁRAZ NETOPÝR NUDLE
+    OBÁLKA OBCHODNÍK OBLÁČEK OBLEČENÍ ODZNAK OHRADA OKÉNKO OLOVO OMÁČKA ONDATRA OPERA ORANŽÁDA ORCHIDEJ
+    OSLAVA OSTRUHA OTEC OVČÁK OVEČKA PADÁK PAHOREK PALIČKA PANÁČEK PANDA PANTOFEL PASEKA PAŠTIKA PAVIÁN
+    PECKA PEČIVO PERNÍČEK PIKNIK PILNÍK PIŠKOT PLACKA PLAMÍNEK PLANINA PLÁTEK PLAVEC PODIUM PODNOS POHÁREK
+    POHOVKA POKLICE POLEVA POSEL POSTAVA POTÁPĚČ POUŤ PRÁCE PRAČKA PRASE PROPAST PRSTÝNEK PŘEDSÍŇ PŘÍVOZ
+    PŘÍZEMÍ PTÁČEK PUDINK PYRAMIDA RADIÁTOR RÁDIO RAMENO RAZÍTKO REKORD ROHOŽ ROLNÍK ROSNIČKA ROZINKA
+    RUBÍN RYBIČKA RYCHLÍK ŘEDITEL ŘEZNÍK ŘIDIČ SALÁM SEDAČKA SEKAČKA SENO SÍDLIŠTĚ SILÁK SKLENICE SKLEP
+    SKOKAN SKRÝŠ SLADKOST SLAVÍK SLIMÁK SLUHA SOKOL SOUBOJ SOUTĚŽ SPÍŽ SPORÁK STÁDO STATEK STOLEK STONOŽKA
+    STRAKA STRAŠÁK STROJ STUDENT SVITEK SVORKA ŠÁLEK ŠAMPON ŠATY ŠAVLE ŠTÍR ŠPAČEK ŠPENDLÍK ŠPERK ŠTĚNĚ
+    ŠTĚRK TAPETA TEPLÁKY TERČ TISKÁRNA TLAČÍTKO TOPINKA TRAKAŘ TRÁVNÍK TROUBA TRPASLÍK TRUHLÁŘ TURISTA
+    TVAROH TYKEV UBROUS ÚLOVEK ÚSTŘICE VAGÓN VALOUN VANILKA VĚDEC VĚNEC VĚTRÁK VLÁČEK VLASY VLÁKNO VLOČKA
+    VOJÁK VRÁNA VRCHOL VÝCHOD VÝHLED VÝKRES VÝLOHA VYDRA ZÁHADA ZÁKLAD ZÁKUSEK ZÁMEČEK ZÁPAD ZÁSOBA ZÁTOKA
+    ZÁVAŽÍ ZELÍ ZMIJE ZOBÁK ZPRÁVA ZUBAŘ ZVONEK ZVONICE ŽABKA ŽLOUTEK ŽOKEJ
+`,
   en: `
 CAT=kočka DOG=pes SUN=slunce SEA=moře SKY=nebe BUS=autobus CAR=auto BED=postel CUP=hrnek HAT=klobouk
 BOX=krabice EGG=vejce PEN=pero MAP=mapa KEY=klíč BAG=taška FOX=liška OWL=sova BEE=včela ANT=mravenec
@@ -142,6 +166,44 @@ INVENTOR=vynálezce LADYBIRD=beruška LEMONADE=limonáda MARATHON=maraton MEATBA
 MIDNIGHT=půlnoc MUSICIAN=hudebník NEIGHBOR=soused PLATFORM=nástupiště PLAYROOM=herna POSTCARD=pohlednice
 RAINDROP=kapka_deště SCHEDULE=rozvrh SCULPTOR=sochař SEAHORSE=mořský_koník SHOELACE=tkanička
 SIDEWALK=chodník SNOWBALL=sněhová_koule STARFISH=hvězdice TEASPOON=lžička TOMORROW=zítra VACATION=dovolená
+ACORN=žalud ALARM=budík ALIEN=mimozemšťan ANGEL=anděl ANKLE=kotník ARROW=šíp ATTIC=půda BADGE=odznak
+BAKER=pekař BANJO=bendžo BARN=stodola BEARD=vousy BENCH=lavička BERRY=bobule BLADE=čepel BLOCK=kostka
+BOARD=deska BRAKE=brzda BRANCH=větev BREEZE=vánek BUNNY=zajíček CABIN=chatka CANAL=kanál CANOE=kánoe
+CHAIN=řetěz CHEF=kuchař CHICK=kuřátko CHILD=dítě CIRCUS=cirkus CLOWN=klaun COAST=pobřeží COMET=kometa
+CORAL=korál COUCH=gauč CRANE=jeřáb CREAM=smetana DIARY=deník DINNER=večeře DOUGH=těsto DRILL=vrtačka
+EARTH=Země ENGINE=motor FAIRY=víla FENCE=plot FERRY=trajekt FLAG=vlajka FLAME=plamen FLOUR=mouka
+FLUTE=flétna FRAME=rám FROST=mráz FRUIT=ovoce GIANT=obr GOOSE=husa HEDGE=živý_plot HELMET=helma
+HIPPO=hroch HOTEL=hotel IGLOO=iglú JEANS=džíny JEWEL=klenot JUDGE=soudce KAYAK=kajak LADLE=naběračka
+LUNCH=oběd MAGNET=magnet MEDAL=medaile MELON=meloun METAL=kov MODEL=model MOOSE=los NAIL=hřebík
+NURSE=zdravotní_sestra OLIVE=oliva ORBIT=oběžná_dráha PALM=palma PEARL=perla PEDAL=pedál PILOT=pilot
+POPPY=mák PRIZE=cena PUPPY=štěně QUILT=prošívaná_deka RIDER=jezdec SALAD=salát SAUCE=omáčka SCALE=váha
+SCOUT=skaut SHELL=mušle SHORE=břeh SHOWER=sprcha SKATE=brusle SLIDE=skluzavka SLOTH=lenochod SNAIL=šnek
+SPACE=vesmír SPICE=koření STAMP=známka STEAM=pára STICK=hůl STOOL=stolička STRAW=brčko SWING=houpačka
+SYRUP=sirup THORN=trn TOAST=topinka TONGUE=jazyk TRAIL=stezka TRUNK=kmen UNCLE=strýc VOICE=hlas
+WAGON=vůz WATCH=hodinky WHEAT=pšenice WITCH=čarodějnice WORLD=svět YACHT=jachta APRON=zástěra
+ALMOND=mandle ANIMAL=zvíře ARTIST=umělec BADGER=jezevec BAMBOO=bambus BEAVER=bobr BUBBLE=bublina
+CACTUS=kaktus CANNON=dělo CELLAR=sklep CHAPEL=kaple CLOVER=jetel COFFEE=káva COPPER=měď COUSIN=bratranec
+COWBOY=kovboj CRAYON=pastelka DANCER=tanečník FAMILY=rodina FINGER=prst FLIGHT=let FOSSIL=zkamenělina
+FRIEND=kamarád GALAXY=galaxie GARLIC=česnek GINGER=zázvor GOBLIN=skřet HOCKEY=hokej INSECT=hmyz
+KETTLE=konvice KITTEN=koťátko LAPTOP=notebook MAGPIE=straka MARBLE=kulička MEADOW=louka MITTEN=palčák
+MOTHER=matka NEEDLE=jehla NEPHEW=synovec NOODLE=nudle OYSTER=ústřice PARADE=průvod PEANUT=arašíd
+PICNIC=piknik POLICE=policie PUPPET=loutka RECIPE=recept RIBBON=stuha RIDDLE=hádanka SADDLE=sedlo
+SHADOW=stín SHOVEL=lopata SILVER=stříbro SISTER=sestra SLEDGE=sáně SPONGE=houba_na_mytí STABLE=stáj
+STATUE=socha SUNSET=západ_slunce TEAPOT=konvička TENNIS=tenis THREAD=nit TOILET=záchod TROPHY=trofej
+TUNNEL=tunel TURKEY=krocan WALNUT=vlašský_ořech WALRUS=mrož ZIPPER=zip HUNTER=lovec NAPKIN=ubrousek
+PICKLE=kyselá_okurka SEASON=roční_období PUFFIN=papuchalk RAISIN=rozinka TURNIP=tuřín WEASEL=lasička
+BAGGAGE=zavazadla BEEHIVE=úl CARTOON=kreslený_film CHEETAH=gepard CLIMATE=podnebí FREEZER=mrazák
+GALLERY=galerie GORILLA=gorila GRANITE=žula HIGHWAY=dálnice HISTORY=dějepis JASMINE=jasmín LEATHER=kůže
+MAMMOTH=mamut MUSTARD=hořčice OATMEAL=ovesná_kaše PADLOCK=visací_zámek PAJAMAS=pyžamo PARSLEY=petržel
+PERFUME=parfém PHARAOH=faraon PLUMBER=instalatér REPTILE=plaz ROOSTER=kohout SHERIFF=šerif SURGEON=chirurg
+TADPOLE=pulec THIMBLE=náprstek TOASTER=topinkovač TOOLBOX=kufřík_na_nářadí TORNADO=tornádo TRAILER=přívěs
+VULTURE=sup THISTLE=bodlák VINEGAR=ocet HANDBAG=kabelka RADIATOR=radiátor SCORPION=štír SHEPHERD=pastýř
+TEXTBOOK=učebnice WARDROBE=šatní_skříň ANTELOPE=antilopa ARMCHAIR=křeslo BARBECUE=grilování
+CORRIDOR=chodba CUPBOARD=kredenc DORMOUSE=plch EGGPLANT=lilek ENGINEER=inženýr FOOTPATH=pěšina
+GARDENER=zahradník HILLSIDE=stráň LIFEBOAT=záchranný_člun MARIGOLD=měsíček MEDICINE=lék MOTORWAY=dálnice
+PINECONE=šiška POPSICLE=nanuk PORRIDGE=kaše RECORDER=zobcová_flétna SEASHORE=mořské_pobřeží
+SEEDLING=sazenice SNOWDROP=sněženka SPELLING=pravopis STARLING=špaček TRAVELER=cestovatel UNIVERSE=vesmír
+WORKSHOP=dílna ZUCCHINI=cuketa
 `,
   de: `
 ZOO=zoo BUS=autobus EIS=zmrzlina OHR=ucho ARM=paže TEE=čaj SEE=jezero TAG=den ZUG=vlak AST=větev
@@ -203,5 +265,28 @@ TIERPARK=zoologická_zahrada TORWART=brankář WOHNUNG=byt ZAHNARZT=zubař ZUKUN
 AUFGABE=úloha DREIECK=trojúhelník QUADRAT=čtverec RECHNUNG=výpočet HUNDERT=sto TAUSEND=tisíc
 ANTWORT=odpověď ALPHABET=abeceda SPRACHE=jazyk GEDICHT=báseň MÄRCHEN=pohádka KAPITEL=kapitola
 FREIZEIT=volný_čas HOCHZEIT=svatba PICKNICK=piknik COUSINE=sestřenice
+AMSEL=kos BIRKE=bříza BOHNE=fazole BREZEL=preclík BÜRSTE=kartáč DRAHT=drát EIMER=kbelík ERBSE=hrášek
+FAHNE=vlajka FEDER=pírko GEIER=sup GLÜCK=štěstí HECKE=živý_plot HÖHLE=jeskyně HÜGEL=kopec KAKAO=kakao
+KANAL=kanál KETTE=řetěz KISTE=bedna KNOPF=knoflík KREIS=kruh LACHS=losos LINDE=lípa MAGEN=žaludek
+MANTEL=kabát MOHN=mák MÖWE=racek NADEL=jehla NAGEL=hřebík OSTEN=východ PALME=palma PFEIL=šíp
+PFOTE=tlapka PILZ=houba PUDEL=pudl QUARK=tvaroh RABE=havran RASEN=trávník ROBBE=tuleň SAHNE=smetana
+SCHAL=šála SEIFE=mýdlo SENF=hořčice SOCKE=ponožka STALL=stáj STROH=sláma TANNE=jedle TRAUM=sen
+WAAGE=váha WEIDE=pastvina WOLLE=vlna WÜSTE=poušť ZANGE=kleště AMEISE=mravenec BALKON=balkon DACHS=jezevec
+ENKEL=vnuk FASAN=bažant FERIEN=prázdniny FLIEGE=moucha FOHLEN=hříbě HAMMER=kladivo HEIMAT=domov
+HIMMEL=nebe HIRSCH=jelen HUMMER=humr INSEKT=hmyz KAKTUS=kaktus KANONE=dělo KÄFIG=klec KÜRBIS=dýně
+LEITER=žebřík LIBELLE=vážka MÄDCHEN=dívka MARDER=kuna MÖBEL=nábytek MÜHLE=mlýn MURMEL=kulička NEFFE=synovec
+ONKEL=strýc PAKET=balík PIRAT=pirát RÄTSEL=hádanka RAUPE=housenka REISE=cesta SCHAUM=pěna SESSEL=křeslo
+SIEGER=vítěz SPATEN=rýč STRAND=pláž TANTE=teta TASCHE=taška TINTE=inkoust URLAUB=dovolená WECKER=budík
+WIPPE=houpačka ZIRKUS=cirkus EISBÄR=lední_medvěd BAGGER=bagr BALLETT=balet BÜCHEREI=knihovna DECKEL=víčko
+FÖRSTER=hajný GEPÄCK=zavazadla GORILLA=gorila HEIZUNG=topení KAMEL=velbloud KÄNGURU=klokan KAPELLE=kaple
+KAPUZE=kapuce KOMPASS=kompas KRÄHE=vrána MALBUCH=omalovánky MEISTER=mistr MÜNZE=mince MUSCHEL=mušle
+NUSSBAUM=ořešák OBSTBAUM=ovocný_strom PANTHER=panter PINZETTE=pinzeta RADIERER=guma REGAL=police
+REITER=jezdec SÄNGER=zpěvák SEEHUND=tuleň SEGEL=plachta SEILBAHN=lanovka SPECHT=datel SPINAT=špenát
+STEMPEL=razítko STRAUSS=pštros SÜDEN=jih TOASTER=topinkovač TORTE=dort TULPE=tulipán VEILCHEN=fialka
+WAGEN=vůz WALNUSS=vlašský_ořech WAPPEN=erb WASCHBÄR=mýval WEIZEN=pšenice WESTEN=západ ZIRKEL=kružítko
+NORDEN=sever AQUARIUM=akvárium AUTOBAHN=dálnice BIRNBAUM=hrušeň FERNROHR=dalekohled FUSSWEG=chodník
+HALSBAND=obojek HANDBALL=házená HOLZHAUS=dřevěný_dům MAULTIER=mula MOTORRAD=motorka SANDALE=sandál
+SEESTERN=hvězdice TAUCHER=potápěč TELESKOP=teleskop TIERARZT=veterinář TROMPETE=trumpeta WALDHORN=lesní_roh
+WANDUHR=nástěnné_hodiny HAUSTÜR=domovní_dveře
 `,
 };

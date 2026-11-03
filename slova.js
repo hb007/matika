@@ -3,15 +3,16 @@
 // bílá a pod ní jsou jen šedá okénka podle délek slov. Tažením prstem po
 // sousedních písmenech (nahoru, dolů, doleva, doprava) najdi slovo; nalezené
 // se obarví a ohraničí. Každé písmeno patří právě do jednoho slova, šedá
-// políčka nejsou ve hře. Skóre je čas v sekundách; nápověda ukáže první
-// písmeno dalšího slova a přidá NAPOVEDA_S sekund.
+// políčka nejsou ve hře. Skóre je čas v sekundách. Nápověda u vybraného slova
+// (ťuknutím pod mřížkou) odkryje další písmeno: nejdřív první, pak druhé…,
+// v mřížce i v seznamu; každá přidá NAPOVEDA_S sekund.
 window.Slova = (() => {
   // velikost plochy → délky slov (víc stejných = častější) a nejvýš šedých políček
   const SIZES = {
     7: { lens: [4, 5, 5, 6, 6, 7, 7, 8], empty: 6 },
     8: { lens: [4, 5, 6, 6, 7, 7, 8, 8], empty: 7 },
-    9: { lens: [5, 6, 6, 7, 7, 8, 8, 8], empty: 9 },
-    10: { lens: [5, 6, 7, 7, 8, 8, 8], empty: 10 },
+    9: { lens: [5, 5, 6, 6, 7, 7, 8], empty: 9 },
+    10: { lens: [5, 5, 6, 6, 7, 7, 8], empty: 10 },
   };
   const NAPOVEDA_S = 10;
   const HUES = [345, 75, 220, 190, 25, 140, 290, 50, 0, 165, 265, 110, 315, 205, 35, 245];
@@ -36,7 +37,7 @@ window.Slova = (() => {
 
   // Nedávno použitá slova (v prohlížeči, pro každý jazyk): přednost mají
   // slova, která dítě ještě nevidělo, ať se co nejméně opakují.
-  const RECENT_MAX = 400;
+  const RECENT_MAX = 800;
   const recentKey = (id) => 'matika_slova_recent_' + id;
   function recentLoad(id) {
     try { return JSON.parse(localStorage.getItem(recentKey(id))) || []; } catch (e) { return []; }
@@ -156,7 +157,7 @@ window.Slova = (() => {
 
     // cur = právě tažená cesta (políčka); slova se hledají bez nápovědy, kde
     // pole leží: dokud slovo není nalezené, mřížka je bílá a bez hranic.
-    let puzzle, cur, solved, hinted, penalty, elapsed, running, over, tick, last, drag, wrong, msg, msgTimer;
+    let puzzle, cur, solved, hints, pick, penalty, elapsed, running, over, tick, last, drag, wrong, msg, msgTimer;
 
     const seconds = () => Math.floor(elapsed / 1000) + penalty;
     function score() { if (onScore) onScore(seconds()); }
@@ -168,7 +169,8 @@ window.Slova = (() => {
       shown = -1;
       cur = [];
       solved = puzzle.regions.map(() => false);
-      hinted = puzzle.regions.map(() => false);
+      hints = puzzle.regions.map(() => 0);   // kolik písmen slova nápověda odkryla
+      pick = -1;                              // slovo vybrané pro nápovědu
       penalty = 0;
       elapsed = 0;
       running = false;
@@ -242,12 +244,13 @@ window.Slova = (() => {
         el('polyline', { points: cur.map((c) => xy(c).join(' ')).join(' ') }, g);
         if (cur.length === 1) el('circle', { cx: xy(cur[0])[0], cy: xy(cur[0])[1], r: 0.33 }, g);
       }
-      // nápověda: kroužek na prvním písmenu
+      // nápověda: odkrytá písmena v pořadí (kroužky spojené čárou)
       regions.forEach((r, i) => {
-        if (hinted[i] && !solved[i]) {
-          const [x, y] = xy(r.path[0]);
-          el('circle', { cx: x, cy: y, r: 0.42, class: 'slova-hinted' });
-        }
+        if (!hints[i] || solved[i]) return;
+        const g = el('g', { class: 'slova-hinted' + (i === pick ? ' picked' : '') });
+        const cells = r.path.slice(0, hints[i]);
+        if (cells.length > 1) el('polyline', { points: cells.map((c) => xy(c).join(' ')).join(' ') }, g);
+        cells.forEach((c, k) => el('circle', { cx: xy(c)[0], cy: xy(c)[1], r: k ? 0.36 : 0.42 }, g));
       });
       // písmena
       letters.forEach((l, c) => {
@@ -256,22 +259,25 @@ window.Slova = (() => {
         el('text', { x, y, class: 'slova-letter' + (found(c) >= 0 || cur.includes(c) ? ' on' : '') }).textContent = l;
       });
       // seznam slov: šedá okénka podle délky, po nalezení slovo v barvě
+      // nenalezená slova jdou ťuknutím vybrat pro nápovědu, nalezená ukážou překlad
       wordsEl.innerHTML = regions.map((r, i) => {
         const tr = solved[i] && L.trans[r.word];
-        const tag = tr ? 'button type="button"' : 'span';
-        return `<${tag} class="slova-word${solved[i] ? ' done' : ''}${hinted[i] && !solved[i] ? ' hinted' : ''}${i === shown ? ' shown' : ''}" data-i="${i}" style="--h:${r.hue}" aria-label="${solved[i] ? r.word + (tr ? ', ukázat překlad' : '') : r.size + ' písmen'}">`
-          + [...r.word].map((ch, k) => `<i>${solved[i] || (hinted[i] && k === 0) ? ch : ''}</i>`).join('') + (solved[i] ? '<b aria-hidden="true">✓</b>' : '') + `</${tr ? 'button' : 'span'}>`;
+        const btn = !solved[i] ? !over : !!tr;
+        const label = solved[i] ? r.word + (tr ? ', ukázat překlad' : '') : `${r.size} písmen, vybrat pro nápovědu`;
+        return `<${btn ? 'button type="button"' : 'span'} class="slova-word${solved[i] ? ' done' : ''}${hints[i] && !solved[i] ? ' hinted' : ''}${i === shown || (i === pick && !solved[i]) ? ' shown' : ''}" data-i="${i}" style="--h:${r.hue}" aria-label="${label}"${i === pick && !solved[i] ? ' aria-pressed="true"' : ''}>`
+          + [...r.word].map((ch, k) => `<i>${solved[i] || k < hints[i] ? ch : ''}</i>`).join('') + (solved[i] ? '<b aria-hidden="true">✓</b>' : '') + `</${btn ? 'button' : 'span'}>`;
       }).join('');
       // překlad: po ťuknutí na vyřešené slovo, po konci hry všechny
       const any = Object.keys(L.trans).length && solved.some(Boolean);
       transEl.innerHTML = msg ? msg
         : over && any ? regions.map((r) => `<span><b>${r.word}</b> = ${L.trans[r.word] || '?'}</span>`).join('')
         : shown >= 0 ? `<span><b>${regions[shown].word}</b> = ${L.trans[regions[shown].word] || '?'}</span>`
-        : any ? 'Ťukni na vyřešené slovo a uvidíš překlad.' : '';
+        : any ? 'Ťukni na vyřešené slovo a uvidíš překlad.'
+        : !over ? 'Ťukni na slovo pod mřížkou a pak na Nápovědu.' : '';
       transEl.classList.toggle('tip', !!msg || (!over && shown < 0));
       box.classList.toggle('done', over);
       transEl.hidden = !transEl.textContent;
-      hintBtn.disabled = over || regions.every((r, i) => solved[i] || hinted[i]);
+      hintBtn.disabled = over || regions.every((r, i) => solved[i] || hints[i] >= r.size);
     }
 
     function say(text) {
@@ -345,6 +351,7 @@ window.Slova = (() => {
       r.word = word;
       r.path = cur.slice();
       solved[i] = true;
+      if (pick === i) pick = -1;
       cur = [];
       drag = false;
       msg = '';
@@ -366,16 +373,23 @@ window.Slova = (() => {
       const b = e.target.closest('button.slova-word');
       if (!b) return;
       const i = Number(b.dataset.i);
-      shown = shown === i ? -1 : i;
+      if (solved[i]) shown = shown === i ? -1 : i;
+      else pick = pick === i ? -1 : i;
       draw();
     });
 
-    // nápověda: první písmeno dalšího slova v mřížce i v seznamu
+    // nápověda: další písmeno vybraného slova (bez výběru slova s nejméně
+    // odkrytými písmeny); slovo zůstane vybrané, další nápověda pokračuje
     hintBtn.addEventListener('click', () => {
       if (!running || over) return;
-      const i = puzzle.regions.findIndex((r, j) => !solved[j] && !hinted[j]);
+      const regs = puzzle.regions;
+      let i = pick >= 0 && !solved[pick] && hints[pick] < regs[pick].size ? pick : -1;
+      if (i < 0) {
+        regs.forEach((r, j) => { if (!solved[j] && hints[j] < r.size && (i < 0 || hints[j] < hints[i])) i = j; });
+      }
       if (i < 0) return;
-      hinted[i] = true;
+      hints[i]++;
+      pick = i;
       penalty += NAPOVEDA_S;
       score();
       draw();
