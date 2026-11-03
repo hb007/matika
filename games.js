@@ -18,7 +18,7 @@ window.MatikaGames = {
     pad: ['up', 'left', 'down', 'right'], make: (stage, cb) => window.Pacman.create(stage, cb) },
   slova: { title: 'Slova', icon: '🔤', label: 'Sekundy', low: true, noBest: true, how: 'Mřížka je celá poskládaná ze schovaných slov, pod ní vidíš jejich délky. Táhni prstem po sousedních písmenech (nahoru, dolů, do stran) a najdi je. Každé písmeno patří právě do jednoho slova. Puštěný tah zůstane a jde na něj navázat. Nápověda ukáže první písmeno některého slova, další kliknutí jeho další písmena.',
     pad: [], variants: [
-      ['size', [['7', '7 × 7'], ['8', '8 × 8'], ['9', '9 × 9'], ['10', '10 × 10']]],
+      ['size', [['5', '5 × 5'], ['6', '6 × 6'], ['7', '7 × 7'], ['8', '8 × 8'], ['9', '9 × 9']]],
       ['lang', [['cs', 'česky'], ['en', 'anglicky'], ['de', 'německy']]],
     ],
     make: (stage, cb, v) => window.Slova.create(stage, { ...cb, size: Number(v.size), lang: v.lang }) },

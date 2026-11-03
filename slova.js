@@ -1,4 +1,4 @@
-// Slova: mřížka (7 × 7 až 10 × 10) je celá poskládaná ze slov, každé má
+// Slova: mřížka (5 × 5 až 9 × 9) je celá poskládaná ze slov, každé má
 // písmena zakroucená do hada. Kde které slovo leží, není vidět: mřížka je
 // bílá a pod ní jsou jen šedá okénka podle délek slov. Tažením prstem po
 // sousedních písmenech (nahoru, dolů, doleva, doprava) najdi slovo; nalezené
@@ -11,10 +11,11 @@
 window.Slova = (() => {
   // velikost plochy → délky slov (víc stejných = častější) a nejvýš šedých políček
   const SIZES = {
+    5: { lens: [3, 4, 4, 5, 5, 6], empty: 4 },
+    6: { lens: [4, 4, 5, 5, 6, 6, 7], empty: 5 },
     7: { lens: [4, 5, 5, 6, 6, 7, 7, 8], empty: 6 },
     8: { lens: [4, 5, 6, 6, 7, 7, 8, 8], empty: 7 },
     9: { lens: [5, 5, 6, 6, 7, 7, 8], empty: 9 },
-    10: { lens: [5, 5, 6, 6, 7, 7, 8], empty: 10 },
   };
   const HUES = [345, 75, 220, 190, 25, 140, 290, 50, 0, 165, 265, 110, 315, 205, 35, 245];
 

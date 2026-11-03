@@ -573,8 +573,8 @@ button.slova-word { padding: 2px; border: 0; border-radius: 8px; background: non
 /* po konci kola zůstane plocha se slovy a překlady vidět, nabídka je pod ní */
 .game-wrap:has(.slova.done) .game-overlay { position: static; padding: 4px 16px 18px; background: var(--canvas); }
 .slova-7 .slova-word i, .slova-8 .slova-word i { width: 21px; height: 26px; font-size: 14px; border-radius: 5px; }
-.slova-9 .slova-word i, .slova-10 .slova-word i { width: 18px; height: 23px; font-size: 13px; border-radius: 4px; }
-.slova-9 .slova-letter, .slova-10 .slova-letter { font-size: .55px; }
+.slova-9 .slova-word i { width: 18px; height: 23px; font-size: 13px; border-radius: 4px; }
+.slova-9 .slova-letter { font-size: .55px; }
 .slova-hint:disabled { opacity: .5; cursor: default; }
 @keyframes slova-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-.12px); } 75% { transform: translateX(.12px); } }
 @media (prefers-reduced-motion: reduce) { .slova-path.wrong { animation: none; } }
