@@ -10,15 +10,17 @@
 // po celém slově (nebo když ho dítě najde) začne další slovo.
 window.Slova = (() => {
   // velikost plochy → délky slov (víc stejných = častější) a nejvýš šedých políček
-  // fill = jaká část mřížky je ve slovech; zbytek jsou šedá prázdná políčka
-  // mezi slovy, ať se slova hledají snáz
   const SIZES = {
-    5: { lens: [3, 4, 4, 5, 5, 6], fill: 0.64 },
-    6: { lens: [4, 4, 5, 5, 6, 6, 7], fill: 0.62 },
-    7: { lens: [4, 5, 5, 6, 6, 7, 7, 8], fill: 0.6 },
-    8: { lens: [4, 5, 6, 6, 7, 7, 8, 8], fill: 0.6 },
-    9: { lens: [5, 5, 6, 6, 7, 7, 8], fill: 0.58 },
+    5: { lens: [3, 4, 4, 5, 5, 6] },
+    6: { lens: [4, 4, 5, 5, 6, 6, 7] },
+    7: { lens: [4, 5, 5, 6, 6, 7, 7, 8] },
+    8: { lens: [4, 5, 6, 6, 7, 7, 8, 8] },
+    9: { lens: [5, 5, 6, 6, 7, 7, 8] },
   };
+  // prázdná (šedá) políčka mezi slovy, ať se slova hledají snáz: každá hra
+  // má náhodně šestinu až třetinu mřížky prázdnou
+  const EMPTY_MIN = 1 / 6;
+  const EMPTY_MAX = 1 / 3;
   const HUES = [345, 75, 220, 190, 25, 140, 290, 50, 0, 165, 265, 110, 315, 205, 35, 245];
 
   // Slova podle jazyka (slova-words.js): podle délky, celý slovník (uzná se
@@ -99,7 +101,8 @@ window.Slova = (() => {
     const cfg = SIZES[N];
     const BY_LEN = lang(langId).byLen;
     const old = new Set(recent);
-    const target = Math.round(N * N * cfg.fill);   // kolik políček má být ve slovech
+    const empty = EMPTY_MIN + Math.random() * (EMPTY_MAX - EMPTY_MIN);
+    const target = Math.round(N * N * (1 - empty));   // kolik políček má být ve slovech
     let best = null;
     for (let attempt = 0; attempt < 200; attempt++) {
       const owner = new Array(N * N).fill(-1);   // -1 volné, -3 šedé, jinak číslo pole
