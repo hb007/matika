@@ -1,7 +1,8 @@
 // Seznam her: název, ikona, co se počítá (low = méně je lépe), návod,
 // šipky pod plochou a jak hru vytvořit. Používá app.js (hry jako odměna)
-// i hry.php (samostatná stránka se všemi hrami). variants = volba obtížnosti
-// (velikost plochy) v úvodu hry: [id, popisek]; každá má svůj rekord.
+// i hry.php (samostatná stránka se všemi hrami). variants = volby v úvodu hry
+// (velikost plochy, jazyk): [[klíč, [[hodnota, popisek], …]], …]; každá
+// kombinace má svůj rekord.
 window.MatikaGames = {
   had: { title: 'Had', icon: '🐍', label: 'Jablka', how: 'Táhni prstem po ploše, ťukej na šipky, nebo hraj šipkami na klávesnici.',
     pad: ['up', 'left', 'down', 'right'], make: (stage, cb) => { const c = document.createElement('canvas'); stage.appendChild(c); return window.Snake.create(c, cb); } },
@@ -16,37 +17,46 @@ window.MatikaGames = {
   pacman: { title: 'Pacman', icon: '👻', label: 'Body', how: 'Sněz všechny tečky a vyhni se duchům. Po velké tečce můžeš duchy chvíli jíst. Táhni prstem nebo hraj šipkami.',
     pad: ['up', 'left', 'down', 'right'], make: (stage, cb) => window.Pacman.create(stage, cb) },
   slova: { title: 'Slova', icon: '🔤', label: 'Sekundy', low: true, how: 'V každém barevném poli je schované slovo. Táhni prstem po písmenech (nahoru, dolů, do stran) a projdi celé pole. Čím rychleji, tím lépe.',
-    pad: [], variants: [['5', '5 × 5'], ['6', '6 × 6'], ['7', '7 × 7']],
-    make: (stage, cb, v) => window.Slova.create(stage, { ...cb, size: Number(v) }) },
+    pad: [], variants: [
+      ['size', [['5', '5 × 5'], ['6', '6 × 6'], ['7', '7 × 7']]],
+      ['lang', [['cs', 'česky'], ['en', 'anglicky'], ['de', 'německy']]],
+    ],
+    make: (stage, cb, v) => window.Slova.create(stage, { ...cb, size: Number(v.size), lang: v.lang }) },
 };
 
-// Zvolená obtížnost hry (pamatuje se v prohlížeči). Rekord první varianty
-// má klíč beze změny, ostatní s příponou _<id>.
+// Zvolené volby hry (pamatují se v prohlížeči), { klíč: hodnota }. Rekord
+// s prvními hodnotami má klíč beze změny, jinak s příponou _<hodnota> za
+// každou volbu, která není první. První volba se ukládá pod
+// matika_variant_<hra> (jako dřív, kdy byla jen velikost).
 window.MatikaVariant = {
+  groups: (id) => window.MatikaGames[id].variants || [],
+  key: (id, k, i) => 'matika_variant_' + id + (i ? '_' + k : ''),
   get(id) {
-    const vs = window.MatikaGames[id].variants;
-    if (!vs) return '';
-    let v = null;
-    try { v = localStorage.getItem('matika_variant_' + id); } catch (e) { /* bez úložiště */ }
-    return vs.some(([k]) => k === v) ? v : vs[0][0];
+    const out = {};
+    this.groups(id).forEach(([k, items], i) => {
+      let v = null;
+      try { v = localStorage.getItem(this.key(id, k, i)); } catch (e) { /* bez úložiště */ }
+      out[k] = items.some(([x]) => x === v) ? v : items[0][0];
+    });
+    return out;
   },
-  set(id, v) {
-    try { localStorage.setItem('matika_variant_' + id, v); } catch (e) { /* bez úložiště */ }
+  set(id, k, v) {
+    const i = this.groups(id).findIndex(([g]) => g === k);
+    if (i < 0) return;
+    try { localStorage.setItem(this.key(id, k, i), v); } catch (e) { /* bez úložiště */ }
   },
   suffix(id) {
-    const vs = window.MatikaGames[id].variants;
-    const v = this.get(id);
-    return vs && v !== vs[0][0] ? '_' + v : '';
+    const cur = this.get(id);
+    return this.groups(id).map(([k, items]) => (cur[k] !== items[0][0] ? '_' + cur[k] : '')).join('');
   },
   label(id) {
-    const vs = window.MatikaGames[id].variants;
-    return vs ? vs.find(([k]) => k === this.get(id))[1] : '';
-  },
-  // tlačítka s volbou do úvodu hry (prázdné, když hra varianty nemá)
-  html(id) {
-    const vs = window.MatikaGames[id].variants;
-    if (!vs) return '';
     const cur = this.get(id);
-    return vs.map(([k, name]) => `<button type="button" class="game-variant${k === cur ? ' on' : ''}" data-variant="${k}" aria-pressed="${k === cur}">${name}</button>`).join('');
+    return this.groups(id).map(([k, items]) => items.find(([x]) => x === cur[k])[1]).join(', ');
+  },
+  // tlačítka s volbami do úvodu hry, řádek za každou volbu (prázdné, když hra žádné nemá)
+  html(id) {
+    const cur = this.get(id);
+    return this.groups(id).map(([k, items]) => '<div class="game-variant-row">' + items.map(([v, name]) =>
+      `<button type="button" class="game-variant${v === cur[k] ? ' on' : ''}" data-variant="${k}:${v}" aria-pressed="${v === cur[k]}">${name}</button>`).join('') + '</div>').join('');
   },
 };

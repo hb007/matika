@@ -13,30 +13,35 @@ window.Slova = (() => {
   const NAPOVEDA_S = 10;
   const HUES = [345, 75, 220, 190, 25, 140, 290, 50, 0, 165, 265];
 
-  // Slova pro děti (hlavně podstatná jména), velkými písmeny s diakritikou.
-  const WORDS = `
-    PES LES DŮM MÍČ NOS SÝR LEV VŮZ OKO ZUB DUB MAK ROK DEN HAD KŮŇ SŮL MED LED LOĎ KOS JEŽ BUK ČAJ HRA LUK
-    NŮŽ OSA RYS SEN MYŠ
-    KLÍČ KOZA RYBA LIPA VODA MOST HRAD PTÁK SOVA LIST KMEN NEBE MRAK SNÍH ŽÁBA AUTO VLAK HORA POLE ŘEKA MOŘE
-    SLON STŮL PERO DORT ZIMA LÉTO JARO NOTA KOLO SÍLA MAPA OKNO DÍRA GUMA VÁHA OBĚD LYŽE TRUP KÁVA RUKA NOHA
-    TYGR KRUH DRAK DEKA ÚHEL OSMA DUHA
-    HLAVA KOČKA KRÁVA LOUKA KRTEK LÍSKA ŽIDLE KNIHA TUŽKA ŠKOLA TŘÍDA ČÍSLO CHLÉB MÁSLO MLÉKO LAMPA VČELA
-    ZÁMEK KÁMEN MĚSÍC OBLAK POTOK BRÁNA SKÁLA PÍSEK TRÁVA LIŠKA MINCE DŘEVO PAPÍR BARVA SEŠIT ÚLOHA PODÍL
-    DÉLKA TÝDEN MRKEV KOLÁČ RAJČE MÍČEK HRNEK LŽÍCE VIDLE DOMEK ZEBRA OPICE MOTÝL ŽELVA RYTÍŘ KOMÍN SKŘÍŇ
-    JABLKO HRUŠKA SLUNCE HVĚZDA RYBNÍK OSTROV MEDVĚD VLAJKA KORUNA ŠTĚTEC ZLOMEK SOUČET ROZDÍL SOUČIN
-    MINUTA HODINA MOUCHA TABULE KYTARA HOUSLE FLÉTNA CIBULE OKURKA BUCHTA VEČEŘE BRUSLE KAMION SÝKORA
-    ŽIRAFA KLOKAN DELFÍN RAKETA POSTEL PEŘINA ŽEBŘÍK KRYCHLE OBVOD STOVKA
-    LETADLO PLANETA ČTVEREC ZAHRADA KVĚTINA VEVERKA JESKYNĚ POČÍTAČ TELEFON ZRCADLO PAPRIKA POLÉVKA
-    SNÍDANĚ KOLOTOČ POLŠTÁŘ POHÁDKA ČARODĚJ ROVNICE NÁSOBEK DĚLITEL ČITATEL PŘÍKLAD ODPOVĚĎ
-    BRAMBORA PRAVÍTKO OBDÉLNÍK KRUŽNICE KALENDÁŘ VELBLOUD KROKODÝL PAPOUŠEK MRAVENEC ČOKOLÁDA ZMRZLINA
-    HOUPAČKA PROCENTO DESETINA VÝSLEDEK
-  `.trim().split(/\s+/);
-  const BY_LEN = {};
-  for (const w of WORDS) {
-    const n = [...w].length;
-    if (n <= 8) (BY_LEN[n] = BY_LEN[n] || []).push(w);
+  // Slova podle jazyka (slova-words.js): podle délky, celý slovník (uzná se
+  // i jiné slovo ze stejných písmen) a český překlad u cizích jazyků.
+  const LANGS = {};
+  function lang(id) {
+    if (LANGS[id]) return LANGS[id];
+    const src = (window.SlovaWords || {})[id] || window.SlovaWords.cs;
+    const L = { byLen: {}, dict: new Set(), trans: {} };
+    for (const tok of src.trim().split(/\s+/)) {
+      const [w, t] = tok.split('=');
+      if (L.dict.has(w)) continue;
+      L.dict.add(w);
+      if (t) L.trans[w] = t.replace(/_/g, ' ');
+      const n = [...w].length;
+      if (n >= 3 && n <= 8) (L.byLen[n] = L.byLen[n] || []).push(w);
+    }
+    return (LANGS[id] = L);
   }
-  const DICT = new Set(WORDS);
+
+  // Nedávno použitá slova (v prohlížeči, pro každý jazyk): přednost mají
+  // slova, která dítě ještě nevidělo, ať se co nejméně opakují.
+  const RECENT_MAX = 400;
+  const recentKey = (id) => 'matika_slova_recent_' + id;
+  function recentLoad(id) {
+    try { return JSON.parse(localStorage.getItem(recentKey(id))) || []; } catch (e) { return []; }
+  }
+  function recentAdd(id, words) {
+    const list = recentLoad(id).filter((w) => !words.includes(w)).concat(words).slice(-RECENT_MAX);
+    try { localStorage.setItem(recentKey(id), JSON.stringify(list)); } catch (e) { /* bez úložiště */ }
+  }
 
   const rnd = (n) => Math.floor(Math.random() * n);
   const shuffle = (a) => {
@@ -82,8 +87,10 @@ window.Slova = (() => {
   }
 
   // Rozdělí plochu N × N na pole se slovy. Vrací { N, owner, letters, regions }.
-  function generate(N = 5) {
+  function generate(N = 5, langId = 'cs', recent = []) {
     const cfg = SIZES[N];
+    const BY_LEN = lang(langId).byLen;
+    const old = new Set(recent);
     let best = null;
     for (let attempt = 0; attempt < 300; attempt++) {
       const owner = new Array(N * N).fill(-1);   // -1 volné, -3 šedé, jinak číslo pole
@@ -98,11 +105,12 @@ window.Slova = (() => {
         const start = free[0];
         let placed = false;
         // na konci zbývá málo místa: zkus i kratší slova
-        const lens = shuffle(cfg.lens.filter((n) => n <= free.length && BY_LEN[n])).concat([5, 4, 3].filter((n) => n <= free.length));
+        const lens = shuffle(cfg.lens.filter((n) => n <= free.length && BY_LEN[n])).concat([5, 4, 3].filter((n) => n <= free.length && BY_LEN[n]));
         for (const len of [...new Set(lens)]) {
           const path = walk(owner, start, len, N);
           if (!path) continue;
-          const words = shuffle(BY_LEN[len].filter((w) => !used.has(w)));
+          let words = shuffle(BY_LEN[len].filter((w) => !used.has(w) && !old.has(w)));
+          if (!words.length) words = shuffle(BY_LEN[len].filter((w) => !used.has(w)));
           if (!words.length) continue;
           used.add(words[0]);
           path.forEach((c) => { owner[c] = regions.length; });
@@ -125,17 +133,22 @@ window.Slova = (() => {
 
   const SVG = 'http://www.w3.org/2000/svg';
 
-  function create(stage, { onScore, onOver, size } = {}) {
+  function create(stage, { onScore, onOver, size, lang: langId } = {}) {
     const N = SIZES[size] ? Number(size) : 5;
+    const LG = window.SlovaWords && window.SlovaWords[langId] ? langId : 'cs';
+    const L = lang(LG);
     const box = document.createElement('div');
     box.className = 'slova slova-' + N;
     box.innerHTML = `<svg class="slova-grid" viewBox="0 0 ${N} ${N}" role="img" aria-label="Plocha se slovy"></svg>`
       + '<div class="slova-words" aria-live="polite"></div>'
+      + '<p class="slova-trans" aria-live="polite"></p>'
       + '<button type="button" class="btn slova-hint">Nápověda (+' + NAPOVEDA_S + ' s)</button>';
     stage.appendChild(box);
     const svg = box.querySelector('svg');
     const wordsEl = box.querySelector('.slova-words');
     const hintBtn = box.querySelector('.slova-hint');
+    const transEl = box.querySelector('.slova-trans');
+    let shown = -1;   // u kterého vyřešeného slova je vidět překlad
 
     let puzzle, paths, solved, hinted, penalty, elapsed, running, over, tick, last, drag, wrong;
 
@@ -144,7 +157,9 @@ window.Slova = (() => {
 
     function reset() {
       stopClock();
-      puzzle = generate(N);
+      puzzle = generate(N, LG, recentLoad(LG));
+      recentAdd(LG, puzzle.regions.map((r) => r.word));
+      shown = -1;
       paths = puzzle.regions.map(() => []);
       solved = puzzle.regions.map(() => false);
       hinted = puzzle.regions.map(() => false);
@@ -228,10 +243,20 @@ window.Slova = (() => {
         el('text', { x, y, class: 'slova-letter' + (on ? ' on' : '') }).textContent = l;
       });
       // seznam slov: délky, po vyřešení celé slovo
-      wordsEl.innerHTML = regions.map((r, i) =>
-        `<span class="slova-word${solved[i] ? ' done' : ''}" style="--h:${r.hue}" aria-label="${solved[i] ? r.word : r.size + ' písmen'}">`
-        + [...r.word].map((ch) => `<i>${solved[i] ? ch : ''}</i>`).join('') + (solved[i] ? '<b aria-hidden="true">✓</b>' : '') + '</span>'
-      ).join('');
+      wordsEl.innerHTML = regions.map((r, i) => {
+        const tr = solved[i] && L.trans[r.word];
+        const tag = tr ? 'button type="button"' : 'span';
+        return `<${tag} class="slova-word${solved[i] ? ' done' : ''}${i === shown ? ' shown' : ''}" data-i="${i}" style="--h:${r.hue}" aria-label="${solved[i] ? r.word + (tr ? ', ukázat překlad' : '') : r.size + ' písmen'}">`
+          + [...r.word].map((ch) => `<i>${solved[i] ? ch : ''}</i>`).join('') + (solved[i] ? '<b aria-hidden="true">✓</b>' : '') + `</${tr ? 'button' : 'span'}>`;
+      }).join('');
+      // překlad: po ťuknutí na vyřešené slovo, po konci hry všechny
+      const any = Object.keys(L.trans).length && solved.some(Boolean);
+      transEl.innerHTML = over && any ? regions.map((r) => `<span><b>${r.word}</b> = ${L.trans[r.word] || '?'}</span>`).join('')
+        : shown >= 0 ? `<span><b>${regions[shown].word}</b> = ${L.trans[regions[shown].word] || '?'}</span>`
+        : any ? 'Ťukni na vyřešené slovo a uvidíš překlad.' : '';
+      transEl.classList.toggle('tip', !over && shown < 0);
+      box.classList.toggle('done', over);
+      transEl.hidden = !transEl.textContent;
       hintBtn.disabled = over || regions.every((r, i) => solved[i] || hinted[i]);
     }
 
@@ -280,7 +305,7 @@ window.Slova = (() => {
     function check(i) {
       const r = puzzle.regions[i];
       const word = paths[i].map((c) => puzzle.letters[c]).join('');
-      if (word === r.word || DICT.has(word)) {
+      if (word === r.word || L.dict.has(word)) {
         r.word = word;   // jiné platné slovo ze stejných písmen se počítá taky
         solved[i] = true;
         drag = null;
@@ -307,6 +332,15 @@ window.Slova = (() => {
       }, 450);
     }
 
+    // překlad vyřešeného slova (jde i po konci hry)
+    wordsEl.addEventListener('click', (e) => {
+      const b = e.target.closest('button.slova-word');
+      if (!b) return;
+      const i = Number(b.dataset.i);
+      shown = shown === i ? -1 : i;
+      draw();
+    });
+
     hintBtn.addEventListener('click', () => {
       if (!running || over) return;
       const i = puzzle.regions.findIndex((r, j) => !solved[j] && !hinted[j]);
@@ -330,5 +364,5 @@ window.Slova = (() => {
       get puzzle() { return puzzle; },   // pro testy
     };
   }
-  return { create, generate, WORDS, SIZES };
+  return { create, generate, lang, SIZES };
 })();

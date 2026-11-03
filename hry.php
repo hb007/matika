@@ -4,7 +4,7 @@
 // v games.js, ovládání v hry.js.
 header('Cache-Control: no-cache');
 $v = fn(string $f): string => $f . '?v=' . filemtime(__DIR__ . '/' . $f);
-$games = ['gamekit.js', 'snake.js', 'g2048.js', 'pexeso.js', 'breakout.js', 'flappy.js', 'pacman.js', 'slova.js', 'games.js', 'hry.js'];
+$games = ['gamekit.js', 'snake.js', 'g2048.js', 'pexeso.js', 'breakout.js', 'flappy.js', 'pacman.js', 'slova-words.js', 'slova.js', 'games.js', 'hry.js'];
 ?>
 <!doctype html>
 <html lang="cs">

@@ -248,6 +248,7 @@ $color = $kid ? (COLORS[$kid['color']] ?? COLORS['modra']) : null;
 <script src="<?= $v('breakout.js') ?>"></script>
 <script src="<?= $v('flappy.js') ?>"></script>
 <script src="<?= $v('pacman.js') ?>"></script>
+<script src="<?= $v('slova-words.js') ?>"></script>
 <script src="<?= $v('slova.js') ?>"></script>
 <script src="<?= $v('games.js') ?>"></script>
 <script src="<?= $v('app.js') ?>"></script>

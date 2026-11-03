@@ -93,7 +93,8 @@
   $('game-variants').addEventListener('click', (e) => {
     const b = e.target.closest('[data-variant]');
     if (!b || !gameId || (game && game.running)) return;
-    window.MatikaVariant.set(gameId, b.dataset.variant);
+    const [k, v] = b.dataset.variant.split(':');
+    window.MatikaVariant.set(gameId, k, v);
     openGame(gameId);
   });
   $('game-pause').addEventListener('click', pause);
