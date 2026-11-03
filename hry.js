@@ -19,7 +19,7 @@
     game = null;
     $('games-list').innerHTML = Object.entries(GAMES).map(([id, g]) =>
       `<button type="button" class="game-card" data-game-id="${id}"><span class="game-icon">${g.icon}</span>`
-      + `<b>${g.title}</b><small>rekord ${bestOf(id) || '–'}${g.variants ? ` (${window.MatikaVariant.label(id)})` : ''}</small></button>`).join('');
+      + `<b>${g.title}</b><small>${g.noBest ? (g.variants ? window.MatikaVariant.label(id) : '') : `rekord ${bestOf(id) || '–'}${g.variants ? ` (${window.MatikaVariant.label(id)})` : ''}`}</small></button>`).join('');
     show('games');
   }
   function overlay(msg, btn) {
@@ -43,6 +43,7 @@
     $('game-score-label').textContent = g.label;
     $('game-score').textContent = '0';
     $('game-best').textContent = bestOf(id) || '–';
+    $('game-best-wrap').hidden = !!g.noBest;
     $('game-pad').hidden = !g.pad.length;
     $('game-pad').querySelectorAll('[data-dir]').forEach((b) => { b.hidden = !g.pad.includes(b.dataset.dir); });
     show('game');
@@ -57,7 +58,7 @@
   function over(n) {
     const g = GAMES[gameId];
     const best = bestOf(gameId);
-    const record = g.low ? n > 0 && (!best || n < best) : n > best;
+    const record = !g.noBest && (g.low ? n > 0 && (!best || n < best) : n > best);
     if (record) {
       try { localStorage.setItem(bestKey(gameId), String(n)); } catch (e) { /* bez úložiště */ }
       $('game-best').textContent = n;

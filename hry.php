@@ -1,8 +1,13 @@
 <?php
-// Samostatná stránka se všemi hrami (adresa /hry): bez přihlášení, bez
-// denního cíle a limitu her. Z appky na ni nevede odkaz. Seznam her je
-// v games.js, ovládání v hry.js.
-header('Cache-Control: no-cache');
+// Samostatná stránka se všemi hrami (adresa /hry): za heslem správce
+// (lib/admin_auth.php, stejné přihlášení jako admin.php), bez denního cíle
+// a limitu her. Z appky na ni nevede odkaz. Seznam her je v games.js,
+// ovládání v hry.js.
+declare(strict_types=1);
+require __DIR__ . '/lib/db.php';
+require __DIR__ . '/lib/admin_auth.php';
+header('Cache-Control: no-store');
+admin_gate('hry.php', 'Matika – hry');
 $v = fn(string $f): string => $f . '?v=' . filemtime(__DIR__ . '/' . $f);
 $games = ['gamekit.js', 'snake.js', 'g2048.js', 'pexeso.js', 'breakout.js', 'flappy.js', 'pacman.js', 'slova-words.js', 'slova.js', 'games.js', 'hry.js'];
 ?>
@@ -42,7 +47,7 @@ $games = ['gamekit.js', 'snake.js', 'g2048.js', 'pexeso.js', 'breakout.js', 'fla
   <section id="screen-game" class="screen" hidden>
     <div class="game-head">
       <h1 id="game-title"></h1>
-      <span class="game-score"><span id="game-score-label"></span> <b id="game-score">0</b> · rekord <b id="game-best">0</b></span>
+      <span class="game-score"><span id="game-score-label"></span> <b id="game-score">0</b><span id="game-best-wrap"> · rekord <b id="game-best">0</b></span></span>
     </div>
     <div class="game-wrap">
       <div class="game-stage" id="game-stage" aria-label="Herní plocha"></div>
