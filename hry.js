@@ -6,7 +6,7 @@
   const $ = (id) => document.getElementById(id);
   let game = null, gameId = null;
 
-  const bestKey = (id) => 'matika_hry_best_' + id;
+  const bestKey = (id) => 'matika_hry_best_' + id + window.MatikaVariant.suffix(id);
   const bestOf = (id) => { try { return Number(localStorage.getItem(bestKey(id))) || 0; } catch (e) { return 0; } };
 
   function show(name) {
@@ -19,11 +19,14 @@
     game = null;
     $('games-list').innerHTML = Object.entries(GAMES).map(([id, g]) =>
       `<button type="button" class="game-card" data-game-id="${id}"><span class="game-icon">${g.icon}</span>`
-      + `<b>${g.title}</b><small>rekord ${bestOf(id) || '–'}</small></button>`).join('');
+      + `<b>${g.title}</b><small>rekord ${bestOf(id) || '–'}${g.variants ? ` (${window.MatikaVariant.label(id)})` : ''}</small></button>`).join('');
     show('games');
   }
   function overlay(msg, btn) {
     $('game-msg').textContent = msg;
+    const vars = gameId && !(game && game.paused) ? window.MatikaVariant.html(gameId) : '';
+    $('game-variants').innerHTML = vars;
+    $('game-variants').hidden = !vars;
     $('game-start').textContent = btn;
     $('game-overlay').hidden = false;
   }
@@ -46,7 +49,7 @@
     game = g.make($('game-stage'), {
       onScore: (n) => { $('game-score').textContent = n; },
       onOver: (n) => over(n),
-    });
+    }, window.MatikaVariant.get(id));
     overlay(g.how, 'Hrát');
     renderPause();
     try { history.replaceState(null, '', '#' + id); } catch (e) { /* nevadí */ }
@@ -87,6 +90,12 @@
     openGames();
   });
   $('game-start').addEventListener('click', go);
+  $('game-variants').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-variant]');
+    if (!b || !gameId || (game && game.running)) return;
+    window.MatikaVariant.set(gameId, b.dataset.variant);
+    openGame(gameId);
+  });
   $('game-pause').addEventListener('click', pause);
   // první ťuknutí na plochu hru spustí (z pauzy jen tlačítkem)
   $('game-stage').addEventListener('pointerdown', () => {

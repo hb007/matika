@@ -192,6 +192,7 @@ $color = $kid ? (COLORS[$kid['color']] ?? COLORS['modra']) : null;
       <div class="game-stage" id="game-stage" aria-label="Herní plocha"></div>
       <div class="game-overlay" id="game-overlay">
         <p id="game-msg"></p>
+        <div class="game-variants" id="game-variants" role="group" aria-label="Obtížnost" hidden></div>
         <button type="button" class="btn" id="game-start">Hrát</button>
       </div>
     </div>

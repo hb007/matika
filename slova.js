@@ -1,33 +1,40 @@
-// Slova: plocha 5 × 5 je rozdělená na barevná pole, v každém je jedno
-// slovo s přeházenými písmeny. Tažením prstem po sousedních políčkách
-// (nahoru, dolů, doleva, doprava) projdi celé pole tak, aby vzniklo slovo.
-// Šedá políčka nejsou ve hře. Skóre je čas v sekundách, čím méně, tím lépe;
-// nápověda ukáže, kde slovo začíná, a přidá NAPOVEDA_S sekund.
+// Slova: plocha (5 × 5, 6 × 6 nebo 7 × 7) je rozdělená na barevná pole, v každém
+// je jedno slovo s písmeny zakroucenými do hada. Tažením prstem po sousedních
+// políčkách (nahoru, dolů, doleva, doprava) projdi celé pole tak, aby vzniklo
+// slovo. Šedá políčka nejsou ve hře. Skóre je čas v sekundách, čím méně, tím
+// lépe; nápověda ukáže, kde slovo začíná, a přidá NAPOVEDA_S sekund.
 window.Slova = (() => {
-  const N = 5;
-  const MIN_LEN = 3;
-  const MAX_LEN = 6;
-  const MAX_EMPTY = 4;          // nejvýš tolik šedých políček
+  // velikost plochy → délky slov (víc stejných = častější) a nejvýš šedých políček
+  const SIZES = {
+    5: { lens: [3, 4, 4, 5, 5, 5, 6, 6], empty: 4 },
+    6: { lens: [4, 5, 5, 6, 6, 6, 7, 7], empty: 5 },
+    7: { lens: [4, 5, 6, 6, 7, 7, 7, 8, 8], empty: 6 },
+  };
   const NAPOVEDA_S = 10;
-  const HUES = [345, 75, 220, 190, 25, 140, 290, 50];
+  const HUES = [345, 75, 220, 190, 25, 140, 290, 50, 0, 165, 265];
 
-  // Slova pro děti (podstatná jména), velkými písmeny s diakritikou.
+  // Slova pro děti (hlavně podstatná jména), velkými písmeny s diakritikou.
   const WORDS = `
     PES LES DŮM MÍČ NOS SÝR LEV VŮZ OKO ZUB DUB MAK ROK DEN HAD KŮŇ SŮL MED LED LOĎ KOS JEŽ BUK ČAJ HRA LUK
-    NŮŽ OSA RYS SEN MYŠ KLÍČ
-    KOZA RYBA LIPA VODA MOST HRAD PTÁK SOVA LIST KMEN NEBE MRAK SNÍH ŽÁBA AUTO VLAK HORA POLE ŘEKA MOŘE SLON
-    STŮL PERO DORT ZIMA LÉTO JARO NOTA KOLO SÍLA MAPA OKNO DÍRA GUMA VÁHA OBĚD LYŽE TRUP KÁVA RUKA NOHA
+    NŮŽ OSA RYS SEN MYŠ
+    KLÍČ KOZA RYBA LIPA VODA MOST HRAD PTÁK SOVA LIST KMEN NEBE MRAK SNÍH ŽÁBA AUTO VLAK HORA POLE ŘEKA MOŘE
+    SLON STŮL PERO DORT ZIMA LÉTO JARO NOTA KOLO SÍLA MAPA OKNO DÍRA GUMA VÁHA OBĚD LYŽE TRUP KÁVA RUKA NOHA
+    TYGR KRUH DRAK DEKA ÚHEL OSMA DUHA
     HLAVA KOČKA KRÁVA LOUKA KRTEK LÍSKA ŽIDLE KNIHA TUŽKA ŠKOLA TŘÍDA ČÍSLO CHLÉB MÁSLO MLÉKO LAMPA VČELA
     ZÁMEK KÁMEN MĚSÍC OBLAK POTOK BRÁNA SKÁLA PÍSEK TRÁVA LIŠKA MINCE DŘEVO PAPÍR BARVA SEŠIT ÚLOHA PODÍL
-    DÉLKA TÝDEN MRKEV KOLÁČ RAJČE MÍČEK HRNEK LŽÍCE VIDLE DOMEK ZEBRA OPICE TYGR SÝKORA
+    DÉLKA TÝDEN MRKEV KOLÁČ RAJČE MÍČEK HRNEK LŽÍCE VIDLE DOMEK ZEBRA OPICE MOTÝL ŽELVA RYTÍŘ KOMÍN SKŘÍŇ
     JABLKO HRUŠKA SLUNCE HVĚZDA RYBNÍK OSTROV MEDVĚD VLAJKA KORUNA ŠTĚTEC ZLOMEK SOUČET ROZDÍL SOUČIN
-    MINUTA HODINA MOUCHA TABULE KYTARA HOUSLE FLÉTNA CIBULE OKURKA BUCHTA VEČEŘE BRUSLE KAMION LETADLO
-    MOTÝL ŽIRAFA KLOKAN DELFÍN PLANETA RAKETA KRUH
+    MINUTA HODINA MOUCHA TABULE KYTARA HOUSLE FLÉTNA CIBULE OKURKA BUCHTA VEČEŘE BRUSLE KAMION SÝKORA
+    ŽIRAFA KLOKAN DELFÍN RAKETA POSTEL PEŘINA ŽEBŘÍK KRYCHLE OBVOD STOVKA
+    LETADLO PLANETA ČTVEREC ZAHRADA KVĚTINA VEVERKA JESKYNĚ POČÍTAČ TELEFON ZRCADLO PAPRIKA POLÉVKA
+    SNÍDANĚ KOLOTOČ POLŠTÁŘ POHÁDKA ČARODĚJ ROVNICE NÁSOBEK DĚLITEL ČITATEL PŘÍKLAD ODPOVĚĎ
+    BRAMBORA PRAVÍTKO OBDÉLNÍK KRUŽNICE KALENDÁŘ VELBLOUD KROKODÝL PAPOUŠEK MRAVENEC ČOKOLÁDA ZMRZLINA
+    HOUPAČKA PROCENTO DESETINA VÝSLEDEK
   `.trim().split(/\s+/);
   const BY_LEN = {};
   for (const w of WORDS) {
     const n = [...w].length;
-    if (n >= MIN_LEN && n <= MAX_LEN) (BY_LEN[n] = BY_LEN[n] || []).push(w);
+    if (n <= 8) (BY_LEN[n] = BY_LEN[n] || []).push(w);
   }
   const DICT = new Set(WORDS);
 
@@ -36,7 +43,7 @@ window.Slova = (() => {
     for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; }
     return a;
   };
-  const nbrs = (c) => {
+  const nbrs = (c, N) => {
     const x = c % N, y = Math.floor(c / N), out = [];
     if (x > 0) out.push(c - 1);
     if (x < N - 1) out.push(c + 1);
@@ -47,18 +54,18 @@ window.Slova = (() => {
 
   // Náhodná cesta délky len po volných políčkách z políčka start (prohledávání
   // do hloubky, přednost mají sousedé s méně volnými sousedy, ať nezůstávají díry).
-  function walk(owner, start, len) {
+  function walk(owner, start, len, N) {
     const path = [start];
     owner[start] = -2;
-    const free = (c) => nbrs(c).filter((d) => owner[d] === -1).length;
+    const free = (c) => nbrs(c, N).filter((d) => owner[d] === -1).length;
     let tries = 0;
     // slovo musí zahnout (rovná řada se dá přečíst bez hledání), delší i víckrát
     const turns = () => path.slice(2).filter((c, i) => c - path[i + 1] !== path[i + 1] - path[i]).length;
-    const need = len >= 5 ? 2 : 1;
+    const need = len >= 7 ? 3 : len >= 5 ? 2 : 1;
     function go() {
       if (path.length === len) return turns() >= need;
       if (tries++ > 400) return false;
-      const opts = shuffle(nbrs(path[path.length - 1]).filter((d) => owner[d] === -1))
+      const opts = shuffle(nbrs(path[path.length - 1], N).filter((d) => owner[d] === -1))
         .sort((a, b) => free(a) - free(b) + (Math.random() - 0.5));
       for (const d of opts) {
         owner[d] = -2;
@@ -74,8 +81,9 @@ window.Slova = (() => {
     return ok ? path : null;
   }
 
-  // Rozdělí plochu na pole se slovy. Vrací { owner, letters, regions }.
-  function generate() {
+  // Rozdělí plochu N × N na pole se slovy. Vrací { N, owner, letters, regions }.
+  function generate(N = 5) {
+    const cfg = SIZES[N];
     let best = null;
     for (let attempt = 0; attempt < 300; attempt++) {
       const owner = new Array(N * N).fill(-1);   // -1 volné, -3 šedé, jinak číslo pole
@@ -85,13 +93,14 @@ window.Slova = (() => {
         const free = owner.map((o, c) => (o === -1 ? c : -1)).filter((c) => c >= 0);
         if (!free.length) break;
         // začni u políčka s nejméně volnými sousedy (rohy, zákoutí)
-        const deg = (c) => nbrs(c).filter((d) => owner[d] === -1).length;
+        const deg = (c) => nbrs(c, N).filter((d) => owner[d] === -1).length;
         free.sort((a, b) => deg(a) - deg(b) + (Math.random() - 0.5) * 0.9);
         const start = free[0];
         let placed = false;
-        const lens = shuffle([3, 4, 4, 5, 5, 5, 6, 6].filter((n) => n <= free.length && BY_LEN[n]));
+        // na konci zbývá málo místa: zkus i kratší slova
+        const lens = shuffle(cfg.lens.filter((n) => n <= free.length && BY_LEN[n])).concat([5, 4, 3].filter((n) => n <= free.length));
         for (const len of [...new Set(lens)]) {
-          const path = walk(owner, start, len);
+          const path = walk(owner, start, len, N);
           if (!path) continue;
           const words = shuffle(BY_LEN[len].filter((w) => !used.has(w)));
           if (!words.length) continue;
@@ -105,21 +114,22 @@ window.Slova = (() => {
       }
       const empty = owner.filter((o) => o === -3).length;
       if (!best || empty < best.empty) best = { owner, regions, empty };
-      if (empty <= MAX_EMPTY && regions.length >= 4) break;
+      if (empty <= cfg.empty && regions.length >= 4) break;
     }
     const letters = new Array(N * N).fill('');
     best.regions.forEach((r) => r.path.forEach((c, i) => { letters[c] = [...r.word][i]; }));
     best.regions.sort((a, b) => a.size - b.size || a.word.localeCompare(b.word, 'cs'));
     best.regions.forEach((r, i) => { r.path.forEach((c) => { best.owner[c] = i; }); r.hue = HUES[i % HUES.length]; });
-    return { owner: best.owner, letters, regions: best.regions };
+    return { N, owner: best.owner, letters, regions: best.regions };
   }
 
   const SVG = 'http://www.w3.org/2000/svg';
 
-  function create(stage, { onScore, onOver } = {}) {
+  function create(stage, { onScore, onOver, size } = {}) {
+    const N = SIZES[size] ? Number(size) : 5;
     const box = document.createElement('div');
-    box.className = 'slova';
-    box.innerHTML = '<svg class="slova-grid" viewBox="0 0 5 5" role="img" aria-label="Plocha se slovy"></svg>'
+    box.className = 'slova slova-' + N;
+    box.innerHTML = `<svg class="slova-grid" viewBox="0 0 ${N} ${N}" role="img" aria-label="Plocha se slovy"></svg>`
       + '<div class="slova-words" aria-live="polite"></div>'
       + '<button type="button" class="btn slova-hint">Nápověda (+' + NAPOVEDA_S + ' s)</button>';
     stage.appendChild(box);
@@ -134,7 +144,7 @@ window.Slova = (() => {
 
     function reset() {
       stopClock();
-      puzzle = generate();
+      puzzle = generate(N);
       paths = puzzle.regions.map(() => []);
       solved = puzzle.regions.map(() => false);
       hinted = puzzle.regions.map(() => false);
@@ -258,7 +268,7 @@ window.Slova = (() => {
       const end = p[p.length - 1];
       if (c === end) return;
       if (p.length > 1 && c === p[p.length - 2]) { p.pop(); draw(); return; }   // zpět
-      if (p.includes(c) || !nbrs(end).includes(c)) return;
+      if (p.includes(c) || !nbrs(end, N).includes(c)) return;
       p.push(c);
       draw();
       if (p.length === puzzle.regions[drag].size) check(drag);
@@ -320,5 +330,5 @@ window.Slova = (() => {
       get puzzle() { return puzzle; },   // pro testy
     };
   }
-  return { create, generate, WORDS, N };
+  return { create, generate, WORDS, SIZES };
 })();
