@@ -340,5 +340,46 @@ ZECKE=klíště ZIEL=cíl ZIMT=skořice ZOPF=cop ZUNGE=jazyk HUFEISEN=podkova MI
 KOCHTOPF=hrnec KÄSEBROT=chléb_se_sýrem SCHULBUS=školní_autobus LAUFBAHN=běžecká_dráha GEWINNER=vítěz
 ZWILLING=dvojče LEHRLING=učeň TIERHEIM=útulek KREUZUNG=křižovatka AMPEL=semafor RATHAUS=radnice
 NIKOLAUS=Mikuláš ZEUGNIS=vysvědčení PAUSE=přestávka CLOWN=klaun
+AAL=úhoř BIBER=bobr BUSSARD=káně DOHLE=kavka DROSSEL=drozd ELSTER=straka ERPEL=kačer FALKE=sokol FINK=pěnkava
+FLOH=blecha GECKO=gekon HABICHT=jestřáb HAHN=kohout HECHT=štika HENNE=slepice HERING=sleď HORNISSE=sršeň
+HUMMEL=čmelák HYÄNE=hyena JAGUAR=jaguár KAKADU=kakadu KALB=tele KOALA=koala KOLIBRI=kolibřík KORMORAN=kormorán
+KREBS=rak KUCKUCK=kukačka LAMA=lama LAMM=jehně LERCHE=skřivan MOTTE=mol NATTER=užovka OCHSE=vůl OTTER=vydra
+PANDA=panda PELIKAN=pelikán QUALLE=medúza REHKITZ=srnče RENTIER=sob SARDINE=sardinka SCHWALBE=vlaštovka
+SKORPION=štír SPERLING=vrabec STAR=špaček STUTE=klisna TRUTHAHN=krocan UHU=výr WACHTEL=křepelka WALROSS=mrož
+WIDDER=beran WIESEL=lasička ZANDER=candát LEOPARD=levhart GEPARD=gepard PUTE=krůta FERKEL=sele WELPE=štěně
+FALTER=motýl ASSEL=stínka GRILLE=cvrček ANANAS=ananas APRIKOSE=meruňka AVOCADO=avokádo BROKKOLI=brokolice
+BRÜHE=vývar DATTEL=datle ESSIG=ocet FEIGE=fík FLEISCH=maso GRIESS=krupice GULASCH=guláš INGWER=zázvor
+KAFFEE=káva KARAMELL=karamel KEKS=sušenka KNÖDEL=knedlík KOMPOTT=kompot KRAPFEN=kobliha LIMONADE=limonáda
+LINSE=čočka MANGO=mango MEHL=mouka MÜSLI=müsli OLIVE=oliva PIZZA=pizza POMMES=hranolky ROSINE=rozinka
+RÜBE=řepa SALAMI=salám SELLERIE=celer SEMMEL=houska SIRUP=sirup SPECK=slanina STRUDEL=štrúdl TOAST=toast
+VANILLE=vanilka ZWIEBACK=suchar ERDNUSS=arašíd KIWI=kiwi LAUCH=pórek KRAUT=zelí LUTSCHER=lízátko
+PRALINE=pralinka GUMMIBÄR=gumový_medvídek POPCORN=popcorn KETCHUP=kečup BAUKLOTZ=kostka_stavebnice
+BESTECK=příbor BÜRO=kancelář DOSE=plechovka ESSTISCH=jídelní_stůl FLUR=chodba GARDINE=záclona HAKEN=hák
+KAMM=hřeben KANNE=konvice KLINGEL=zvonek KOMMODE=komoda MIXER=mixér SCHÜRZE=zástěra SPÜLE=dřez TAPETE=tapeta
+FÖHN=fén RAHMEN=rám SCHALTER=vypínač STECKER=zástrčka KABEL=kabel BATTERIE=baterie LEIM=lepidlo AUFSATZ=sloh
+BLOCK=blok DIKTAT=diktát GLOBUS=glóbus GUMMI=guma KLASSE=třída MAPPE=desky NOTE=známka ORDNER=pořadač
+PROJEKT=projekt RANZEN=aktovka RECHNER=kalkulačka LÖSUNG=řešení PRÜFUNG=zkouška FRAGE=otázka MATHE=matika
+SPORT=sport BIOLOGIE=biologie CHEMIE=chemie PHYSIK=fyzika ERDKUNDE=zeměpis BACH=potok BLÜTE=květ BUCHE=buk
+DÜNE=duna EICHE=dub EBENE=rovina ERDBEBEN=zemětřesení FICHTE=smrk FLUT=příliv GIPFEL=vrchol HAGEL=kroupy
+HANG=svah HOLUNDER=bez KIEFER=borovice KLEE=jetel KNOSPE=pupen KRATER=kráter LAWINE=lavina LICHTUNG=mýtina
+MOOR=rašeliniště OASE=oáza OZEAN=oceán PFLANZE=rostlina REIF=jinovatka SCHLUCHT=rokle STEPPE=step SUMPF=bažina
+TAU=rosa URWALD=prales WURZEL=kořen ZWEIG=větvička EFEU=břečťan FARN=kapradina DISTEL=bodlák LILIE=lilie
+NELKE=karafiát AHORN=javor ERLE=olše PAPPEL=topol ULME=jilm EIBE=tis ORKAN=orkán TORNADO=tornádo FROST=mráz
+HITZE=horko KÄLTE=chlad GALAXIE=galaxie WELTALL=vesmír SATELLIT=družice BOTE=posel CHEF=šéf DETEKTIV=detektiv
+DIEB=zloděj DIRIGENT=dirigent ERFINDER=vynálezce FAHRER=řidič GÄRTNER=zahradník GAST=host HELD=hrdina
+HIRTE=pastýř KÖNIGIN=královna KÜNSTLER=umělec MALER=malíř MAURER=zedník METZGER=řezník MÜLLER=mlynář
+NONNE=jeptiška PFARRER=farář POLIZIST=policista RICHTER=soudce SOLDAT=voják SPORTLER=sportovec TÄNZER=tanečník
+TISCHLER=truhlář WÄCHTER=hlídač KIND=dítě JUNGE=kluk BABY=miminko ELTERN=rodiče NICHTE=neteř VETTER=bratranec
+KAISER=císař FEE=víla INDIANER=indián COWBOY=kovboj DAMPFER=parník FLOSS=vor JACHT=jachta MOPED=moped
+TAXI=taxi WAGGON=vagón TUNNEL=tunel STADION=stadion HOTEL=hotel FABRIK=továrna GRENZE=hranice LAND=země
+KÜSTE=pobřeží ANZUG=oblek HUT=klobouk JEANS=džíny PYJAMA=pyžamo TRIKOT=dres WESTE=vesta BRILLE=brýle
+BRUST=hrudník ELLBOGEN=loket FERSE=pata GEHIRN=mozek HAUT=kůže HÜFTE=bok LUNGE=plíce MUSKEL=sval NABEL=pupík
+NACKEN=šíje NIERE=ledvina WANGE=tvář WIMPER=řasa BLUT=krev ANGST=strach ARBEIT=práce BESUCH=návštěva
+EINKAUF=nákup ENDE=konec ERFOLG=úspěch FREUDE=radost FRIEDEN=mír GEDULD=trpělivost HILFE=pomoc HOFFNUNG=naděje
+IDEE=nápad KRAFT=síla LACHEN=smích LIEBE=láska NAME=jméno PLAN=plán PREIS=cena REGEL=pravidlo RUHE=klid
+SCHLAF=spánek SIEG=vítězství SPASS=legrace STILLE=ticho WAHRHEIT=pravda WETTER=počasí WITZ=vtip WUNSCH=přání
+ZAUBER=kouzlo ZEIT=čas SEKUNDE=sekunda JANUAR=leden FEBRUAR=únor MÄRZ=březen APRIL=duben JUNI=červen
+JULI=červenec AUGUST=srpen OKTOBER=říjen NOVEMBER=listopad DEZEMBER=prosinec LINIE=přímka PUNKT=bod ZAHL=číslo
+ZIFFER=číslice SUMME=součet HÄLFTE=polovina DRITTEL=třetina VIERTEL=čtvrtina BRUCH=zlomek MILLION=milion
 `,
 };
