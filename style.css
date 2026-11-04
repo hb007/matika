@@ -538,46 +538,52 @@ body[data-diff] .top { border-bottom: 0; box-shadow: inset 0 -6px 0 var(--hl); p
 
 /* slova (slova.js) */
 .game-wrap:has(.slova) { aspect-ratio: auto; }
-.slova { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 10px; background: var(--canvas); }
-.slova-grid { display: block; width: 100%; aspect-ratio: 1; touch-action: none; user-select: none; -webkit-user-select: none; }
-.slova-grid rect { stroke: var(--line); stroke-width: .02; }
+.slova {
+  --slova-grid: #e6e8eb; --slova-off: #b5b5b5; --slova-chip: #e3e5e8; --slova-frame: #3d4046;
+  display: flex; flex-direction: column; align-items: stretch; gap: 14px; padding: 12px; background: var(--canvas);
+}
+[data-theme=dark] .slova { --slova-grid: #2c323b; --slova-off: #555b64; --slova-chip: #2a3039; --slova-frame: #c9ced6; }
+.slova-grid { display: block; width: 100%; aspect-ratio: 1; touch-action: none; user-select: none; -webkit-user-select: none; border-radius: 3.2%; overflow: hidden; }
+.slova-grid rect { stroke: var(--slova-grid); stroke-width: .025; }
 .slova-grid .slova-cell { fill: var(--canvas); }
-.slova-grid .slova-off { fill: var(--line); opacity: .7; }
-.slova-wall { fill: none; stroke: var(--ink); stroke-width: .07; stroke-linecap: square; }
-.slova-frame { fill: none; stroke: var(--ink); stroke-width: .07; }
+.slova-grid .slova-off { fill: var(--slova-off); stroke: none; }
+.slova-wall { fill: none; stroke: var(--slova-frame); stroke-width: .06; stroke-linecap: square; }
+.slova-grid .slova-frame { fill: none; stroke: var(--slova-frame); stroke-width: .08; }
 .slova-path polyline { fill: none; stroke-width: .66; stroke-linecap: round; stroke-linejoin: round; }
 .slova-cur polyline { stroke: var(--kid); opacity: .45; }
 .slova-cur circle { fill: var(--kid); opacity: .45; }
-.slova-path.wrong { animation: slova-shake .4s; opacity: .55; }
 .slova-start { fill: none; stroke-width: .07; stroke-dasharray: none; filter: brightness(.75); }
 .slova-hinted circle { fill: none; stroke: var(--kid); stroke-width: .07; stroke-dasharray: .12 .08; }
 .slova-hinted circle.first { stroke-dasharray: none; }
 .slova-hinted polyline { fill: none; stroke: var(--kid); stroke-width: .06; stroke-dasharray: .1 .1; opacity: .7; }
-.slova-letter { font-size: .5px; font-weight: 700; text-anchor: middle; dominant-baseline: central; fill: var(--ink); pointer-events: none; }
+.slova-letter { font-size: .46px; font-weight: 700; text-anchor: middle; dominant-baseline: central; fill: var(--ink); pointer-events: none; }
 .slova-letter.on { fill: #15171b; }
-.slova-words { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 10px; }
-.slova-word { display: inline-flex; align-items: center; gap: 3px; }
+/* okénka slov: světle šedé čtverečky bez rámečku, zarovnané doleva */
+.slova-words { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 6px 12px; padding: 0 2px; }
+.slova-word { display: inline-flex; align-items: center; gap: 4px; }
 .slova-word i {
-  display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 30px; border-radius: 6px;
-  font-style: normal; font-weight: 700; font-size: 17px; color: var(--ink); background: var(--active-bg);
-  border: 2px solid var(--line);
+  display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 6px;
+  font-style: normal; font-weight: 700; font-size: 17px; color: #15171b; background: var(--slova-chip);
 }
-.slova-word.done i { background: hsl(var(--h) 72% 52%); border-color: hsl(var(--h) 72% 52%); color: #15171b; }
+.slova-word.done i { background: hsl(var(--h) 72% 52%); }
 .slova-word b { color: var(--ok, #2b8a3e); font-size: 20px; margin-left: 2px; }
-.slova-hint { margin-bottom: 4px; }
 button.slova-word { padding: 2px; border: 0; border-radius: 8px; background: none; font: inherit; cursor: pointer; }
 .slova-word.shown { outline: 2px solid var(--ink); outline-offset: 2px; }
 .slova-trans { margin: 0; text-align: center; font-size: 18px; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 16px; }
 .slova-trans.tip { color: var(--muted); font-size: 15px; }
-.slova.done .slova-hint { display: none; }
+/* Vrátit a Nápověda: dvě oblá tlačítka vedle sebe */
+.slova-actions { display: flex; gap: 12px; margin-bottom: 4px; }
+.slova-btn {
+  flex: 1; min-height: 50px; border-radius: 999px; font: inherit; font-size: 18px; font-weight: 700; cursor: pointer;
+  border: 2px solid var(--slova-frame); background: none; color: var(--ink);
+}
+.slova-btn:disabled { border-color: transparent; background: var(--slova-chip); color: var(--muted); cursor: default; }
+.slova.done .slova-actions { display: none; }
 /* po konci kola zůstane plocha se slovy a překlady vidět, nabídka je pod ní */
 .game-wrap:has(.slova.done) .game-overlay { position: static; padding: 4px 16px 18px; background: var(--canvas); }
-.slova-7 .slova-word i, .slova-8 .slova-word i { width: 21px; height: 26px; font-size: 14px; border-radius: 5px; }
-.slova-9 .slova-word i { width: 18px; height: 23px; font-size: 13px; border-radius: 4px; }
-.slova-9 .slova-letter { font-size: .55px; }
-.slova-hint:disabled { opacity: .5; cursor: default; }
-@keyframes slova-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-.12px); } 75% { transform: translateX(.12px); } }
-@media (prefers-reduced-motion: reduce) { .slova-path.wrong { animation: none; } }
+.slova-7 .slova-word i, .slova-8 .slova-word i { width: 24px; height: 26px; font-size: 14px; border-radius: 5px; }
+.slova-9 .slova-word i { width: 20px; height: 23px; font-size: 13px; border-radius: 4px; }
+.slova-9 .slova-letter { font-size: .52px; }
 
 /* čas v appce: lišta a upozornění přes celou obrazovku */
 .time-bar { margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: #b42318; color: #fff; font-size: 17px; font-weight: 700; text-align: center; }
