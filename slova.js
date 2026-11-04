@@ -161,7 +161,15 @@ window.Slova = (() => {
       + '<div class="slova-words" aria-live="polite"></div>'
       + '<p class="slova-trans" aria-live="polite"></p>'
       + '<div class="slova-actions"><button type="button" class="slova-btn slova-undo">Vrátit</button>'
-      + '<button type="button" class="slova-btn slova-hint">Nápověda</button></div>';
+      + '<button type="button" class="slova-btn slova-hint">Nápověda</button></div>'
+      + '<details class="slova-how"><summary>Jak hrát</summary><ul>'
+      + '<li>Mřížka je celá poskládaná ze schovaných slov. Pod mřížkou vidíš, kolik jich je a kolik mají písmen.</li>'
+      + '<li>Táhni prstem po sousedních písmenech (nahoru, dolů, doleva, doprava, ne šikmo) a najdi slovo.</li>'
+      + '<li>Každé písmeno patří právě do jednoho slova. Šedá políčka nejsou ve hře.</li>'
+      + '<li>Nalezené slovo se obarví. Když pustíš prst dřív, tah zůstane a můžeš na něj navázat od jeho konce. Ťuknutím jinam ho smažeš, Vrátit ubere poslední písmeno.</li>'
+      + '<li>Nápověda ukáže první písmeno některého slova, další kliknutí jeho další písmena.</li>'
+      + (Object.keys(L.trans).length ? '<li>Ťukni na nalezené slovo a uvidíš český překlad.</li>' : '')
+      + '</ul></details>';
     stage.appendChild(box);
     const svg = box.querySelector('svg');
     const wordsEl = box.querySelector('.slova-words');
@@ -412,9 +420,9 @@ window.Slova = (() => {
       cur.pop();
       draw();
     });
-    // ťuknutí mimo mřížku (kromě tlačítek) smaže puštěný tah
+    // ťuknutí mimo mřížku (kromě tlačítek a „Jak hrát“) smaže puštěný tah
     box.addEventListener('pointerdown', (e) => {
-      if (cur.length && !drag && !svg.contains(e.target) && !hintBtn.contains(e.target) && !undoBtn.contains(e.target)) { cur = []; draw(); }
+      if (cur.length && !drag && !svg.contains(e.target) && !hintBtn.contains(e.target) && !undoBtn.contains(e.target) && !e.target.closest('.slova-how')) { cur = []; draw(); }
     });
 
     svg.addEventListener('pointerdown', down);
