@@ -160,11 +160,13 @@ window.Slova = (() => {
     box.innerHTML = `<svg class="slova-grid" viewBox="0 0 ${N} ${N}" role="img" aria-label="Plocha se slovy"></svg>`
       + '<div class="slova-words" aria-live="polite"></div>'
       + '<p class="slova-trans" aria-live="polite"></p>'
-      + '<button type="button" class="btn slova-hint">Nápověda</button>';
+      + '<div class="slova-actions"><button type="button" class="slova-btn slova-undo">Vrátit</button>'
+      + '<button type="button" class="slova-btn slova-hint">Nápověda</button></div>';
     stage.appendChild(box);
     const svg = box.querySelector('svg');
     const wordsEl = box.querySelector('.slova-words');
     const hintBtn = box.querySelector('.slova-hint');
+    const undoBtn = box.querySelector('.slova-undo');
     const transEl = box.querySelector('.slova-trans');
     let shown = -1;   // u kterého vyřešeného slova je vidět překlad
 
@@ -230,18 +232,21 @@ window.Slova = (() => {
       owner.forEach((o, c) => {
         const [x, y] = xy(c);
         const f = found(c);
-        el('rect', { x: x - 0.5, y: y - 0.5, width: 1, height: 1, class: o < 0 ? 'slova-off' : 'slova-cell', fill: f >= 0 ? tint(regions[f].hue) : '' });
+        // šedá políčka trochu přesahují, ať mezi nimi nejsou švy (jeden blok)
+        const k = o < 0 ? 0.52 : 0.5;
+        el('rect', { x: x - k, y: y - k, width: 2 * k, height: 2 * k, class: o < 0 ? 'slova-off' : 'slova-cell', fill: f >= 0 ? tint(regions[f].hue) : '' });
       });
-      // hranice jen kolem nalezených slov
+      // silné hranice: kolem šedých bloků a kolem nalezených slov
       const d = [];
+      const off = (c) => owner[c] < 0;
+      const edge = (a, b) => off(a) !== off(b) || ((found(a) >= 0 || found(b) >= 0) && found(a) !== found(b));
       owner.forEach((o, c) => {
         const x = c % N, y = Math.floor(c / N);
-        const f = found(c);
-        if (x < N - 1 && (f >= 0 || found(c + 1) >= 0) && found(c + 1) !== f) d.push(`M${x + 1} ${y}v1`);
-        if (y < N - 1 && (f >= 0 || found(c + N) >= 0) && found(c + N) !== f) d.push(`M${x} ${y + 1}h1`);
+        if (x < N - 1 && edge(c, c + 1)) d.push(`M${x + 1} ${y}v1`);
+        if (y < N - 1 && edge(c, c + N)) d.push(`M${x} ${y + 1}h1`);
       });
       el('path', { d: d.join(''), class: 'slova-wall' });
-      el('rect', { x: 0.03, y: 0.03, width: N - 0.06, height: N - 0.06, rx: 0.12, class: 'slova-frame' });
+      el('rect', { x: 0.04, y: 0.04, width: N - 0.08, height: N - 0.08, rx: 0.16, class: 'slova-frame' });
       // nalezená slova
       regions.forEach((r, i) => {
         if (!solved[i]) return;
@@ -287,6 +292,7 @@ window.Slova = (() => {
       box.classList.toggle('done', over);
       transEl.hidden = !transEl.textContent;
       hintBtn.disabled = over || regions.every((r, i) => solved[i] || hints[i] >= r.size);
+      undoBtn.disabled = over || !cur.length;
     }
 
     function say(text) {
@@ -400,9 +406,15 @@ window.Slova = (() => {
       hints[hintWord]++;
       draw();
     });
-    // ťuknutí mimo mřížku (kromě nápovědy) smaže puštěný tah
+    // Vrátit: ubere poslední písmeno rozdělaného tahu
+    undoBtn.addEventListener('click', () => {
+      if (!running || over || !cur.length) return;
+      cur.pop();
+      draw();
+    });
+    // ťuknutí mimo mřížku (kromě tlačítek) smaže puštěný tah
     box.addEventListener('pointerdown', (e) => {
-      if (cur.length && !drag && !svg.contains(e.target) && !hintBtn.contains(e.target)) { cur = []; draw(); }
+      if (cur.length && !drag && !svg.contains(e.target) && !hintBtn.contains(e.target) && !undoBtn.contains(e.target)) { cur = []; draw(); }
     });
 
     svg.addEventListener('pointerdown', down);
