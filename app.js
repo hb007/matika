@@ -958,6 +958,15 @@
   // nepočítá. Pauza při odchodu z appky / okna se do toho nepočítá.
   const GAME_PAUSES = 3;
   let pausesLeft = GAME_PAUSES;
+  // Rozehrané kolo je v deníku her (log.live). Když telefon po zhasnutí
+  // displeje stránku zahodí a načte znovu, kolo se ztratí, ale hra z limitu
+  // už je pryč. Po novém načtení se proto dá ztracené kolo hrát znovu bez
+  // další hry z limitu (nejvýš GAME_RESUMES× za kolo, ať to není hra navíc
+  // za každé obnovení stránky). PAGE_LOAD odliší nové načtení od odchodu
+  // z hry tlačítkem zpět.
+  const GAME_RESUMES = 2;
+  const PAGE_LOAD = Date.now() + '-' + Math.random();
+  let resumeRound = null;   // ztracené kolo, které se teď obnovuje
   const GAMES = window.MatikaGames;   // seznam her: games.js
   let gameId = null;    // právě otevřená hra
 
@@ -1020,7 +1029,7 @@
   function gameOverlay(msg, btn) {
     $('game-msg').textContent = msg;
     // volba obtížnosti jen v úvodu a po konci kola, ne v pauze
-    const vars = btn && gameId && !(game && game.paused) ? window.MatikaVariant.html(gameId) : '';
+    const vars = btn && gameId && !resumeRound && !(game && game.paused) ? window.MatikaVariant.html(gameId) : '';
     $('game-variants').innerHTML = vars;
     $('game-variants').hidden = !vars;
     $('game-start').textContent = btn;
@@ -1028,9 +1037,10 @@
     $('game-overlay').hidden = false;
     if (btn && !KEYPAD) $('game-start').focus({ preventScroll: true });
   }
-  function openGame(id) {
+  function openGame(id, resume) {
     const g = GAMES[id];
-    if (!g || gameBlock()) { openGames(); return; }
+    resumeRound = resume || null;
+    if (!g || (!resumeRound && gameBlock())) { openGames(); return; }
     clearTimeout(state.timer);
     state.ex = null;
     if (game) game.stop();
@@ -1051,8 +1061,27 @@
       onScore: (n) => { $('game-score').textContent = n; },
       onOver: (n) => gameOver(id, n),
     }, window.MatikaVariant.get(id));
-    gameOverlay(g.how, 'Hrát');
+    if (resumeRound) {
+      pausesLeft = resumeRound.pauses;
+      gameOverlay('Hra se přerušila (telefon stránku zavřel). Kolo začne znovu a další hru z limitu nespotřebuje.', 'Pokračovat');
+    } else gameOverlay(g.how, 'Hrát');
     renderPause();
+  }
+  // ztracené kolo z minulého načtení stránky (null = žádné)
+  function lostRound() {
+    const live = gameLog().live;
+    return live && live.page !== PAGE_LOAD && GAMES[live.id] && live.resumes < GAME_RESUMES ? live : null;
+  }
+  function resumeLostGame() {
+    const live = lostRound();
+    if (live) openGame(live.id, live);
+  }
+  // uloží stav rozehraného kola (pauzy), ať přežije nové načtení stránky
+  function saveLive(fn) {
+    const log = gameLog();
+    if (!log.live) return;
+    fn(log.live);
+    saveLog(log);
   }
   function renderPause() {
     const b = $('game-pause');
@@ -1066,6 +1095,7 @@
     if (manual) {
       if (pausesLeft <= 0) return;
       pausesLeft--;
+      saveLive((l) => { l.pauses = pausesLeft; });
     }
     game.stop();
     game.paused = true;
@@ -1081,6 +1111,8 @@
   }
   function gameOver(id, n) {
     const g = GAMES[id];
+    resumeRound = null;
+    saveLive((l) => { l.page = PAGE_LOAD; l.resumes = GAME_RESUMES; });   // dohrané kolo už obnovit nejde
     const best = bestOf(id);
     const record = !g.noBest && (g.low ? n > 0 && (!best || n < best) : n > best);
     if (record) {
@@ -1098,13 +1130,21 @@
   function gameGo() {
     if (!game) return;
     if (game.running) { $('game-overlay').hidden = true; return; }
-    const block = gameBlock();
+    const block = resumeRound ? '' : gameBlock();
     if (block) { gameOverlay(block, ''); return; }
     if (game.over || !game.paused) {
       const log = gameLog();
-      log.plays++;
+      if (resumeRound && !game.over) {
+        // ztracené kolo znovu: hra z limitu se neodečte, pauzy zůstanou
+        log.live = { ...resumeRound, page: PAGE_LOAD, resumes: resumeRound.resumes + 1 };
+        pausesLeft = resumeRound.pauses;
+      } else {
+        log.plays++;
+        log.live = { id: gameId, page: PAGE_LOAD, pauses: GAME_PAUSES, resumes: 0 };
+        pausesLeft = GAME_PAUSES;
+      }
+      resumeRound = null;
       saveLog(log);
-      pausesLeft = GAME_PAUSES;
       if (game.over) game.reset();
     }
     game.paused = false;
@@ -1547,7 +1587,7 @@
       const me = page && s.users.find((u) => u.id === page.id);
       Object.assign(state, { modules: s.modules, diffs: s.difficulties, goal: s.goal, board: s.board !== false, colors: s.colors || {}, pin: s.pin || state.pin, page, user: me ? me.id : null });
       renderKids(s.users);
-      if (me) openLast();
+      if (me) { openLast(); resumeLostGame(); }
       else if (page) showLogin(page.has_pin ? 'pin' : 'setup', page);
       else if (location.search === '?ucet') showLogin('register');   // z nabídky hostovi po pár příkladech
       else if (/^\?pozvanka=/.test(location.search)) await openInvite(decodeURIComponent(location.search.slice(10)));
