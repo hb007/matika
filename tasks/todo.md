@@ -2,6 +2,13 @@
 
 * [x] ověřit nasazení na hosting (GitHub Actions → FTP)
 
+## Trojčlenka (2026-11-07)
+
+* [x] `lib/trojclenka.php`: slovní úlohy na přímou a nepřímou úměrnost a obojí, 5 + 4 šablony se správnými tvary podle čísla, jednotka za políčkem (Kč, km, g, l, h)
+* [x] nápověda a postup: jaká je to úměrnost, pak přes jednotku; na těžké přímé „kolikrát víc / míň“ nebo zlomek; rozbor chyb (obrácená úměrnost, jen za jeden kus, zapomenuté dělení, přičtení rozdílu)
+* [x] slovní zadání menším písmem (třída `word`), nezlomitelná mezera mezi číslem a jednotkou
+* [x] ověřeno: testy (rozsahy, tvary, rozbory, postup), shoda PHP a JS, Playwright (počítač i telefon, nápověda, špatná odpověď, zlomek v nápovědě)
+
 ## Sešity s PINem, třídy, správa (2026-10-25)
 
 * [x] server: `lib/auth.php` (registrace s kódem třídy, PIN + zámek, tokeny zařízení, smazání), migrace `users`, tabulky `classes` a `tokens`, akce `register`/`login`/`logout`/`pin`/`card`, žebříček, bez sešitu (GUEST); testy `tests/test_auth.php`

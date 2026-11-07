@@ -18,6 +18,7 @@ const MODULES = [
     'zlomky'      => ['title' => 'Zlomky',                 'levels' => ['kraceni' => 'Krácení', 'scitani' => 'Sčítání a odčítání', 'nasobeni' => 'Násobení a dělení', 'mix' => 'Všechno']],
     'deleni'      => ['title' => 'Dělení s ocáskem',       'levels' => ['zbytek' => 'Se zbytkem']],
     'procenta'    => ['title' => 'Procenta',               'levels' => ['z_cisla' => 'Kolik je … %', 'kolik' => 'Kolik je to procent', 'zaklad' => 'Celek (100 %)']],
+    'trojclenka'  => ['title' => 'Trojčlenka',             'levels' => ['prima' => 'Přímá úměrnost', 'neprima' => 'Nepřímá úměrnost', 'mix' => 'Obojí']],
     'delitelnost' => ['title' => 'Dělitelnost',            'levels' => ['znaky' => 'Znaky dělitelnosti', 'nsd' => 'Největší společný dělitel', 'nsn' => 'Nejmenší společný násobek']],
     'zavorky'     => ['title' => 'Závorky a pořadí',       'levels' => ['poradi' => 'Pořadí operací', 'zavorky' => 'Se závorkami', 'mix' => 'Všechno']],
     'rovnice'     => ['title' => 'Rovnice',                'levels' => ['jednoducha' => 'Jednoduché', 'dvoukrokova' => 'Na dva kroky', 'obe' => 'x na obou stranách a závorky']],
@@ -377,3 +378,4 @@ function check_answer(array $ex, $given): array
 require_once __DIR__ . '/algebra.php';   // závorky a rovnice
 require_once __DIR__ . '/more.php';      // procenta, dělitelnost, statistika, desetinná · :
 require_once __DIR__ . '/rimske.php';    // římské číslice
+require_once __DIR__ . '/trojclenka.php';   // trojčlenka (přímá a nepřímá úměrnost)
