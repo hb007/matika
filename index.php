@@ -105,7 +105,7 @@ $color = $kid ? (COLORS[$kid['color']] ?? COLORS['modra']) : null;
   <section id="screen-who" class="screen" hidden>
     <div id="welcome" hidden>
       <h1>Pojď si zacvičit matiku</h1>
-      <p class="lead">Pro 2. stupeň: násobilka, zlomky, desetinná čísla, procenta, rovnice, římské číslice a další. Příklad za příkladem, s nápovědou po krocích.</p>
+      <p class="lead">Pro 2. stupeň: násobilka, zlomky, desetinná čísla, procenta, trojčlenka, rovnice, římské číslice a další. Příklad za příkladem, s nápovědou po krocích.</p>
       <p class="lead">S účtem sbíráš body a nálepky<?= BOARD ? ', soutěžíš se třídou' : '' ?> a za splněný denní cíl máš hry.</p>
       <div class="who-more">
         <button type="button" class="btn big" data-login="guest">Zkusit hned</button>

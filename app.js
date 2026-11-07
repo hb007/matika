@@ -21,6 +21,7 @@
     rovnice: { jednoducha: 'x+3', dvoukrokova: '2x+3', obe: 'x=x' },
     desetinna: { nasobeni: '·', deleni: ':', posun: '·10' },
     procenta: { z_cisla: '% z', kolik: '?%', zaklad: '100%' },
+    trojclenka: { prima: '↑↑', neprima: '↑↓', mix: 'vše' },
     delitelnost: { znaky: '□', nsd: 'D', nsn: 'n' },
     statistika: { prumer: 'Ø', median: 'med', modus: 'mod' },
     rimske: { na_arabske: 'XII→12', na_rimske: '12→XII' },
@@ -549,6 +550,7 @@
     setDiffColor(q.diff);   // v mixu „vše“ barva podle obtížnosti tohoto příkladu
     $('review').hidden = !q.review;
     $('question').innerHTML = renderQ(q.q) + (q.kind === 'divrem' || q.var || q.q.startsWith('Zkrať') || q.q.endsWith('?') ? '' : ' =');
+    $('question').classList.toggle('word', q.q.length > 40);   // slovní úloha (trojčlenka): menší písmo, běžný text
     $('feedback').hidden = true;
     $('feedback').innerHTML = '';
     $('hints').hidden = true;

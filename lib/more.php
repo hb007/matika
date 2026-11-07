@@ -1,6 +1,7 @@
 <?php
 // Procenta, dělitelnost, statistika a desetinná čísla (násobení a dělení):
 // generátory, nápověda po krocích, postup a rozbor chyb. Načítá se z generators.php.
+// Společné rozhraní na konci souboru obsluhuje i trojčlenku (trojclenka.php).
 
 // ---------- pomocné ----------
 
@@ -451,6 +452,7 @@ function more_steps(array $ex): array
         'div' => div_steps($p, (int) $ex['a']),
         'stat' => stat_steps($p, $ex['a']),
         'dmd' => dmd_steps($p, (float) $ex['a']),
+        'troj' => troj_steps($p, (int) $ex['a']),
         default => [],
     };
 }
@@ -481,6 +483,7 @@ function diagnose_more(array $ex, float $g): string
         'div' => diagnose_div_rules($p, $g, (int) $ex['a']),
         'stat' => diagnose_stat($p, $g, $ex['a']),
         'dmd' => diagnose_dmd($p, $g, (float) $ex['a']),
+        'troj' => diagnose_troj($p, $g),
         default => '',
     };
 }
@@ -498,10 +501,15 @@ function more_var(array $ex): ?string
 
 function question_unit(array $ex): ?string
 {
-    return ($ex['p']['op'] ?? '') === 'pct' && $ex['p']['form'] === 'kolik' ? '%' : null;
+    $p = $ex['p'] ?? [];
+    return match ($p['op'] ?? '') {
+        'pct' => $p['form'] === 'kolik' ? '%' : null,
+        'troj' => $p['unit'],   // trojčlenka: Kč, km, h … (zkratky se neskloňují)
+        default => null,
+    };
 }
 
 function is_more(array $ex): bool
 {
-    return in_array($ex['p']['op'] ?? '', ['pct', 'div', 'stat', 'dmd'], true);
+    return in_array($ex['p']['op'] ?? '', ['pct', 'div', 'stat', 'dmd', 'troj'], true);
 }

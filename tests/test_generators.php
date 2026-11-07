@@ -107,3 +107,35 @@ check($intQ < 0.15 * 1800, "posun: cele zadani jen vyjimecne ($intQ z 1800)");
 [$ok] = check_answer(['kind' => 'num', 'a' => 0.045], '0,045');
 [$bad] = check_answer(['kind' => 'num', 'a' => 0.045], '0,046');
 check($ok && !$bad, 'kontrola rozlisi tri desetinna mista');
+
+// trojčlenka: celý výsledek, přímá roste s počtem, nepřímá klesá, tvary podle čísla
+$sp = fn(array $lines) => str_replace("\u{a0}", ' ', implode(' ', $lines));   // nezlomitelné mezery jako obyčejné
+for ($i = 0; $i < 300; $i++) {
+    foreach (array_keys(DIFFICULTIES) as $d) {
+        $e = generate_exercise('trojclenka', 'prima', $d);
+        $p = $e['p'];
+        check(is_int($e['a']) && $e['a'] * $p['a'] === $p['b'] * $p['c'] && $p['a'] !== $p['c'], "trojclenka prima $d: " . $e['q']);
+        check($d !== 'tezke' ? $p['b'] % $p['a'] === 0 : $p['b'] % $p['a'] !== 0, "trojclenka prima $d: jednotkova hodnota " . $e['q']);
+        $e = generate_exercise('trojclenka', 'neprima', $d);
+        $p = $e['p'];
+        check(is_int($e['a']) && $e['a'] * $p['c'] === $p['a'] * $p['t'] && $p['a'] !== $p['c'], "trojclenka neprima $d: " . $e['q']);
+        check(!preg_match('/\b(1 dělníci|[5-9] dělníci|[2-4] dělníků|[5-9] kamarádi|[2-4] kamarádů|[2-4] čerpadel|[5-9] čerpadla|[2-4] sešitů|[5-9] sešity)\b/u', str_replace("\u{a0}", ' ', $e['q'])), "trojclenka: tvar podle cisla " . $e['q']);
+    }
+    $e = generate_exercise('trojclenka', 'mix', 'stredni');
+    check(in_array($e['p']['form'], ['prima', 'neprima'], true), 'trojclenka mix: ' . $e['q']);
+}
+check($sp([troj_fill('{a:dělník|dělníci|dělníků} [a:udělá|udělají|udělá]', ['a' => 3])]) === '3 dělníci udělají', 'trojclenka: 3 dělníci udělají');
+check($sp([troj_fill('{a:dělník|dělníci|dělníků} [a:udělá|udělají|udělá]', ['a' => 12])]) === '12 dělníků udělá', 'trojclenka: 12 dělníků udělá');
+$e = ['kind' => 'num', 'a' => 40, 'p' => ['op' => 'troj', 'form' => 'prima', 'ctx' => 'sesity', 'a' => 3, 'b' => 24, 'c' => 5, 'unit' => 'Kč']];
+check(str_contains(diagnose($e, '14,4'), 'nepřímé'), 'trojclenka prima: obracene');
+check(str_contains(diagnose($e, '8'), 'vynásob 5'), 'trojclenka prima: jen za kus');
+check(str_contains($sp(explain($e)), '5 sešitů stojí 5 · 8 = 40 Kč'), 'trojclenka prima: postup');
+check(question_unit($e) === 'Kč', 'trojclenka: jednotka za polickem');
+$e = ['kind' => 'num', 'a' => 8, 'p' => ['op' => 'troj', 'form' => 'neprima', 'ctx' => 'delnici', 'a' => 4, 't' => 6, 'c' => 3, 'unit' => 'h']];
+check(str_contains(diagnose($e, '4,5'), 'přímé úměrnosti'), 'trojclenka neprima: obracene');
+check(str_contains(diagnose($e, '24'), 'vyděl 3'), 'trojclenka neprima: jen pro jednoho');
+check(str_contains($sp(explain($e)), '3 dělníci ji udělají za 24 : 3 = 8 h'), 'trojclenka neprima: postup');
+$e = ['kind' => 'num', 'a' => 18, 'p' => ['op' => 'troj', 'form' => 'prima', 'ctx' => 'sesity', 'a' => 6, 'b' => 27, 'c' => 4, 'unit' => 'Kč']];
+check(str_contains($sp(hint_steps($e)), 'x = 27 · 4/6'), 'trojclenka tezke: zlomkem');
+$e = ['kind' => 'num', 'a' => 82, 'p' => ['op' => 'troj', 'form' => 'prima', 'ctx' => 'sesity', 'a' => 3, 'b' => 41, 'c' => 6, 'unit' => 'Kč']];
+check(str_contains($sp(explain($e)), '41 · 2 = 82 Kč'), 'trojclenka tezke: dvakrat vic');

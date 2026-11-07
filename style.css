@@ -260,6 +260,7 @@ body[data-diff] .top { border-bottom: 0; box-shadow: inset 0 -6px 0 var(--hl); p
   margin: 34px 0 18px; font-size: 58px; font-weight: 700; letter-spacing: 1px; text-align: center;
 }
 .question .label { width: 100%; font-size: 22px; font-weight: 700; color: var(--muted); }
+.question.word { max-width: 34em; margin-left: auto; margin-right: auto; font-size: 26px; font-weight: 600; letter-spacing: 0; line-height: 1.4; text-wrap: pretty; }
 .frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; font-size: .8em; line-height: 1.1; }
 .frac > span:first-child { border-bottom: 3px solid currentColor; padding: 0 6px; }
 .frac > span:last-child { padding: 0 6px; }
@@ -431,6 +432,7 @@ body[data-diff] .top { border-bottom: 0; box-shadow: inset 0 -6px 0 var(--hl); p
   h1 { font-size: 24px; }
   .me-name { font-size: 26px; }
   .question { font-size: 48px; margin: 22px 0 14px; }
+  .question.word { font-size: 21px; }
   .answer input { width: 150px; height: 62px; font-size: 40px; }
   .answer input.narrow { width: 90px; }
   .answer #inputs { gap: 6px; font-size: 22px; }
@@ -443,6 +445,7 @@ body[data-diff] .top { border-bottom: 0; box-shadow: inset 0 -6px 0 var(--hl); p
 /* telefon na šířku / nízké obrazovky */
 @media (max-height: 520px) and (orientation: landscape) {
   .question { font-size: 32px; margin: 6px 0 8px; }
+  .question.word { font-size: 19px; }
   .key { height: 42px; font-size: 22px; }
   .keypad { margin-top: 8px; }
 }
